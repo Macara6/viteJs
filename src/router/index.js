@@ -4,15 +4,17 @@ import { createRouter, createWebHistory } from 'vue-router';
 const router = createRouter({
     history: createWebHistory(),
     routes: [
-        {
-            path: '/',
+
+        {   
+            path: '/home',
             component: AppLayout,
             children: [
                 {
-                    path: '/',
+                    path: '/dashboard',
                     name: 'dashboard',
                     component: () => import('@/views/Dashboard.vue')
-                },
+                },     
+
                 {
                     path: '/uikit/formlayout',
                     name: 'formlayout',
@@ -49,11 +51,7 @@ const router = createRouter({
                     component: () => import('@/views/uikit/PanelsDoc.vue')
                 },
 
-                {
-                    path: '/uikit/overlay',
-                    name: 'overlay',
-                    component: () => import('@/views/uikit/OverlayDoc.vue')
-                },
+
                 {
                     path: '/uikit/media',
                     name: 'media',
@@ -79,33 +77,54 @@ const router = createRouter({
                     name: 'charts',
                     component: () => import('@/views/uikit/ChartDoc.vue')
                 },
+
+
                 {
-                    path: '/uikit/misc',
-                    name: 'misc',
-                    component: () => import('@/views/uikit/MiscDoc.vue')
+                    path: '/pages/produit',
+                    name: 'Produit',
+                    component: () => import('@/views/pages/Produit.vue')
                 },
                 {
-                    path: '/uikit/timeline',
-                    name: 'timeline',
-                    component: () => import('@/views/uikit/TimelineDoc.vue')
+                    path:'/pages/invoice',
+                    name:'Invoice',
+                    component:() => import('@/views/pages/Invoice.vue')
+                },
+
+                {
+                    path:'/pages/utilisateur',
+                    name:'Utilisateur',
+                    component:() => import('@/views/pages/Utilisateur.vue')
                 },
                 {
-                    path: '/pages/empty',
-                    name: 'empty',
-                    component: () => import('@/views/pages/Empty.vue')
+                    path:'/pages/statistique',
+                    name:'Statistique',
+                    component:() => import('@/views/pages/Statistique.vue')
                 },
                 {
-                    path: '/pages/crud',
-                    name: 'crud',
-                    component: () => import('@/views/pages/Crud.vue')
+                    path:'/pages/bilan',
+                    name:'Bilan',
+                    component:() => import('@/views/pages/Bilan.vue')
+
+                },
+
+                {
+                    path: '/pages/Employee',
+                    name :'employee',
+                    component: () => import('@/views/pages/Employee.vue')
                 },
                 {
-                    path: '/documentation',
-                    name: 'documentation',
-                    component: () => import('@/views/pages/Documentation.vue')
+                    path: '/user/:id',
+                    name:'userDetail',
+                    component: () => import('@/views/pages/UserDetail.vue')
+                },
+                {
+                    path:'/pages/subscription/',
+                    name:'Subscription',
+                    component: () => import('@/views/pages/Subscription.vue')
                 }
             ]
         },
+
         {
             path: '/landing',
             name: 'landing',
@@ -116,12 +135,12 @@ const router = createRouter({
             name: 'notfound',
             component: () => import('@/views/pages/NotFound.vue')
         },
-
         {
-            path: '/auth/login',
+            path: '/',
             name: 'login',
             component: () => import('@/views/pages/auth/Login.vue')
         },
+
         {
             path: '/auth/access',
             name: 'accessDenied',

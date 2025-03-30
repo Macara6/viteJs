@@ -1,6 +1,6 @@
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { ProductService } from '@/service/ProductService';
+
 import { onMounted, ref, watch } from 'vue';
 
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
@@ -102,6 +102,7 @@ watch([getPrimary, getSurface, isDarkTheme], () => {
 
 <template>
     <div class="grid grid-cols-12 gap-8">
+
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
@@ -117,6 +118,7 @@ watch([getPrimary, getSurface, isDarkTheme], () => {
                 <span class="text-muted-color">since last visit</span>
             </div>
         </div>
+
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
@@ -132,6 +134,7 @@ watch([getPrimary, getSurface, isDarkTheme], () => {
                 <span class="text-muted-color">since last week</span>
             </div>
         </div>
+
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
@@ -147,6 +150,7 @@ watch([getPrimary, getSurface, isDarkTheme], () => {
                 <span class="text-muted-color">newly registered</span>
             </div>
         </div>
+        
         <div class="col-span-12 lg:col-span-6 xl:col-span-3">
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
@@ -269,6 +273,7 @@ watch([getPrimary, getSurface, isDarkTheme], () => {
                 </ul>
             </div>
         </div>
+        
         <div class="col-span-12 xl:col-span-6">
             <div class="card">
                 <div class="font-semibold text-xl mb-4">Revenue Stream</div>
