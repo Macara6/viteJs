@@ -20,11 +20,7 @@ const router = createRouter({
                     name: 'formlayout',
                     component: () => import('@/views/uikit/FormLayout.vue')
                 },
-                {
-                    path: '/uikit/input',
-                    name: 'input',
-                    component: () => import('@/views/uikit/InputDoc.vue')
-                },
+              
                 {
                     path: '/uikit/button',
                     name: 'button',
