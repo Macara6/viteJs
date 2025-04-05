@@ -1,5 +1,5 @@
 <script setup>
-import { ProductService } from '@/service/ProductService';
+
 import { FilterMatchMode, FilterOperator } from '@primevue/core/api';
 import { onBeforeMount, reactive, ref } from 'vue';
 
