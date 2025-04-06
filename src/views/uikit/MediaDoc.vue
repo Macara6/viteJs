@@ -1,5 +1,5 @@
 <script setup>
-import { PhotoService } from '@/service/PhotoService';
+import { PhotoService } from '@/service/PhotoServices';
 
 import { onMounted, ref } from 'vue';
 
