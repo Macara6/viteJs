@@ -2,53 +2,103 @@
 import { ref } from 'vue';
 
 import AppMenuItem from './AppMenuItem.vue';
-
-const model = ref([
+ 
+const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+const model = ref([]);
+// fisible pour le client et tous le monde
+ if(isSuperUser){
+    // Menu administrateur 
+    model.value =[
     {
-        label: 'ACCUEIL',
+        label: 'GESTION CLIENT',
         items: [
             //{ 
         // label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/dashbord' 
             // },
-
-        {
-        label: 'Table Produits',
-        icon: 'pi pi-fw pi-circle',
-         to: '/pages/Produit'
-        },
-        {
-            label:'Abonnements',
-            icon :'pi pi-money-bill',
-            to:'/pages/Subscription'
-        }
-
-    
-         ],
-  
-
-    },
-    
-    {
-        label: 'ADMINISTRATION',
-        items: [
             {
                 label:'Utilisateurs',
                 icon:'pi pi-fw pi-users',
                 to:'/pages/Utilisateur'
             },
+
             {
-                label:'Statistique',
-                icon:'pi pi-fw pi-chart-pie',
-                to:'/pages/Statistique'
+            label:'Abonnements',
+            icon :'pi pi-money-bill',
+            to:'/pages/Subscription'
+           },
+         ], 
+            
+     },
+     {
+        label :'ADMINISTRATION',
+        items:[
+            {
+                label:'Lieste des depasses',
+                icon:'pi pi-database',
+                to:'/pages/CashOutListe'
             },
             {
-                label:'Bilan/Jour',
-                icon:'pi pi-fw pi-chart-line',
-                to:'/pages/Bilan'
+                label:'Nouveau Bon',
+                icon: 'pi pi-tag',
+                to:'/pages/CreateCashout'
             }
-
         ]
-    }
+        
+        
+     }
+    ];
+
+
+ } else {
+    model.value = [
+        {
+        label: 'ACCUEIL',
+        items: [
+
+        {
+        label: 'Gestion Stock',
+        icon: 'pi pi-shopping-bag',
+         to: '/pages/Produit'
+        },
+        {
+            label:'Factures',
+            icon:'pi pi-shopping-cart',
+            to:'/pages/Invoice'
+
+        },
+
+        {
+            label:'Bilan/Jour',
+            icon:'pi pi-fw pi-chart-line',
+            to:'/pages/Bilan'
+        },
+
+        {
+            label:'Statistique',
+            icon:'pi pi-fw pi-chart-pie',
+            to:'/pages/Statistique'
+        },
+        {
+            label:'Notification',
+            icon:'pi pi-fw pi-bell',
+            to:'/pages/Notification'
+        },
+
+
+
+
+
+          ]
+        }
+    ];
+  
+ }
+
+
+   // fisible pour la gestion administartif (admin) 
+ 
+
+
 
  /**
  
@@ -107,7 +157,9 @@ const model = ref([
     },
      */
 
-]);
+
+
+
 </script>
 
 <template>

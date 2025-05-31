@@ -117,7 +117,29 @@ const router = createRouter({
                     path:'/pages/subscription/',
                     name:'Subscription',
                     component: () => import('@/views/pages/Subscription.vue')
+                },
+
+                {
+                    path:'/pages/Notification/',
+                    name:'Notification',
+                    component:() => import('@/views/pages/Notification.vue')
+                },
+                {
+                    path:'/pages/CashOutListe',
+                    name:'CashOutListe',
+                    component:() => import('@/views/pages/CashOutListe.vue')
+                },
+                {
+                    path:'/pages/CreateCashout',
+                    name:'CreateCashout',
+                    component:() => import('@/views/pages/CreateCashout.vue')
+                },
+                {
+                    path:'/cashout/pdf/:id',
+                    name:'PrintCashout',
+                    component: () => import('@/views/pages/PrintCashout.vue')
                 }
+                
             ]
         },
 

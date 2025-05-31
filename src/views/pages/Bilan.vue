@@ -2,7 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchInvoices, fetchUsers } from '@/service/Api';
+import { fetchInvoices, fetchUserById } from '@/service/Api';
 import jsPDF from 'jspdf';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -13,14 +13,18 @@ const lineData = ref(null);
 const lineOptions = ref(null);
 const invoices = ref([]);
 const total_Amount = ref(0)
-const users = ref([]);
+const user = ref(null);
 const today = new Date().toISOString().split('T')[0];
 const selectDate = ref({
     global:{ value:today }
 })
+
+
 onMounted( async ()=>{
-    invoices.value =  await fetchInvoices();
-    users.value = await fetchUsers();
+    const userId = localStorage.getItem('id');
+
+    invoices.value =  await fetchInvoices(userId);
+    user.value = await fetchUserById(userId);
     calculateTotalAmount();
     setColorOptions();
     updateLineData()
@@ -56,21 +60,90 @@ function calculateTotalAmount(){
     });
     console.log('Tatl amount for today :', total_Amount.value);
 }
-// function to generaate PDF raport
-function generatePDF(){
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('Invoice Raport',14,20);
-    doc.setFontSize(12);
-    doc.text(`Date: ${selectDate.value.global.value}`, 14,30);
-    doc.text(`Total Invoices: ${todaysInvoicesCount.value}`,14,40);
-    doc.text(`Total Amount: ${formatPrice(total_Amount.value)} Fc`, 14,50);
 
-    doc.text('Invoices:',14,60);
-    todaysInvoices.value.forEach((invoice, index) => {
-        doc.text(`Invoice ID: ${invoice.id}, Client: ${invoice.client_name},Amount: ${formatPrice(invoice.total_amount)} Fc`,14,70+ (10 * index));
+function loadImageAsBase64(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = url;
     });
-    doc.save('invoive_raport.pdf');
+}
+
+// function to generaate PDF raport
+ async function generatePDF(){
+    const  userName = localStorage.getItem('username')
+    const doc = new jsPDF();
+    const marginLeft = 14;
+    let y = 20;
+
+
+    const logoUrl = '/demo/bilatech.png'; // Par exemple : '/assets/logo.png'
+
+        const logoImage = await loadImageAsBase64(logoUrl);
+        if (logoImage) {
+            doc.addImage(logoImage, 'PNG', marginLeft, y, 30, 30); // x, y, largeur, hauteur
+            y += 35;
+        }
+// titre 
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rapport de facturation quotidien',marginLeft, y);
+    y +=10;
+
+    // info general 
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Caissier(e): ${userName}`, marginLeft,y);
+    y +=8
+    doc.text(`Date: ${selectDate.value.global.value}`, marginLeft,y);
+    y +=8;
+    doc.text(`Total factures: ${todaysInvoicesCount.value}`,marginLeft, y);
+    y +=8;
+    doc.text(`Montant total: ${formatPrice(total_Amount.value)} Fc`, marginLeft,y);
+    y +=12;
+
+    doc.setDrawColor(0);
+    doc.line(marginLeft, y, 200, y);
+    y += 10;
+
+        // En-tête du tableau
+    doc.setFont('helvetica', 'bold');
+    doc.text('ID', marginLeft, y);
+    doc.text('Client', marginLeft + 20, y);
+    doc.text('Montant (Fc)', marginLeft + 100, y);
+    doc.text('Retour (Fc)', marginLeft + 160, y)
+    y += 8;
+    
+    doc.setFont('helvetica', 'normal');
+
+    todaysInvoices.value.forEach((invoice, index) => {
+        doc.text(`${invoice.id}`, marginLeft, y);
+        doc.text(`${invoice.client_name}`, marginLeft + 20, y);
+        doc.text(`${formatPrice(invoice.total_amount)} fc`, marginLeft + 100, y);
+        doc.text(`${formatPrice(invoice.change)} fc`, marginLeft + 160, y);
+        y += 8;
+
+        // Saut de page si nécessaire
+        if (y > 280) {
+            doc.addPage();
+            y = 20;
+        }
+    });
+
+    
+
+    doc.save(`daily_invoice_report_.pdf`);
+
+   
 }
 
 
@@ -86,84 +159,71 @@ function formatPrice(price){
     }
     return price;
 }
-
-function setColorOptions(){
+function setColorOptions() {
     const documentStyle = getComputedStyle(document.documentElement);
 
-    lineOptions.value ={
-       responsive: true,
-       plugins: {
-         legend:{
-            position: 'top',
+    lineOptions.value = {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            title: {
+                display: true,
+                text: 'Factures de la semaine'
+            },
         },
-
-        title: {
-           display: true,
-           text:'Factures de la semaine'
-         },
-       },
     };
 
     const userInvoiceCounts = {};
     const selectedDate = new Date(selectDate.value.global.value).toISOString().split('T')[0];
- 
-     console.log('today is', today);
 
     invoices.value.forEach(invoice => {
         const invoiceDate = new Date(invoice.created_at).toISOString().split('T')[0];
-
-        if(invoiceDate === selectedDate){
-            
+        if (invoiceDate === selectedDate) {
             const userId = invoice.cashier;
-
-            if(userInvoiceCounts[userId]){
-                userInvoiceCounts[userId] +=1;
-            }else{
-                userInvoiceCounts[userId] = 1;
-            }
+            userInvoiceCounts[userId] = (userInvoiceCounts[userId] || 0) + 1;
         }
     });
+
     const labels = [];
     const data = [];
-    users.value.forEach(user => {
-        const userId = user.id;
-        labels.push(user.username);
+
+    if (user.value) {
+        const userId = user.value.id;
+        labels.push(user.value.username);
         data.push(userInvoiceCounts[userId] || 0);
-    })
-    
-    console.log('Date is',data);
+    }
 
     pieData.value = {
-        labels: labels,
+        labels,
         datasets: [
             {
-                data: data,
-                backgroundColor:[
-                documentStyle.getPropertyValue('--p-indigo-500'), // Dark Indigo
-                  documentStyle.getPropertyValue('--p-blue-500'),    // Bright Blue
-                  documentStyle.getPropertyValue('--p-green-500'),   // Bright Green
-                  documentStyle.getPropertyValue('--p-red-500'),     // Bright Red
-                  documentStyle.getPropertyValue('--p-yellow-500'),  // Bright Yellow
-                  documentStyle.getPropertyValue('--p-orange-500'),  // Bright Orange
-                  documentStyle.getPropertyValue('--p-purple-500'),   // Bright Purple
-                  documentStyle.getPropertyValue('--p-teal-500'),     // Teal
-                  documentStyle.getPropertyValue('--p-gray-500'),     // Gray
-                  documentStyle.getPropertyValue('--p-brown-500'),    // Brown 
+                data,
+                backgroundColor: [
+                    documentStyle.getPropertyValue('--p-indigo-500'),
+                    documentStyle.getPropertyValue('--p-blue-500'),
+                    documentStyle.getPropertyValue('--p-green-500'),
+                    documentStyle.getPropertyValue('--p-red-500'),
+                    documentStyle.getPropertyValue('--p-yellow-500'),
+                    documentStyle.getPropertyValue('--p-orange-500'),
+                    documentStyle.getPropertyValue('--p-purple-500'),
+                    documentStyle.getPropertyValue('--p-teal-500'),
+                    documentStyle.getPropertyValue('--p-gray-500'),
+                    documentStyle.getPropertyValue('--p-brown-500'),
                 ],
-
                 hoverBackgroundColor: [
-                  documentStyle.getPropertyValue('--p-indigo-400'), // Light Indigo
-                  documentStyle.getPropertyValue('--p-blue-400'),    // Light Blue
-                  documentStyle.getPropertyValue('--p-green-400'),   // Light Green
-                  documentStyle.getPropertyValue('--p-red-400'),     // Light Red
-                  documentStyle.getPropertyValue('--p-yellow-400'),  // Light Yellow
-                  documentStyle.getPropertyValue('--p-orange-400'),  // Light Orange
-                  documentStyle.getPropertyValue('--p-purple-400'),   // Light Purple
-                  documentStyle.getPropertyValue('--p-teal-400'),     // Light Teal
-                  documentStyle.getPropertyValue('--p-gray-400'),     // Light Gray
-                  documentStyle.getPropertyValue('--p-brown-400'),    // Light Brown
+                    documentStyle.getPropertyValue('--p-indigo-400'),
+                    documentStyle.getPropertyValue('--p-blue-400'),
+                    documentStyle.getPropertyValue('--p-green-400'),
+                    documentStyle.getPropertyValue('--p-red-400'),
+                    documentStyle.getPropertyValue('--p-yellow-400'),
+                    documentStyle.getPropertyValue('--p-orange-400'),
+                    documentStyle.getPropertyValue('--p-purple-400'),
+                    documentStyle.getPropertyValue('--p-teal-400'),
+                    documentStyle.getPropertyValue('--p-gray-400'),
+                    documentStyle.getPropertyValue('--p-brown-400'),
                 ]
-
             }
         ]
     };
@@ -171,40 +231,42 @@ function setColorOptions(){
     pieOptions.value = {
         responsive: true,
         plugins: {
-            Legend: {
-                position:'top',
+            legend: {
+                position: 'top',
             },
-            title:{
+            title: {
                 display: true,
-                text:'Factures par categorie',
+                text: 'Factures par catégorie',
             },
         },
     };
-
 }
 
-function updateLineData(){
+
+function updateLineData() {
     const { start, end } = getWeekRange(selectDate.value.global.value);
     const labels = [];
     const data = [];
 
-    for(let d =  new Date(start); d<= end; d.setDate(d.getDate() + 1)){
-        const dateString = d.toISOString().split('T')[0];
-        labels.push(new Date(d).toLocaleDateString());
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const currentDate = new Date(d); // éviter mutation
+        const dateString = currentDate.toISOString().split('T')[0];
+        labels.push(currentDate.toLocaleDateString());
 
         const dailyInvoices = invoices.value.filter(invoice => {
             const invoiceDate = new Date(invoice.created_at).toISOString().split('T')[0];
             return invoiceDate === dateString;
         });
+
         data.push(dailyInvoices.length);
     }
 
     lineData.value = {
-        labels:labels,
+        labels,
         datasets: [
             {
-                label: `Facture crées`,
-                data:data,
+                label: 'Factures créées',
+                data,
                 fill: false,
                 backgroundColor: 'rgba(75, 192, 192, 0.2)',
                 borderColor: 'rgba(75, 192, 192, 1)',
@@ -221,7 +283,7 @@ watch(
     setColorOptions();
    
   },
-  { immediate: true }
+  { immediate: true , deep :false}
 );
 </script>
 

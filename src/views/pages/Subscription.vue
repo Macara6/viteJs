@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { fetchSubscription, fetchUsers } from '@/service/Api';
+import { fetchSubscription, fetchUsers , reactivateSubscription} from '@/service/Api';
 import {FilterMatchMode} from '@primevue/core'
 import { onMounted, ref } from 'vue';
 
@@ -18,30 +18,53 @@ async function loadSubscriptionAndUser(){
         const [fetchedSubscriptions,fetchedUsers] = await Promise.all([fetchSubscription(), fetchUsers()]);
         console.log('Feched Subscriptions:', fetchedSubscriptions);
         console.log('Fetched Users:', fetchedUsers);
+        
 
-        users.value = fetchedUsers.reduce((acc, user) => {
+        const currentUserId = localStorage.getItem('id');
+        const isCurrentUserSuperuser = localStorage.getItem('is_superuser') === 'true';
+        let filteredUsers = fetchedUsers;
+        
+        
+        if(isCurrentUserSuperuser && currentUserId){
+            filteredUsers = fetchedUsers.filter(user => String(user.id) !== String(currentUserId));
+        }
+
+        users.value = filteredUsers.reduce((acc, user) => {
             acc[user.id] = user.username;
         
             return acc;
         }, {});
+        subscriptions.value = fetchedSubscriptions
+            .filter(subscription => users.value[subscription.user])
+            .map(subscription => {
+             const user_name = users.value[subscription.user];
+             console.log(`Subscription name ${user_name}`);
 
-        subscriptions.value = fetchedSubscriptions.map(subscription => {
-             
-          
-            const user_name = users.value[subscription.user];
-
-          
-            console.log(`Subscription name: ${user_name}, expiration date: ${subscription.end_date}`);
-
-            return {
+             return {
                 ...subscription,
                 user_name
-            };
-        })
+             };
+            });
+       
     }catch(error){
         console.error("errer d'affichage d'abonnements:", error);
     }
 }
+async function handleReativate(subscription){
+
+    try {
+        await reactivateSubscription(subscription.user);
+        await loadSubscriptionAndUser();
+
+    } catch( error ){
+        console.error("Erreur lors de la réactivation :", error);
+        alert("Echec de reativation");
+    }
+
+}
+
+
+
 function formatDate(value){
 
     const options = {
@@ -62,11 +85,11 @@ function getStatus(end_date){
     const today = new Date();
     const endDate = new Date(end_date);
 
-    return endDate <= today ? 'Expired': 'Active'; 
+    return endDate <= today ? 'Expiré': 'Actif'; 
 
 }
 function getStatusClass(end_date){
-    return getStatus(end_date) === 'Expired' ? 'text-red-500': 'text-green-500';
+    return getStatus(end_date) === 'Expiré' ? 'text-red-500': 'text-green-500';
 
 }
 function formaPrice(price){
@@ -84,7 +107,7 @@ function formaPrice(price){
 
 <template>
    <div class="card">
-     <div class="font-semibold text-xl mb-4"> Abonnements</div>
+     <div class="font-semibold text-xl mb-4"> ABONNEMENTS</div>
      <DataTable
      :value="subscriptions"
             :paginator="true"
@@ -105,27 +128,27 @@ function formaPrice(price){
                 <InputIcon>
                      <i class="pi pi-search" />
                     </InputIcon>
-                <InputText   placeholder="Keyword Search" />
+                <InputText   placeholder="filtre" />
             </IconField>
         </div>
      </template>
-     <Column field="user_name" header="Client" style="min-width: 12rem"></Column>
-     <Column field="start_date" header="Date d'activation">
+     <Column field="user_name" header="CLIENT" style="min-width: 12rem"></Column>
+     <Column field="start_date" header="DATE D'ACTIVATION">
         <template #body = "slotProps">
                 {{ formatDate(slotProps.data.start_date) }}
         </template>
      </Column>
-     <Column field="end_date" header="Date d'expiration">
+     <Column field="end_date" header="DATE D'EXPIRATION">
         <template #body = "slotProps">
                     {{ formatDate(slotProps.data.end_date) }}
         </template>
      </Column>
-     <Column field="amount" header="Balace">
+     <Column field="amount" header="DEVISE">
         <template #body="slotProps">
-                {{formaPrice(slotProps.data.amount) }} $
+                {{formaPrice(slotProps.data.amount) }} USD
         </template>   
      </Column>
-    <Column field="en_date" header="Abonnement" style="min-width: 200px">
+    <Column field="en_date" header="STATUS" style="min-width: 50px">
        <template #body ="slotProps">
         <span :class="getStatusClass(slotProps.data.end_date)">
             {{ getStatus(slotProps.data.end_date) }}
@@ -133,10 +156,33 @@ function formaPrice(price){
        </template>
     </Column>
 
-    <Column field="is_active" header="Verified" dataType="boolean" bodyClass="text-center" style="min-width: 8rem">
-            <template #body="{ data }">
-                <i class="pi" :class="{ 'pi-check-circle text-green-500 ': data.verified, 'pi-times-circle text-red-500': !data.verified }"></i>
+    <Column field="is_active" header="TYPE" dataType="boolean" bodyClass="text-center" style="min-width: 8rem">
+            <template #body="slotProps">
+                <span 
+                 :class="[
+                   'px-2 py-1 rounded text-white text-sm font-semibold',
+                   {
+                    'bg-green-500': slotProps.data.subscription_type === 'BASIC',
+                    'bg-orange-500': slotProps.data.subscription_type === 'MEDIUM',
+                    'bg-purple-600': slotProps.data.subscription_type === 'PREMIUM'
+                   }
+                ]"
+                
+                >
+                    {{ slotProps.data.subscription_type }}
+                </span>
             </template>    
+    </Column>
+    <Column header="ACTION" bodyClass="text-center"  style="min-width: 8rem">
+        <template #body="slotProps">
+            <Button 
+                label="Réactiver"
+                icon="pi pi-refresh"
+                class="p-button-sm p-button-success"
+                @click="handleReativate(slotProps.data)"
+                 v-if="getStatus(slotProps.data.end_date) === 'Expiré'"
+            />
+        </template>
     </Column>     
 
      </DataTable>

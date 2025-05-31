@@ -24,8 +24,13 @@ const handleLogin = async() => {
        const userData = await login(username.value, password.value); 
 
        if (userData && userData.token){
-
-        router.push('/home'); 
+        
+            if(userData.is_superuser){
+                router.push('/pages/Subscription'); 
+            } else{
+                router.push('/pages/Bilan'); 
+            }
+        
 
        }else{
         throw new Error('Login failed: No user data returned');
@@ -35,7 +40,7 @@ const handleLogin = async() => {
         console.error('Login failed:', error);
         
         if (error.response && error.response.status === 401){
-            errorMessage.value = "Vontre abonnement a expirer.";
+            errorMessage.value = "Vontre abonnement a expirer ou compte non touvé.";
 
         } else if(error.response && error.response.status ===400) {
             errorMessage.value = 'Aucun abonnement trouver pour cette utilisateur';

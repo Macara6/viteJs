@@ -29,9 +29,19 @@ onMounted(async () => {
 });
 
 async function loadProductsAndCategories(){
-  try{
+    const userId = localStorage.getItem('id');
+    
+    console.log(userId);
+    if (!userId) {
+        toast.add({ severity: 'warn', summary: 'Utilisateur non identifié', detail: 'Veuillez vous reconnecter.', life: 3000 });
+        return;
+    }
+
+  try{      
+       
+
         const [fetchedProducts, fetchedCategorys] = await Promise.all([
-                fetchProduits(), fetchCategorys()
+                fetchProduits(userId), fetchCategorys()
             ]);
 
             categorys.value = fetchedCategorys;
@@ -50,6 +60,7 @@ async function loadProductsAndCategories(){
     }
     
 }
+
 function refreshPage(){
     products.value = [];
     categorys.value = [];

@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { createUserAPI, fetchUsers } from '@/service/Api';
+import { createUserAPI, fetchUsers, updateUser } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -23,42 +23,95 @@ onMounted(async () => {
 });
 
 async function fetchedUser(){
-
+    
     try{
-        users.value = await fetchUsers();
+        const fechedUsers = await fetchUsers();
+        const currentUserId = localStorage.getItem('id');
+        const isCurrentUserSuperuser = localStorage.getItem('is_superuser');
+        let filteredUsers = fechedUsers;
+
+        if(isCurrentUserSuperuser && currentUserId){
+            filteredUsers = fechedUsers.filter(user => String(user.id) != String(currentUserId));
+
+        }
+
+        users.value = filteredUsers;
 
     }catch (error){
         console.error('There aws a problem with the fetch operation', error);
     }
 }
 
-async function saveUser(){
-    submitted.value = true;
-    if(user.value.name && user.value.email && user.value.password && user.value.confirPasswor){
+// function pour sauvegarder l'utilisateur 
+async function saveUser() {
+  submitted.value = true;
 
-    try{
-        const userData ={
-            username:user.value.name,
-            email:user.value.email,
-            
-            password:user.value.password
-        };
-        console.log('User Date', userData);
+  const isCreating = !user.value.id;
 
-        const createUser =  await createUserAPI(userData);
+  if (
+    user.value.name &&
+    user.value.email &&
+    (
+      (isCreating && user.value.password && user.value.confirPasswor) || !isCreating
+    )
+  ) {
+    if (isCreating && user.value.password !== user.value.confirPasswor) {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Les mots de passe ne correspondent pas', life: 3000 });
+      return;
+    }
+
+    const userData = {
+      username: user.value.name,
+      email: user.value.email,
+    };
+
+    if (isCreating) {
+      userData.password = user.value.password;
+    }
+
+    try {
+      if (user.value.id) {
+        const updateUseri = await updateUser(user.value.id, userData);
+        const index = users.value.findIndex(u => u.id === user.value.id);
+        if (index !== -1) {
+          users.value[index] = updateUseri;
+        }
+        toast.add({ severity: 'success', summary: 'Modifié', detail: 'Utilisateur modifié avec succès', life: 3000 });
+      } else {
+        const createUser = await createUserAPI(userData);
         users.value.push(createUser);
-        toast.add({ severity: 'success', summary: 'Successful', detail: 'User Created', life: 3000 });
+        toast.add({ severity: 'success', summary: 'Créé', detail: 'Utilisateur créé avec succès', life: 3000 });
+      }
 
-    } catch ( error){
-        console.error('Error creating  user',error);
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to create product', life: 3000 }); 
+      userDialog.value = false;
+      user.value = {};
+      submitted.value = false;
+      await fetchedUser();
+
+    } catch (error) {
+      console.error('Erreur création utilisateur', error);
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de l’opération', life: 3000 });
     }
 
-    }else{
-        console.log('Error');
-        toast.add({ severity: 'error', summary: 'Error', detail: 'Compter tout les champs', life: 3000 }); 
-    }
-} 
+  } else {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Complétez tous les champs requis', life: 3000 });
+  }
+}
+
+
+
+function editUser(seleectedUser){
+    user.value = {
+        id:seleectedUser.id,
+        name:seleectedUser.username,
+        email: seleectedUser.email,
+        password:'',
+        confirPasswor:''
+    };
+    submitted.value = false;
+    userDialog.value = true;
+}
+
 function viewUser(userId){
     console.log('Navigating to user detail with ID:', userId);
     router.push({name: 'userDetail', params: {id: userId}});
@@ -70,6 +123,7 @@ function refreshPage(){
 }
 
 function formatDate(value){
+    if (!value) return 'Non défini';
     const options = {
         year: 'numeric',
         month: '2-digit',
@@ -87,6 +141,8 @@ function openNew(){
 }
 function hideDialog(){
     userDialog.value = false;
+    user.value = {};
+    submitted.value = false;
 }
 
 </script> 
@@ -122,23 +178,23 @@ function hideDialog(){
 
             <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
                 <Column field="id" header="ID" sortable style="min-width: 12rem"></Column>
-                <Column field="username" header="Nom Utilisateur" sortable style="min-width: 16rem"></Column>
+                <Column field="username" header="NON UTILISATEUR" sortable style="min-width: 16rem"></Column>
                 
-                <Column field="email" header="Email" sortable style="min-width: 8rem">
+                <Column field="email" header="EMAIL" sortable style="min-width: 8rem">
                 
                 </Column>
 
             
-                <Column field="date_joined" header=" Créer " sortable style="min-width: 12rem">
+                <Column field="date_joined" header=" CREATION " sortable style="min-width: 12rem">
                    <template #body="slotProps">
                     {{ formatDate(slotProps.data.date_joined)}}
                    </template>
                 </Column>
 
-                <Column field="inventoryStatus" header="Action" sortable style="min-width: 12rem">
+                <Column field="inventoryStatus" header="ACTION" sortable style="min-width: 12rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-eye" label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
-
+                        <Button icon="" label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
+                       
                     </template> 
                 </Column>
 
@@ -162,7 +218,7 @@ function hideDialog(){
                 </div>
             
 
-                <div class="grid grid-cols-12 gap-4">
+                <div class="grid grid-cols-12 gap-4" v-if="!user.id">
                     <div class="col-span-6">
                         <label for="password" class="block font-bold mb-3">Mot de paase</label>
                         <InputText id="password" v-model="user.password"  type="password" required="true"/>

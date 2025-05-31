@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = 'http://16.171.145.182:8000/';
+const API_BASE = 'http://127.0.0.1:8000/';
 
 
 export async function login(usernam, password) {
@@ -10,15 +10,16 @@ export async function login(usernam, password) {
             username: usernam,
             password: password
         });
-        const { id, username, email, token, refresh } = response.data;
+        const { id, username, email, token, refresh , is_superuser} = response.data;
         localStorage.setItem('token',token);
         localStorage.setItem('refresh_token',refresh);
         localStorage.setItem('id',id);
         localStorage.setItem('username',usernam);
         localStorage.setItem('email',email);
+        localStorage.setItem('is_superuser', is_superuser);
 
         console.log('token:',token, 'id', id,'username',usernam,'email',email);
-        return { id, username, email, token };
+        return { id, username, email, token ,is_superuser};
     } catch (error) {
         console.error('Error logging in:', error);
         throw error;
@@ -84,9 +85,8 @@ export async function  createProductAPI(productData){
 }
 
 
-export async function fetchProduits() {
-    const PRODUITS_URL = `${API_BASE}products/`;
-
+export async function fetchProduits(userId) {
+    const PRODUITS_URL = `${API_BASE}products/?user_created=${userId}`;
     try{
         const response =  await axios.get(PRODUITS_URL);
         
@@ -97,6 +97,7 @@ export async function fetchProduits() {
     }
 
 }
+
 export async function updateProductAPI(productId, productData){
     const UPDATE_PRODUCT_URL = `${API_BASE}products/${productId}/`;
     try {
@@ -113,8 +114,8 @@ export async function updateProductAPI(productId, productData){
     }
 }
 
-export async function fetchInvoices(){
-    const INVOICE_URL = `${API_BASE}invoicesView/`;
+export async function fetchInvoices(cashieId){
+    const INVOICE_URL = `${API_BASE}invoicesView/?cashier=${cashieId}`;
 
     try{
         const response = await axios.get(INVOICE_URL);
@@ -169,7 +170,7 @@ export async function fetchUserById(userId){
         throw error
     }
 }
-
+// fuonction pour ceer un utilisateur 
 export async function createUserAPI(userData){
     const CREATE_USER_URL = `${API_BASE}userCreate/`;
 
@@ -187,8 +188,44 @@ export async function createUserAPI(userData){
         throw error;
     }
 }
-// fonction pour gerer afficher les abonnements 
 
+export async function updateUser(userId,userData){
+    const UPDATE_URL = `${API_BASE}userUpdateView/${userId}/`;
+
+    try{
+        const response = await axios.put(UPDATE_URL,userData, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+            }
+        });
+        console.log('User Update')
+        return response;
+
+    } catch(error){
+        console.log('Error updating user', error.response?.data || error);
+    }
+}
+
+// function pour afficher le profil de l'utilisateur
+export async function fetchUserProfilById(userId){
+    const PROFIL_URL =`${API_BASE}userProfil/?user=${userId}`;
+    
+    try{
+        const response = await axios.get(PROFIL_URL, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('User profil fetched :', response.data);
+        return response.data;
+    }catch(error){
+        console.error('Error fetching user profile:', error.response?.data || error);
+        throw error;
+    }
+
+}
+
+// fonction pour gerer afficher les abonnements 
 export async function fetchSubscription(){
     const SUBSRIPTION_URL =`${API_BASE}listSubsription/`;
     try{
@@ -200,7 +237,6 @@ export async function fetchSubscription(){
     }
 }
 // fonction pour creer l'abonnment
-
 export async function createdSubscription(subscriptionData){
     const CREATE_SUBSCRIPTION_URL =  `${API_BASE}createSubscription/`;
      try {
@@ -216,5 +252,105 @@ export async function createdSubscription(subscriptionData){
         throw error;
      }
     
+}
+// fonction pour modifer l'abonnement
+export async function updateSubscription(userId, subscriptionData){
+    const UPDATE_SUBSRIPTION_URL = `${API_BASE}subscription/update/${userId}/`;
+    try{
+        const response = await axios.put(UPDATE_SUBSRIPTION_URL, subscriptionData , {
+            headers : {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('Subscription update: ', response.data);
+        return response.data;
+    } catch (error) {
+        console.log('Error update subscription :', error.response ? error.response.data : error);
+        throw error;
+    }
+}
+
+// fonvtion  pour afficher l'abonnement pour l'utilisateur 
+export async function fecthSubscriptionByUserId(userId){
+    const URL = `${API_BASE}subscription/${userId}/`;
+
+     try{
+        const response = await axios.get(URL, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data
+     }catch(error){
+        console.log('Error fetching subscription by user', error.response?.data ||error);
+        throw error;
+     }
+}
+// fonction pour reativé l'abonnement 
+export async function reactivateSubscription(userId){
+   const REACTIVATE_URL = `${API_BASE}subscription/reactivate/${userId}/`;
+
+   try{
+       const response = await axios.post(REACTIVATE_URL, {}, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+       });
+       console.log('Subscription reactivated: ', response.data);
+       return response.data;
+
+   }catch(error){
+      console.log('Error reativating subscription: ',error.response?.data || error );
+   }
+}
+
+export async function fetchCashOut(userId){
+    const CASHOUT_URL = `${API_BASE}cashouts/?user=${userId}`;
+
+    try{
+        const response = await axios.get(CASHOUT_URL, {
+            headers :{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+            }
+        });
+        console.log('Caoush Lis', response.data);
+        return response.data;
+    } catch(error){
+        console.error('error fecthing user:', error)
+        throw error;
+    }
+}
+export async function fetchCashOutDetail(cashoutId){
+    const URL = `${API_BASE}cashoutDetail/?cashout=${cashoutId}`;
+
+    try{
+        const response = await axios.get(URL, {
+            headers: {
+                'Authorization' : `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('Cashout Detail', response.data);
+        return response.data;
+
+    }catch(error){
+        console.error('Error fetching cashout detail', error.response?.data || error);
+        throw error;
+    }
+
+}
+export async function createCashOutAPI(cashoutData){
+    const CREATE_URL = `${API_BASE}cashout/create/`;
+
+    try{
+        const response = await axios.post(CREATE_URL, cashoutData, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('Cashout created', response.data);
+    } catch(error){
+        console.error('Error creating CashOut:', error.response?.data || error);
+        throw error;
+    }
 }
 

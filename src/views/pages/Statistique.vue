@@ -1,7 +1,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchInvoices, fetchProduits, fetchUsers } from '@/service/Api';
+import { fetchInvoices, fetchProduits, fetchUserById } from '@/service/Api';
 import { onMounted, ref, watch } from 'vue';
 
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
@@ -11,7 +11,7 @@ const lineData = ref(null);
 const lineOptions = ref(null);
 const invoices = ref([]);
 const products = ref([]);
-const users = ref([]);
+const user = ref(null);
 const totalProducts = ref(0);
 const totalInvoices = ref(0);
 const totalUsers = ref(0);
@@ -23,12 +23,14 @@ onMounted(() => {
 });
 
 async function loadProductAndInvoice() {
-  products.value = await fetchProduits();
-  invoices.value = await fetchInvoices();
-  users.value = await fetchUsers();
+  const userId = localStorage.getItem('id');
+  products.value = await fetchProduits(userId);
+  invoices.value = await fetchInvoices(userId);
+  user.value = await fetchUserById(userId);
+
   totalProducts.value = products.value.length;
   totalInvoices.value = invoices.value.length;
-  totalUsers.value = users.value.length;
+  totalUsers.value = user.value.length;
   
   setColorOptions(); 
   calculateTotalAmount();
@@ -84,11 +86,12 @@ function setColorOptions() {
     // preparer les donnees pour la chart
     const labels = [];
     const data = [];
-    users.value.forEach(user => {
-      const userId = user.id;
-      labels.push(user.username);
-      data.push(userInvoiceCounts[userId] || 0);
-    })
+
+    if (user.value) {
+        const userId = user.value.id;
+        labels.push(user.value.username);
+        data.push(userInvoiceCounts[userId] || 0);
+    }
 
     console.log('data is ',data);
     
@@ -160,7 +163,7 @@ watch(
   () => {
     setColorOptions();
   },
-  { immediate: true }
+  { immediate: true, deep: false }
 );
 </script>
 

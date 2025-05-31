@@ -29,10 +29,10 @@ function sortInvoicesByDate(){
 }
 
 async function loadInvoiceAndAdmin(){
-
+        const cashierId = localStorage.getItem('id');
     try{
        // invoices.value = await fetchInvoices();
-       const [fetchedInvoices, fetchedUsers] = await Promise.all([fetchInvoices(),fetchUsers()]);
+       const [fetchedInvoices, fetchedUsers] = await Promise.all([fetchInvoices(cashierId),fetchUsers()]);
 
        console.log('Fetched Invoices:', fetchedInvoices);
        console.log('Fetched Users:', fetchedUsers);
