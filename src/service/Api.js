@@ -1,6 +1,9 @@
 
 import axios from "axios";
-const API_BASE = 'http://13.60.2.205:8000/';
+//const API_BASE = 'http://13.60.2.205:8000/';
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://13.60.2.205:8000/'  // dev
+  : 'https://your-production-domain.com/';
 
 
 export async function login(usernam, password) {
