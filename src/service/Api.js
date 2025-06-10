@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = 'https://bilatech.org/';
+const API_BASE = 'https://api.bilatech.org/';
 
 
 
