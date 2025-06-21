@@ -48,8 +48,7 @@ const closeProfile = () => {
                 <i class="pi pi-bars"></i>
             </button>
             <router-link to="/pages/Produit" class="layout-topbar-logo">
-
-                <span> BilaTech Solution</span>
+                <img src="/demo/bila.png" alt="BilaTech Logo" class="h-20 mx-auto mb-4" />
             </router-link>
             
         </div>

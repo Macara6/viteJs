@@ -71,7 +71,7 @@ import { useRouter } from 'vue-router';
                 <div class="font-semibold text-xl">Nouveu Bon de sortie</div>
 
                 <div class="flex flex-wrap gap-2 w-full">
-                    <label for="motif">Motif</label>
+                    <label for="motif">Demandeur</label>
                     <InputText id="motif" type="text" v-model="motif" />
                 </div>
 

@@ -144,7 +144,7 @@ const router = createRouter({
         },
 
         {
-            path: '/landing',
+            path: '/',
             name: 'landing',
             component: () => import('@/views/pages/Landing.vue')
         },
@@ -154,7 +154,7 @@ const router = createRouter({
             component: () => import('@/views/pages/NotFound.vue')
         },
         {
-            path: '/',
+            path: '/login',
             name: 'login',
             component: () => import('@/views/pages/auth/Login.vue')
         },

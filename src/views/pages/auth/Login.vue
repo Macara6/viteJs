@@ -62,8 +62,9 @@ const handleLogin = async() => {
             <div style="border-radius: 56px; padding: 0.3rem; background: linear-gradient(180deg, var(--primary-color) 10%, rgba(33, 150, 243, 0) 30%)">
                 <div class="w-full bg-surface-0 dark:bg-surface-900 py-20 px-8 sm:px-20" style="border-radius: 53px">
                     <div class="text-center mb-8">
-                        <div class="text-surface-900 dark:text-surface-0 text-3xl font-medium mb-4">BilaTech Solution</div>
-                        <span class="text-muted-color font-medium">connecte toi pour contunué</span>
+                       
+                        <img src="/demo/bila.png" alt="BilaTech Logo" class="h-40 mx-auto mb-4" />
+                        <span class="text-muted-color font-medium">Connexion</span>
                     </div>
                     <div v-if="errorMessage" class="text-red-500 mt-2 text-center w-full">{{ errorMessage }}</div>
 
@@ -75,7 +76,7 @@ const handleLogin = async() => {
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
 
                         
-                        <Button label="Sign In" class="w-full" @click="handleLogin"></Button>
+                        <Button label="Se connecter" class="w-full" @click="handleLogin"></Button>
                     </div>
                 </div>
             </div>

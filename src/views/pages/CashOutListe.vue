@@ -178,7 +178,7 @@ async function downloadPDF() {
             </span>
             </h3>
         </div>
-        <img src="/demo/bilatech.png" alt="Logo" class="h-40" /> 
+        <img src="/demo/bila.png" alt="Logo" class="h-40" /> 
         </div>
 
     <!-- Table des détails -->
