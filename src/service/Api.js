@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = 'https://api.bilatech.org/';
+const API_BASE = ' http://127.0.0.1:8000/';
 
 
 export async function login(usernam, password) {
@@ -354,3 +354,19 @@ export async function createCashOutAPI(cashoutData){
     }
 }
 
+export async function deleteCashout(cashoutId){
+    const DELETE_URL = `${API_BASE}cashout/delete/${cashoutId}/`;
+
+    try {
+        const response = await axios.delete(DELETE_URL, {
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('Cashout deletect',response.data);
+        return response.data;
+    } catch(error){
+        console.error('Error deleting CashOut:', error.response?.data || error);
+        throw error;
+    }
+}

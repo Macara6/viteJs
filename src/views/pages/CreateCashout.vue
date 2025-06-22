@@ -77,7 +77,7 @@ import { useRouter } from 'vue-router';
 
                 <div v-for="(detail, index) in details" :key="index" class="flex flex-col md:flex-row gap-4">
                 <div class="flex flex-col w-full">
-                    <label>Raison</label>
+                    <label>Motif</label>
                     <InputText v-model="detail.reason" placeholder="Ex: Achat carburant" />
                 </div>
                 <div class="flex flex-col w-full">

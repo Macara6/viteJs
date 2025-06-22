@@ -2,9 +2,10 @@
 
 
 <script setup>
-import { fetchCashOut, fetchCashOutDetail, fetchUsers } from '@/service/Api';
+import { deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUsers } from '@/service/Api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 
 
@@ -15,6 +16,9 @@ import { onMounted, ref } from 'vue';
     const cashoutDetails = ref([]);
     const showModal = ref(false);
     const balanceFrozen = ref(false);
+    const deleteCashOutDialog = ref(false)
+    const selectedCashoutToDelete = ref(null);
+    const toast = useToast();
 
 
     const signatureUrl = '/demo/signature.png';
@@ -82,8 +86,6 @@ function calculateTotal() {
     return cashoutDetails.value.reduce((sum, item) => sum + parseFloat(item.amount), 0).toFixed(2);
 }
 
-
-
 async function downloadPDF() {
   const element = document.getElementById('cashout-pdf-content');
 
@@ -115,6 +117,31 @@ async function downloadPDF() {
   pdf.save(`bon_sortie_${selectedCashout.value}.pdf`);
 }
 
+async function confirmDeleteCashout(){
+
+    try{
+        if(!selectedCashoutToDelete.value) return;
+
+        await deleteCashout(selectedCashoutToDelete.value.id);
+        cashoutList.value = cashoutList.value.filter(
+            c => c.id  !== selectedCashoutToDelete.value.id
+        );
+
+        deleteCashOutDialog.value =false;
+        selectedCashoutToDelete.value = null;
+        toast.add({ severity: 'success', summary: 'Successful', detail: 'Bon supprimer', life: 3000 });
+
+
+    }catch(error){
+        console.error('Erreur lors de la suppression du bon de sortie:', error);
+    }
+}
+
+function deleteToCahOut(cashout){
+    selectedCashoutToDelete.value =cashout;
+    deleteCashOutDialog.value = true;
+}
+
 </script>
 
 
@@ -134,13 +161,13 @@ async function downloadPDF() {
                    USD {{ slotProps.data.total_amount }}
                 </template>
             </Column>
-            <Column field="motif" header="MOTIF" style="min-width: 200px"></Column>
+            <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>
             <Column field="created_at" header="DATE" style="min-width: 200px">
                 <template #body="slotProps">
                     {{ formatDate(slotProps.data.created_at) }}
                 </template>
             </Column>
-            <Column field="user_name" header="DEMANDEUR" style="min-width: 200px"></Column>
+            <Column field="user_name" header="DONATEUR" style="min-width: 200px"></Column>
             <Column field="" header="ACTION" style="min-width: 200px">
                 <template #body="slotProps">
                     <Button 
@@ -150,7 +177,7 @@ async function downloadPDF() {
                         @click="ViewDetailCashout(slotProps.data.id)"
                     />
                    
-                     <Button icon="pi pi-trash" class="p-button-sm p-button-info mr-2" severity="danger" @click="removeDetail(index)" />
+                     <Button icon="pi pi-trash" class="p-button-sm p-button-info mr-2" severity="danger" @click="deleteToCahOut(slotProps.data)" />
                  
                   
                 </template>
@@ -228,6 +255,19 @@ async function downloadPDF() {
   </div>
  
 </Dialog>
+
+<Dialog v-model:visible="deleteCashOutDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
+            <div class="flex items-center gap-4">
+                <i class="pi pi-exclamation-triangle !text-3xl" />
+                <span>
+                Êtes-vous sûr de vouloir supprimer le bon de sortie N° {{ selectedCashoutToDelete?.id }} ?
+                </span>
+            </div>
+            <template #footer>
+                <Button label="No" icon="pi pi-times" text @click="deleteCashOutDialog = false" />
+                <Button label="Yes" icon="pi pi-check" text @click="confirmDeleteCashout" />
+            </template>
+        </Dialog>
 
 
    

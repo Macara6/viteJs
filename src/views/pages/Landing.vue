@@ -293,7 +293,7 @@ function smoothScroll(id) {
                             <div class="my-8 flex flex-col items-center gap-4">
                                 <div class="flex items-center">
                                     <span class="text-5xl font-bold mr-2 text-surface-900 dark:text-surface-0">$29,99</span>
-                                    <span class="text-surface-600 dark:text-surface-200">per month</span>
+                                    <span class="text-surface-600 dark:text-surface-200">/Mois</span>
                                 </div>
                                 <Button label="Commencer" class="p-button-rounded border-0 ml-4 font-light leading-tight bg-blue-500 text-white"></Button>
                             </div>
@@ -336,7 +336,7 @@ function smoothScroll(id) {
                             <div class="my-8 flex flex-col items-center gap-4">
                                 <div class="flex items-center">
                                     <span class="text-5xl font-bold mr-2 text-surface-900 dark:text-surface-0">$49,99</span>
-                                    <span class="text-surface-600 dark:text-surface-200">per month</span>
+                                    <span class="text-surface-600 dark:text-surface-200">/Mois</span>
                                 </div>
                                 <Button label="Commencer" class="p-button-rounded border-0 ml-4 font-light leading-tight bg-blue-500 text-white"></Button>
                             </div>
@@ -410,6 +410,7 @@ function smoothScroll(id) {
                                 <a href="#" class="block text-lg mb-2 hover:underline">Politique de marque</a>
                                 <a href="#" class="block text-lg mb-2 hover:underline">Politique de confidentialité</a>
                                 <a href="#" class="block text-lg hover:underline">Conditions d'utilisation</a>
+                                <a href="#" class="block text-lg hover:underline">Bilatech V.3.2</a>
                             </div>
                         </div>
                     </div>
