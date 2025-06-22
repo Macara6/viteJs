@@ -239,11 +239,11 @@ async function saveSubscription(){
   
           <div class="grid grid-cols-12 gap-4">
             <div class="col-span-6">
-              <label for="amount" class="block font-semibold mb-1">Montant (CDF)</label>
+              <label for="amount" class="block font-semibold mb-1">Montant (USD)</label>
               <InputNumber 
                 id="amount" 
                 mode="currency"
-                currency="CDF"
+                currency="USD"
                 locale="en-US"
                 v-model="subscriptionData.amount" 
                 class="w-full"
