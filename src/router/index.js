@@ -135,9 +135,20 @@ const router = createRouter({
                     component:() => import('@/views/pages/CreateCashout.vue')
                 },
                 {
+                    path:'/pages/CreateEntryNote',
+                    name:'CreateEntryNote',
+                    component:() => import('@/views/pages/CreateEntryNote.vue')
+                },
+                  
+                {
                     path:'/cashout/pdf/:id',
                     name:'PrintCashout',
                     component: () => import('@/views/pages/PrintCashout.vue')
+                },
+                {
+                    path:'/pages/EntryNoteList',
+                    name:'EntryNote',
+                    component: () => import('@/views/pages/EntryNoteList.vue')
                 }
                 
             ]

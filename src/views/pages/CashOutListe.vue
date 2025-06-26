@@ -9,7 +9,7 @@ import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 
 
-   const userId = localStorage.getItem('id');
+    const userId = localStorage.getItem('id');
     const cashoutList = ref([]);
     const usersMap = ref({});
     const selectedCashout = ref(null);
@@ -185,7 +185,7 @@ function deleteToCahOut(cashout){
         </DataTable>
     </div>
 </div> 
-    </div>
+</div>
 
     <Dialog v-model:visible="showModal" modal header="Détails du bon de sortie" :style="{ width: '50vw' }">
       <div class="p-9" id="cashout-pdf-content" style="overflow-y: auto; max-height: 70vh;">
@@ -199,7 +199,7 @@ function deleteToCahOut(cashout){
             <p class="ext-xl font-semibold mb-1">Date : {{ formatDate(new Date()) }}</p>
 
             <h2 class="text-xl font-semibold mb-1">Bon de sortie N°/:000{{ selectedCashout }}/25</h2>
-            <h3 class="text-lg font-medium mb-2">Motif : 
+            <h3 class="text-lg font-medium mb-2">Demandeur : 
             <span class="font-normal">
                 {{ cashoutList.find(c => c.id === selectedCashout)?.motif || 'N/A' }}
             </span>
@@ -212,7 +212,7 @@ function deleteToCahOut(cashout){
             <div v-if="cashoutDetails.length > 0">
             <DataTable :value="cashoutDetails" class="mb-4">
                 <Column field="id" header="ID" />
-                <Column field="reason" header="Observation" />
+                <Column field="reason" header="Motif" />
                 <Column field="amount" header="Montant">
                 <template #body="slotProps">
                     USD {{ slotProps.data.amount }}

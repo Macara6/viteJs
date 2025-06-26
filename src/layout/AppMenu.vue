@@ -33,18 +33,29 @@ const model = ref([]);
         label :'ADMINISTRATION',
         items:[
             {
-                label:'Lieste des depasses',
-                icon:'pi pi-database',
+                label:'Dépasses',
+                icon:'pi pi-arrow-circle-up',
                 to:'/pages/CashOutListe'
             },
             {
-                label:'Nouveau Bon',
+                label:'Nouveau Bon de sortie',
                 icon: 'pi pi-tag',
                 to:'/pages/CreateCashout'
+            },
+            {
+                label:"Nouveau Bon D'entrée",
+                icon: 'pi pi-check-square',
+                to:'/pages/CreateEntryNote'
+            },
+            {
+                label:"Entrées",
+                icon:'pi pi-arrow-circle-down',
+                to:'/pages/EntryNoteList'
             }
+
         ]
         
-        
+     
      }
     ];
 

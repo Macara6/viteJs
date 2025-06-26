@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router';
     ]);
 
     const router = useRouter();
+    
     const addDetail = ()=>{
         details.value.push({reason:'',amount: null});
     };
@@ -91,8 +92,6 @@ import { useRouter } from 'vue-router';
 
                 <Button label="Ajouter un détail" icon="pi pi-plus" @click="addDetail" class="w-fit" />
                 <Button label="Créer le Bon de sortie" class="mt-4" @click=" handleCreatCashOut" />
-             
-
               
             </div>
         </div>

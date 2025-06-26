@@ -370,3 +370,72 @@ export async function deleteCashout(cashoutId){
         throw error;
     }
 }
+
+// debut des fonctions sur le note d'entré
+
+export async function createEntryNote(entryNoteData){
+    const CREATE_ENTRY_NOTE = `${API_BASE}entryNote/create/`;
+
+    try {
+        const response = await axios.post(CREATE_ENTRY_NOTE, entryNoteData,{
+            headers : {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('EntryNote create', response.data);
+    }catch(error){
+        console.error('Error creating EntryNote', error.response?.data || error);
+        throw error;
+    }
+}
+
+export async function fechEntryNote(userId){
+    const FECHING_ENTRYNOTE = `${API_BASE}entryNote/?user=${userId}`;
+
+    try{
+        const response = await axios.get(FECHING_ENTRYNOTE, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('EntryNote liste', response.data);
+        return response.data;
+    }catch(error){
+        console.error('error feching user', error)
+        throw error;
+    }
+}
+
+export async function fetchEntryNoteDetail(entryNoteId){
+    const URL_DETAIL = `${API_BASE}entryNote/detail/?entrynote=${entryNoteId}`;
+
+    try{
+        const response = await axios.get(URL_DETAIL, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('Entry note detail', response.data);
+        return response.data;
+    }catch(error){
+        console.error('Error feching EntryNoteDetail',error.response?.data || error);
+    }
+}
+
+export  async function deleteEntryNote(entryNoteId){
+    const URL_DELETE_ENTRYNOTE = `${API_BASE}entryNote/delete/${entryNoteId}`;
+
+    try{
+        const response = await axios.delete(URL_DELETE_ENTRYNOTE, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('EntryNote delete');
+        return response.data;
+    }catch(error){
+        console.error('Error deleting EntryNote', error.response?.data || error);
+        throw error;
+    }
+}
+// fin du bloc pour les notes d'entrées
