@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = 'https://api.bilatech.org/';
+const API_BASE = ' http://127.0.0.1:8000/';
 
 
 export async function login(usernam, password) {
@@ -423,7 +423,7 @@ export async function fetchEntryNoteDetail(entryNoteId){
 }
 
 export  async function deleteEntryNote(entryNoteId){
-    const URL_DELETE_ENTRYNOTE = `${API_BASE}entryNote/delete/${entryNoteId}`;
+    const URL_DELETE_ENTRYNOTE = `${API_BASE}entryNote/delete/${entryNoteId}/`;
 
     try{
         const response = await axios.delete(URL_DELETE_ENTRYNOTE, {

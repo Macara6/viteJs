@@ -4,7 +4,7 @@
 
 
 <script setup>
- import { createEntryNote } from '@/service/Api';
+import { createEntryNote } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { ref } from 'vue';
 
@@ -51,7 +51,7 @@ const handleCreateEntryNote = async ()=>{
     }
 }
 
- 
+
 
 </script>
 
@@ -71,7 +71,7 @@ const handleCreateEntryNote = async ()=>{
          <div v-for="(detail, index) in details" :key="index" class="flex flex-col md:flex-row gap-4">
          <div class="flex flex-col w-full">
              <label>Motif</label>
-             <InputText v-model="detail.reason" placeholder="Ex: Achat carburant" />
+             <InputText v-model="detail.reason" placeholder="Ex: abonnement" />
          </div>
          <div class="flex flex-col w-full">
              <label>Montant USD</label>
@@ -83,7 +83,7 @@ const handleCreateEntryNote = async ()=>{
          </div>
 
          <Button label="Ajouter un détail" icon="pi pi-plus" @click="addDetail" class="w-fit" />
-         <Button label="Créer le Bon de sortie" class="mt-4" @click=" handleCreateEntryNote" />
+         <Button label="Créer le Bon d'entré" class="mt-4" @click=" handleCreateEntryNote" />
        
      </div>
  </div>

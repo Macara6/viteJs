@@ -1,7 +1,9 @@
 
 
 <script setup>
-import { fechEntryNote,fetchEntryNoteDetail ,fetchUsers } from '@/service/Api';
+import { deleteEntryNote, fechEntryNote, fetchEntryNoteDetail, fetchUsers } from '@/service/Api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
    
@@ -12,6 +14,7 @@ import { onMounted, ref } from 'vue';
    const seletedEntryNote = ref(null);
    const entryNoteDetails = ref([]);
    const showModal = ref(false);
+  
    
    const deleteEntryNoteDialog = ref(false);
    const selectedEntryNoteToDelete = ref(null);
@@ -76,6 +79,157 @@ import { onMounted, ref } from 'vue';
     return entryNoteDetails.value.reduce((sum, item) => sum + parseFloat(item.amount),0).toFixed(2);
   }
   
+  async function downloadPDF() {
+  const element = document.querySelector('.p-dialog'); // Cible la boîte de dialogue entière
+
+  if (!element) {
+    console.error('Élément du bon de sortie introuvable.');
+    return;
+  }
+
+  // Scroll au top si nécessaire
+  element.scrollTop = 0;
+
+  // Attendre que le contenu soit bien visible
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    logging: true
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', 'a4');
+
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+  const totalPages = Math.ceil(pdfHeight / pdf.internal.pageSize.getHeight());
+
+  let position = 0;
+  for (let i = 0; i < totalPages; i++) {
+    if (i !== 0) pdf.addPage();
+    pdf.addImage(
+      imgData,
+      'PNG',
+      0,
+      -position,
+      pdfWidth,
+      pdfHeight
+    );
+    position += pdf.internal.pageSize.getHeight();
+  }
+
+  pdf.save(`bon_sortie_${seletedEntryNote.value}.pdf`);
+}
+ async function confirmDeleteEntryNote(){
+    try{
+        if(!selectedEntryNoteToDelete.value) return;
+        
+        await deleteEntryNote(selectedEntryNoteToDelete.value.id);
+        EntryNoteList.value = EntryNoteList.value.filter(
+            c => c.id !== selectedEntryNoteToDelete.value.id
+        );
+        deleteEntryNoteDialog.value = false;
+        selectedEntryNoteToDelete.value = null;
+        toast.add({ severity: 'success', summary: 'Successful', detail: 'Bon supprimer', life: 3000 });
+    } catch(error){
+        console.error('Erreur lors de la suppression du bon de sortie:', error);
+    }
+ }
+
+ function deleteToEntryNote(entryNoteId){
+    selectedEntryNoteToDelete.value = entryNoteId;
+    deleteEntryNoteDialog.value = true;
+ }
+
+
+function printEntryNote() {
+  const content = document.getElementById('cashout-pdf-content');
+
+  if (!content) {
+    console.error("Contenu à imprimer non trouvé !");
+    return;
+  }
+
+  const printWindow = window.open('', '', 'width=800,height=600');
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Impression Bon d'Entrée</title>
+
+        <!-- Inclusion de TailwindCSS si nécessaire -->
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+        <!-- PrimeVue CSS (si nécessaire pour DataTable) -->
+        <link href="https://unpkg.com/primevue/resources/themes/saga-blue/theme.css" rel="stylesheet">
+        <link href="https://unpkg.com/primevue/resources/primevue.min.css" rel="stylesheet">
+        <link href="https://unpkg.com/primeicons/primeicons.css" rel="stylesheet">
+
+        <style>
+            @page {
+            margin: 0;
+          }
+          body {
+            padding: 2rem;
+            font-family: Arial, sans-serif;
+            color: #000;
+          }
+
+          /* Fixe pour les DataTables */
+          table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1.5rem;
+          }
+
+          th, td {
+            border: 1px solid #ddd;
+            padding: 0.5rem;
+            text-align: left;
+          }
+
+          th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+          }
+
+          img {
+            max-height: 100px;
+          }
+
+          .signature img {
+            height: 80px;
+            margin-top: 10px;
+          }
+
+          @media print {
+            .no-print {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+
+      <body>
+        ${content.innerHTML}
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+
+  // Important : attendre que le contenu soit chargé avant impression
+  printWindow.onload = () => {
+    printWindow.print();
+    printWindow.close();
+  };
+}
+
+
 
 
    
@@ -114,9 +268,9 @@ import { onMounted, ref } from 'vue';
                             @click="ViewDetailEntryNote(slotProps.data.id)"
                         />
                     
-                        <Button icon="pi pi-trash" class="p-button-sm p-button-info mr-2" severity="danger" @click="" />
+                        <Button icon="pi pi-trash" class="p-button-sm p-button-info mr-2" severity="danger" @click="deleteToEntryNote(slotProps.data)" />
                     
-                    
+
                     </template>
                 </Column>
             </DataTable>
@@ -125,7 +279,7 @@ import { onMounted, ref } from 'vue';
 </div>
 
 <Dialog v-model:visible="showModal" modal header="Détails du bon de sortie" :style="{ width: '50vw' }">
-      <div class="p-9" id="cashout-pdf-content" style="overflow-y: auto; max-height: 70vh;">
+      <div id="cashout-pdf-content" style="overflow: visible; max-height: none;">
       
     <!-- En-tête -->
     <div class="flex justify-between items-center mb-6">
@@ -187,9 +341,30 @@ import { onMounted, ref } from 'vue';
       label="Télécharger PDF"
       icon="pi pi-download"
       class="p-button-success"
-      @click=""
+      @click="downloadPDF"
     />
+
+    <Button 
+  label="Imprimer"
+  icon="pi pi-print"
+  class="p-button-secondary ml-2"
+  @click="printEntryNote"
+  />
   </div>
- 
 </Dialog>
+
+
+<Dialog v-model:visible="deleteEntryNoteDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
+            <div class="flex items-center gap-4">
+                <i class="pi pi-exclamation-triangle !text-3xl" />
+                <span>
+                Êtes-vous sûr de vouloir supprimer le bon de sortie N° {{ selectedEntryNoteToDelete?.id }} ?
+                </span>
+            </div>
+            <template #footer>
+                <Button label="No" icon="pi pi-times" text @click="deleteEntryNoteDialog = false" />
+                <Button label="Yes" icon="pi pi-check" text @click="confirmDeleteEntryNote" />
+            </template>
+     </Dialog>
+
 </template>
