@@ -1,7 +1,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchInvoices, fetchProduits, fetchUserById } from '@/service/Api';
+import { fetchProduits, fetchUserById } from '@/service/Api';
 import { onMounted, ref, watch } from 'vue';
 
 const { getPrimary, getSurface, isDarkTheme } = useLayout();
