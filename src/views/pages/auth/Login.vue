@@ -10,7 +10,7 @@ const router = useRouter();
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
-
+const loading = ref(false);
 
 const handleLogin = async() => {
     errorMessage.value = '';
@@ -19,6 +19,9 @@ const handleLogin = async() => {
         errorMessage.value='Please enter both username and password';
         return;
     }
+
+    loading.value = true; 
+
     try {
 
        const userData = await login(username.value, password.value); 
@@ -40,7 +43,7 @@ const handleLogin = async() => {
         console.error('Login failed:', error);
         
         if (error.response && error.response.status === 401){
-            errorMessage.value = "Vontre abonnement a expirer ou compte non touvé.";
+            errorMessage.value = "compte non trouvé";
 
         } else if(error.response && error.response.status ===400) {
             errorMessage.value = 'Aucun abonnement trouver pour cette utilisateur';
@@ -48,6 +51,8 @@ const handleLogin = async() => {
             errorMessage.value = 'Compte nom trouvee'
         )
 
+    } finally{
+        loading.value = false;
     }
   
 }
@@ -74,9 +79,15 @@ const handleLogin = async() => {
 
                         <label for="password1" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Mot de passe</label>
                         <Password id="password1" v-model="password" placeholder="Password" :toggleMask="true" class="mb-4" fluid :feedback="false"></Password>
-
-                        
-                        <Button label="Se connecter" class="w-full" @click="handleLogin"></Button>
+                        <Button
+                            label="Se connecter"
+                            class="w-full flex justify-center items-center gap-2"
+                            @click="handleLogin"
+                            :disabled="loading"
+                        >
+                            <i v-if="loading" class="pi pi-spin pi-spinner text-white"></i>
+                            <span v-else>Se connecter</span>
+                        </Button>
                     </div>
                 </div>
             </div>

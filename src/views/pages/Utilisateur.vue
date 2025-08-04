@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { createUserAPI, fetchUsers, updateUser } from '@/service/Api';
+import { createUserAPI, getUsersCreatedByMe, updateUser } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -13,7 +13,7 @@ const user = ref({});
 const userDialog = ref(false);
 const submitted =  ref(false);
 const router = useRouter();
-
+const isSuperuser = localStorage.getItem('is_superuser') === 'true';
 
 
 
@@ -22,27 +22,35 @@ onMounted(async () => {
    
 });
 
-async function fetchedUser(){
-    
-    try{
-        const fechedUsers = await fetchUsers();
-        const currentUserId = localStorage.getItem('id');
-        const isCurrentUserSuperuser = localStorage.getItem('is_superuser');
-        let filteredUsers = fechedUsers;
 
-        if(isCurrentUserSuperuser && currentUserId){
-            filteredUsers = fechedUsers.filter(user => String(user.id) != String(currentUserId));
 
-        }
 
-        users.value = filteredUsers;
+async function fetchedUser() {
+  try {
+    const currentUserId = localStorage.getItem('id');
+    const isCurrentUserSuperuser = localStorage.getItem('is_superuser');
 
-    }catch (error){
-        console.error('There aws a problem with the fetch operation', error);
+    let fechedUsers = [];
+
+    if (isCurrentUserSuperuser === 'true') {
+      // Si superuser : récupère tous les utilisateurs
+      fechedUsers = await getUsersCreatedByMe()
+      fechedUsers = fechedUsers.filter(user => String(user.id) !== String(currentUserId));
+    } else {
+      // Sinon : récupère uniquement les utilisateurs créés par moi
+      fechedUsers = await getUsersCreatedByMe();
+      console.log('Utilisateur enfants :', fechedUsers)
     }
+
+    users.value = fechedUsers;
+
+  } catch (error) {
+    console.error('Erreur lors du chargement des utilisateurs', error);
+  }
 }
 
 // function pour sauvegarder l'utilisateur 
+
 async function saveUser() {
   submitted.value = true;
 
@@ -71,6 +79,7 @@ async function saveUser() {
 
     try {
       if (user.value.id) {
+        // Mise à jour
         const updateUseri = await updateUser(user.value.id, userData);
         const index = users.value.findIndex(u => u.id === user.value.id);
         if (index !== -1) {
@@ -78,9 +87,24 @@ async function saveUser() {
         }
         toast.add({ severity: 'success', summary: 'Modifié', detail: 'Utilisateur modifié avec succès', life: 3000 });
       } else {
-        const createUser = await createUserAPI(userData);
-        users.value.push(createUser);
-        toast.add({ severity: 'success', summary: 'Créé', detail: 'Utilisateur créé avec succès', life: 3000 });
+        // Création
+        const result = await createUserAPI(userData);
+
+        if (result.error) {
+          if (result.status === 403) {
+            toast.add({ severity: 'warn', summary: 'Limite atteinte', detail: result.data.detail, life: 5000 });
+          } else if (result.status === 400) {
+            const errors = result.data;
+            const errorMessages = Object.values(errors).flat().join(' ');
+            toast.add({ severity: 'error', summary: 'Erreur de validation', detail: errorMessages, life: 5000 });
+          } else {
+            toast.add({ severity: 'error', summary: 'Erreur', detail: result.message || 'Erreur inconnue', life: 5000 });
+          }
+          return; // Stop l’exécution
+        }
+
+        users.value.push(result);
+        toast.add({ severity: 'success', summary: 'Créé', detail: result.message || 'Utilisateur créé avec succès', life: 3000 });
       }
 
       userDialog.value = false;
@@ -193,7 +217,10 @@ function hideDialog(){
 
                 <Column field="inventoryStatus" header="ACTION" sortable style="min-width: 12rem">
                     <template #body="slotProps">
-                        <Button icon="" label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
+                        <Button 
+                        v-if="isSuperuser"
+                        icon="" 
+                        label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
                        
                     </template> 
                 </Column>

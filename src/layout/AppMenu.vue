@@ -65,6 +65,11 @@ const model = ref([]);
         {
         label: 'ACCUEIL',
         items: [
+            {
+                label:'Utilisateurs',
+                icon:'pi pi-fw pi-users',
+                to:'/pages/Utilisateur'
+            },  
 
         {
         label: 'Gestion Stock',

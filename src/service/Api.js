@@ -106,7 +106,7 @@ export async function updateProductAPI(productId, productData){
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('Product updated', response.data);
+        
         return response.data;
     } catch (error){
         console.log('Error updating product', error.response ? error.response.data : error);
@@ -114,14 +114,39 @@ export async function updateProductAPI(productId, productData){
     }
 }
 
-export async function fetchInvoices(cashieId){
-    const INVOICE_URL = `${API_BASE}invoicesView/?cashier=${cashieId}`;
 
-    try{
-        const response = await axios.get(INVOICE_URL);
-        return await response.data;
-    }catch (error){
-        console.error('error fetching invoices',error);
+// afficher toutes les factures du parent et ses enfant 
+export async function fetchInvoicesAllUsers() {
+    let INVOICE_URL = `${API_BASE}invoicesView/`;
+
+    try {
+        const response = await axios.get(INVOICE_URL, {
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching invoices', error);
+        throw error;
+    }
+}
+
+export async function fetchInvoicesAllChildrent(onlyChildren = true) {
+    let INVOICE_URL = `${API_BASE}invoicesView/`;
+    if (onlyChildren) {
+        INVOICE_URL += '?only_children=true';
+    }
+
+    try {
+        const response = await axios.get(INVOICE_URL, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching invoices', error);
         throw error;
     }
 }
@@ -134,7 +159,7 @@ export async function deleteProductAPI(productId){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('Proudct deleted:', response.data);
+
         return response.data;
     }catch (error) {
         console.error('Error deleting product', error.response ? error.response.data : error);
@@ -146,11 +171,25 @@ export async function fetchUsers(){
     const USER_URL = `${API_BASE}usersView/`;
     try{
         const response = await axios.get(USER_URL);
-        console.log('Fetched users:', response.data)
+       
         return await response.data;
     }catch (error){
         console.error('error fetching invoices',error);
         throw error;
+    }
+}
+
+export async function getUsersCreatedByMe() {
+    const URL_BYMY = `${API_BASE}users/created-by-me/`;
+    try{
+        const response = await axios.get(URL_BYMY, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data
+    }catch(error){
+        throw error.response?.data || { detail: "Erreur inattendue lors du chargement des utilisateurs." };
     }
 }
 // fonction detail user
@@ -180,12 +219,25 @@ export async function createUserAPI(userData){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('Token', localStorage.getItem('token'));
-        console.log('User created:', response.data);
+       
+
         return response.data;
+
     }catch(error){
-        console.error('Error creating user',error.response ? error.response.data : error);
-        throw error;
+
+        if(error.response){
+            return {
+                error: true,
+                status: error.response.status,
+                data: error.response.data
+              };
+        } else{
+            return {
+                error: true,
+                message: 'Une erreur s’est produite lors de la création de l’utilisateur.'
+              };
+        }
+       
     }
 }
 

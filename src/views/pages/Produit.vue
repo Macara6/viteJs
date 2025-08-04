@@ -112,7 +112,7 @@ function hideDialog() {
 async function saveProduct () {
    submitted.value = true;
 
-   if(product.value.name && product.value.price && product.value.puchase_price && product.value.stock && product.value.category){
+   if(product.value.name && product.value.price && product.value.purchase_price && product.value.stock && product.value.category){
       try{
         const userCreated = localStorage.getItem('id');
         const productData ={
@@ -263,12 +263,12 @@ function formatPrice(price){
 
                 <Column field="puchase_price" header="Prix achat" sortable style="min-width: 10rem">
                     <template #body="slotProps">
-                        {{ formatPrice(slotProps.data.puchase_price) }} FC
+                        {{ formatPrice(slotProps.data.purchase_price) }} FC
                     </template>
                 </Column>
                 <Column field="" header="Bénéfice" sortable style="min-width: 12rem">
                     <template #body="slotProps">
-                        {{ calculateDenfice(slotProps.data.price,slotProps.data.puchase_price) }} %
+                        {{ calculateDenfice(slotProps.data.price,slotProps.data.purchase_price) }} %
                     </template>
                 </Column>
                 <Column field="stock" header="stock" sortable style="min-width: 10rem">
@@ -309,7 +309,7 @@ function formatPrice(price){
                     </div>
                     <div class="col-span-6">
                         <label for="puchase_price" class="block font-bold mb-3">Prix Achat</label>
-                        <InputNumber id="price" v-model="product.puchase_price" mode="currency" currency="CDF" locale="en-US" fluid />
+                        <InputNumber id="price" v-model="product.purchase_price" mode="currency" currency="CDF" locale="en-US" fluid />
                     </div>
                     <div class="col-span-6">
                         <label for="stock" class="block font-bold mb-3">Stock</label>

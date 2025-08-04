@@ -2,7 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchInvoices, fetchUserById } from '@/service/Api';
+import { fetchInvoicesAllUsers, fetchUserById, getUsersCreatedByMe } from '@/service/Api';
 import jsPDF from 'jspdf';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -13,23 +13,45 @@ const lineData = ref(null);
 const lineOptions = ref(null);
 const invoices = ref([]);
 const total_Amount = ref(0)
-const user = ref(null);
+
 const today = new Date().toISOString().split('T')[0];
 const selectDate = ref({
     global:{ value:today }
 })
+const childUserIds = ref([]);
+let allUsers = [];
 
 
-onMounted( async ()=>{
+const user = ref({}); // utilisateur connecté
+const childUsers = ref([]); 
+ 
+
+onMounted(async () => {
     const userId = localStorage.getItem('id');
-
-    invoices.value =  await fetchInvoices(userId);
     user.value = await fetchUserById(userId);
+
+    const allInvoices = await fetchInvoicesAllUsers();
+    
+     allUsers = await getUsersCreatedByMe();
+
+     
+   
+    
+     childUsers.value = allUsers.filter(u => u.created_by === parseInt(userId));
+
+    console.log("Enfant(s) détecté(s) :", childUsers.value);
+        
+     
+    // Inclure factures de l'utilisateur connecté + celles de ses enfants
+    invoices.value = allInvoices
+    console.log("Invoices :", invoices.value);
+
     calculateTotalAmount();
     setColorOptions();
-    updateLineData()
-    
+    updateLineData();
 });
+
+
 
 function getWeekRange(date){
     const start = new Date(date);
@@ -41,6 +63,7 @@ function getWeekRange(date){
 }
 
 const todaysInvoices= computed(() =>{
+
     const selectedDate = selectDate.value.global.value;  
     return invoices.value.filter(invoice =>{
         const invoiceData = new Date(invoice.created_at);
@@ -159,42 +182,40 @@ function formatPrice(price){
     }
     return price;
 }
+
+
 function setColorOptions() {
+
     const documentStyle = getComputedStyle(document.documentElement);
-
-    lineOptions.value = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top',
-            },
-            title: {
-                display: true,
-                text: 'Factures de la semaine'
-            },
-        },
-    };
-
-    const userInvoiceCounts = {};
+    
+    const userInvoiceTotals = {}; 
     const selectedDate = new Date(selectDate.value.global.value).toISOString().split('T')[0];
+   
+  
 
     invoices.value.forEach(invoice => {
         const invoiceDate = new Date(invoice.created_at).toISOString().split('T')[0];
         if (invoiceDate === selectedDate) {
             const userId = invoice.cashier;
-            userInvoiceCounts[userId] = (userInvoiceCounts[userId] || 0) + 1;
+            const amount = parseFloat(invoice.total_amount) || 0;
+            userInvoiceTotals[userId] = (userInvoiceTotals[userId] || 0) + amount;
         }
     });
 
+    
     const labels = [];
     const data = [];
 
-    if (user.value) {
-        const userId = user.value.id;
-        labels.push(user.value.username);
-        data.push(userInvoiceCounts[userId] || 0);
-    }
+    const all = [user.value, ...allUsers];
 
+    all.forEach(u => {
+        if (u && userInvoiceTotals[u.id]) {
+            labels.push(u.username);
+            data.push(userInvoiceTotals[u.id]);  // 👉 montant total
+        }
+    });
+
+ 
     pieData.value = {
         labels,
         datasets: [
@@ -243,38 +264,90 @@ function setColorOptions() {
 }
 
 
+function formatDateISO(date) {
+    return date.toISOString().split('T')[0];
+}
+
 function updateLineData() {
     const { start, end } = getWeekRange(selectDate.value.global.value);
     const labels = [];
-    const data = [];
+    const userDataMap = {};
+
+    const all = [user.value, ...allUsers];
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const currentDate = new Date(d); // éviter mutation
-        const dateString = currentDate.toISOString().split('T')[0];
-        labels.push(currentDate.toLocaleDateString());
-
-        const dailyInvoices = invoices.value.filter(invoice => {
-            const invoiceDate = new Date(invoice.created_at).toISOString().split('T')[0];
-            return invoiceDate === dateString;
-        });
-
-        data.push(dailyInvoices.length);
+        const currentDate = new Date(d);
+        labels.push(formatDateISO(currentDate));
     }
+
+    all.forEach(u => {
+        if (u) {
+            userDataMap[u.id] = new Array(labels.length).fill(0);
+        }
+    });
+
+    invoices.value.forEach(invoice => {
+        const invoiceDate = new Date(invoice.created_at);
+        const dateString = formatDateISO(invoiceDate);
+
+        const userIndex = all.findIndex(u => u && u.id === invoice.cashier);
+        if (userIndex !== -1) {
+            const labelIndex = labels.indexOf(dateString);
+            if (labelIndex !== -1) {
+                const amount = parseFloat(invoice.total_amount || 0);
+                userDataMap[all[userIndex].id][labelIndex] += amount;
+            }
+        }
+    });
+
+    // Calculer le total par date (somme sur tous les utilisateurs)
+    const totalData = new Array(labels.length).fill(0);
+    labels.forEach((_, i) => {
+        all.forEach(u => {
+            if (u) {
+                totalData[i] += userDataMap[u.id][i];
+            }
+        });
+    });
+
+    const colors = [
+        'rgba(75, 192, 192, 1)',
+        'rgba(255, 99, 132, 1)',
+        'rgba(255, 206, 86, 1)',
+        'rgba(54, 162, 235, 1)',
+        'rgba(153, 102, 255, 1)',
+        'rgba(255, 159, 64, 1)',
+    ];
+
+    // Datasets des utilisateurs
+    const datasets = all.map((u, index) => ({
+        label: u.username,
+        data: userDataMap[u.id],
+        fill: false,
+        borderColor: colors[index % colors.length],
+        backgroundColor: colors[index % colors.length],
+        tension: 0.4,
+    }));
+
+    // Ajouter la ligne Total (avec une couleur différente)
+    datasets.push({
+        label: 'Total',
+        data: totalData,
+        fill: false,
+        borderColor: 'rgba(0, 0, 0, 0.8)', // noir pour le total
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        borderWidth: 2,
+        tension: 0.4,
+        borderDash: [5, 5], // ligne en tirets pour distinguer
+    });
 
     lineData.value = {
         labels,
-        datasets: [
-            {
-                label: 'Factures créées',
-                data,
-                fill: false,
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                tension: 0.4,
-            },
-        ],
+        datasets
     };
 }
+
+
 
 
 watch(
@@ -328,8 +401,8 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div>
-                        <span class="block text-muted-color font-medium mb-4">Total Utilisateurs (Caissers)</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">444</div>
+                        <span class="block text-muted-color font-medium mb-4">Total Utilisateurs (Caisses)</span>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ allUsers.length + 1}}</div>
                     </div>
                     <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
                         <i class="pi pi-users text-cyan-500 !text-xl"></i>
@@ -376,7 +449,7 @@ watch(
               </div>
             </div>
             <div class="card flex flex-col items-center">
-                <div class="font-semibold text-xl mb-4">Factues Par caisseir pour </div>
+                <div class="font-semibold text-xl mb-4">Factues Par Caissier </div>
                 
                 <Chart type="doughnut" :data="pieData" :options="pieOptions"></Chart>
             </div>

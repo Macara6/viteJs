@@ -1,6 +1,6 @@
 <script setup>
 
-import { fetchInvoices, fetchUsers } from '@/service/Api';
+import { fetchInvoicesAllChildrent, fetchInvoicesAllUsers, fetchUsers } from '@/service/Api';
 import { FilterMatchMode } from '@primevue/core';
 import { onMounted, ref } from 'vue';
 
@@ -17,6 +17,9 @@ const deleteInvoiceDialog = ref(false);
 const deleteInvoicesDialog = ref(false);
 const selectedInvoices = ref();
 
+const showOnlyChildren = ref(false);
+
+
 onMounted (async () =>{
    await loadInvoiceAndAdmin();
 });
@@ -28,36 +31,33 @@ function sortInvoicesByDate(){
     }); 
 }
 
+
 async function loadInvoiceAndAdmin(){
-        const cashierId = localStorage.getItem('id');
-    try{
-       // invoices.value = await fetchInvoices();
-       const [fetchedInvoices, fetchedUsers] = await Promise.all([fetchInvoices(cashierId),fetchUsers()]);
+    try {
+        const [fetchedUsers, invoicesData] = await Promise.all([
+            fetchUsers(),
+            showOnlyChildren.value ? fetchInvoicesAllChildrent(true) : fetchInvoicesAllUsers()
+        ]);
 
-       console.log('Fetched Invoices:', fetchedInvoices);
-       console.log('Fetched Users:', fetchedUsers);
+        console.log('Invoices:', invoicesData);
 
-       users.value = fetchedUsers.reduce((acc, user) =>{
+        users.value = fetchedUsers.reduce((acc, user) => {
             acc[user.id] = user.username;
             return acc;
-       }, {});
+        }, {});
 
-       invoices.value = fetchedInvoices.map(invoice => {
-
-        const cashier_name = users.value[invoice.cashier] ||'Unknown';
+        invoices.value = invoicesData.map(invoice => {
+            const cashier_name = users.value[invoice.cashier] || 'Unknown';
+            return {
+                ...invoice,
+                cashier_name
+            };
+        });
         
-        console.log(`Invoice ID: ${invoice.id}, Cashier ID: ${invoice.cashier}, Cashier Name: ${cashier_name}`);
 
-        return {
-            ...invoice,
-            cashier_name
-        };
-
-       });
-       sortInvoicesByDate();
-
-    }catch (error){
-        console.error('There aws a problem with the fetch operation:', error);
+        sortInvoicesByDate();
+    } catch (error) {
+        console.error('Erreur de chargement des données:', error);
     }
 }
 
@@ -122,6 +122,13 @@ function formaPrice(price){
                     <Button label="Effacer" icon="pi pi-trash" severity="danger" @click="confirmDeleteSelected" :disabled="!selectedInvoices || !selectedInvoices.length" />
                 </template> 
                 <template #end>
+                    <Checkbox
+                    v-model="showOnlyChildren"
+                        :binary="true"
+                        inputId="onlyChildren"
+                        @change="refreshPage"
+                    />          
+                        <label for="onlyChildren" class="ml-2">Enfants uniquement</label>
                     <Button label="Actualiser" icon ="pi pi-refresh" severity="primary" class="m-2" @click="refreshPage"/>  
                 </template>
             </Toolbar>

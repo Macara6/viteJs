@@ -190,7 +190,8 @@ function smoothScroll(id) {
 
                 <div class="grid grid-cols-12 gap-4 mt-20 pb-2 md:pb-20">
                     <div class="flex justify-center col-span-12 lg:col-span-6 bg-purple-100 p-0 order-1 lg:order-none" style="border-radius: 8px">
-                        <img src="/demo/images/landing/mockup.svg" class="w-11/12" alt="mockup mobile" />
+                        <img src="/demo/pos_phone.png" class="w-[400px]" alt="mockup mobile" />
+        
                     </div>
 
                     <div class="col-span-12 lg:col-span-6 my-auto flex flex-col lg:items-end text-center lg:text-right gap-4">
@@ -205,9 +206,7 @@ function smoothScroll(id) {
                     </div>
                 </div>
 
-
  
-
                 <div class="grid grid-cols-12 gap-4 my-20 pt-2 md:pt-20">
                     <div class="col-span-12 lg:col-span-6 my-auto flex flex-col text-center lg:text-left lg:items-start gap-4">
                         <div class="flex items-center justify-center bg-yellow-200 self-center lg:self-start" style="width: 4.2rem; height: 4.2rem; border-radius: 10px">
@@ -220,8 +219,9 @@ function smoothScroll(id) {
                     </div>
 
                     <div class="flex justify-end order-1 sm:order-2 col-span-12 lg:col-span-6 bg-yellow-100 p-0" style="border-radius: 8px">
-                        <img src="/demo/images/landing/mockup-desktop.svg" class="w-11/12" alt="mockup" />
+                        <img src="/demo/pos_pohe2.png" class="w-[400px] h-auto" alt="mockup" />
                     </div>
+
                 </div>
             </div>
 
@@ -255,7 +255,7 @@ function smoothScroll(id) {
                                     <span class="text-5xl font-bold mr-2 text-surface-900 dark:text-surface-0">$19.99</span>
                                     <span class="text-surface-600 dark:text-surface-200">/ Mois</span>
                                 </div>
-                                <Button label="Commencer" class="p-button-rounded border-0 ml-4 font-light leading-tight bg-blue-500 text-white"></Button>
+                               
                             </div>
                             <Divider class="w-full bg-surface-200"></Divider>
                             <ul class="my-8 list-none p-0 flex text-surface-900 dark:text-surface-0 flex-col px-8">
@@ -295,7 +295,7 @@ function smoothScroll(id) {
                                     <span class="text-5xl font-bold mr-2 text-surface-900 dark:text-surface-0">$29,99</span>
                                     <span class="text-surface-600 dark:text-surface-200">/Mois</span>
                                 </div>
-                                <Button label="Commencer" class="p-button-rounded border-0 ml-4 font-light leading-tight bg-blue-500 text-white"></Button>
+                               
                             </div>
                             <Divider class="w-full bg-surface-200"></Divider>
                             <ul class="my-8 list-none p-0 flex text-surface-900 dark:text-surface-0 flex-col px-8">
@@ -338,7 +338,7 @@ function smoothScroll(id) {
                                     <span class="text-5xl font-bold mr-2 text-surface-900 dark:text-surface-0">$49,99</span>
                                     <span class="text-surface-600 dark:text-surface-200">/Mois</span>
                                 </div>
-                                <Button label="Commencer" class="p-button-rounded border-0 ml-4 font-light leading-tight bg-blue-500 text-white"></Button>
+                               
                             </div>
                             <Divider class="w-full bg-surface-200"></Divider>
                             <ul class="my-8 list-none p-0 flex text-surface-900 dark:text-surface-0 flex-col px-8">

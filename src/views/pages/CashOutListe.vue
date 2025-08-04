@@ -267,7 +267,7 @@ function deleteToCahOut(cashout){
                 <Button label="No" icon="pi pi-times" text @click="deleteCashOutDialog = false" />
                 <Button label="Yes" icon="pi pi-check" text @click="confirmDeleteCashout" />
             </template>
-        </Dialog>
+     </Dialog>
 
 
    
