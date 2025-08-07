@@ -167,9 +167,14 @@ function formaPrice(price){
                             {{formaPrice(slotProps.data.total_amount) }} Fc
                     </template>
                 </Column>
-                <Column field="change" header="Remise" sortable style="min-width: 8rem">
+                <Column field="change" header="Reste" sortable style="min-width: 8rem">
                         <template #body = "slotProps">
-                            {{ remiseTaux(slotProps.data.total_amount,slotProps.data.change) }} %
+                            {{ formaPrice(slotProps.data.change) }} 
+                        </template>
+                </Column>
+                <Column field="amount_paid" header="Montant Perçu" sortable style="min-width: 8rem">
+                        <template #body = "slotProps">
+                            {{ formaPrice(slotProps.data.amount_paid) }} 
                         </template>
                 </Column>
                 <Column field="created_at" header="Date" sortable style="min-width: 8rem">

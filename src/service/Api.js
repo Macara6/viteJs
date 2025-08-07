@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = ' http://127.0.0.1:8000/';
+const API_BASE = ' https://pos.bilatech.org/';
 
 
 export async function login(usernam, password) {
@@ -167,6 +167,7 @@ export async function deleteProductAPI(productId){
     }
 }
 
+
 export async function fetchUsers(){
     const USER_URL = `${API_BASE}usersView/`;
     try{
@@ -255,6 +256,38 @@ export async function updateUser(userId,userData){
 
     } catch(error){
         console.log('Error updating user', error.response?.data || error);
+    }
+}
+// ffoncton pour supprimer l'utilisateur 
+export async function deleteUserAPI(userId){
+    const DELETE_USER_URL = `${API_BASE}/user/delete/${userId}/`;
+    try{
+        const response = await axios.delete(DELETE_USER_URL, {
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('Error deleting product', error.response ? error.response.data : error);
+        throw error;
+    }
+}
+// fonction pour creer une facture 
+
+export async function createInvoiceAPI(invoiceData) {
+    const CREATE_INVOICE_URL = `${API_BASE}invoices/`;
+    try{
+        const response = await axios.post(CREATE_INVOICE_URL, invoiceData, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type' : 'application/json'
+            }
+        });
+        return response.data;
+    } catch(error){
+        console.error('Error creating invoice:', error.response ? error.response.data : error);
+        throw error;
     }
 }
 

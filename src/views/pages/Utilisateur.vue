@@ -1,7 +1,7 @@
 
 
 <script setup>
-import { createUserAPI, getUsersCreatedByMe, updateUser } from '@/service/Api';
+import { createUserAPI, deleteUserAPI, getUsersCreatedByMe, updateUser } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -14,6 +14,8 @@ const userDialog = ref(false);
 const submitted =  ref(false);
 const router = useRouter();
 const isSuperuser = localStorage.getItem('is_superuser') === 'true';
+const deleteDialog = ref(false);
+const userToDelete = ref(null);
 
 
 
@@ -33,11 +35,11 @@ async function fetchedUser() {
     let fechedUsers = [];
 
     if (isCurrentUserSuperuser === 'true') {
-      // Si superuser : récupère tous les utilisateurs
+      
       fechedUsers = await getUsersCreatedByMe()
       fechedUsers = fechedUsers.filter(user => String(user.id) !== String(currentUserId));
     } else {
-      // Sinon : récupère uniquement les utilisateurs créés par moi
+      
       fechedUsers = await getUsersCreatedByMe();
       console.log('Utilisateur enfants :', fechedUsers)
     }
@@ -48,6 +50,28 @@ async function fetchedUser() {
     console.error('Erreur lors du chargement des utilisateurs', error);
   }
 }
+
+function confirmDeleteUser(user){
+  userToDelete.value = user;
+  deleteDialog.value = true;
+}
+
+async function deleteUser(){
+    if(!userToDelete.value) return
+
+    try{
+        await deleteUserAPI(userToDelete.value.id);
+        user.value = users.value.filter(u=> u.id !== userToDelete.value.id);
+         toast.add({ severity: 'success', summary: 'Supprimé', detail: 'Utilisateur supprimé avec succès', life: 3000 });
+    } catch(error){
+       console.error('Erreur lors de la suppression de l\'utilisateur', error);
+       toast.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la suppression', life: 3000 });
+    } finally{
+      deleteDialog.value =false;
+      userToDelete.value=null;
+    }
+}
+
 
 // function pour sauvegarder l'utilisateur 
 
@@ -221,6 +245,15 @@ function hideDialog(){
                         v-if="isSuperuser"
                         icon="" 
                         label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
+
+                        <Button 
+                          icon="pi pi-trash" 
+                          severity="danger" 
+                          rounded 
+                          outlined 
+                          label="Supprimer"
+                          @click="confirmDeleteUser(slotProps.data)" 
+                      />
                        
                     </template> 
                 </Column>
@@ -243,8 +276,7 @@ function hideDialog(){
                         <InputText id="email" v-model="user.email" type="email" placeholder="exmple@gmail.com" required="true"/>
                     </div>
                 </div>
-            
-
+        
                 <div class="grid grid-cols-12 gap-4" v-if="!user.id">
                     <div class="col-span-6">
                         <label for="password" class="block font-bold mb-3">Mot de paase</label>
@@ -267,5 +299,14 @@ function hideDialog(){
                 <Button label="Save" icon="pi pi-check" @click="saveUser" />
             </template>
         </Dialog>
+
+
+        <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
+        <span>Voulez-vous vraiment supprimer l'utilisateur <strong>{{ userToDelete?.username }}</strong> ?</span>
+        <template #footer>
+            <Button label="Non" icon="pi pi-times" text @click="deleteDialog = false" />
+            <Button label="Oui" icon="pi pi-check" severity="danger" @click="deleteUser" />
+        </template>
+    </Dialog>
 
 </template>

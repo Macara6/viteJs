@@ -1,0 +1,398 @@
+<script setup>
+import { createInvoiceAPI, fetchProduits } from '@/service/Api';
+import { useToast } from 'primevue/usetoast';
+import { onMounted, ref, watch } from 'vue';
+
+        const products = ref([]);
+        const selectedProducts = ref([]);
+        const filters = ref({
+        global: { value: null, matchMode: 'contains' }
+        });
+
+        const invoiceItems = ref([]);
+        const clientName = ref('');
+        const totalAmount = ref(0);
+        const amountPaid = ref(0);
+        const change = ref(0);
+
+        const search = ref('');
+        const toast = useToast();
+
+    onMounted(async () => {
+        await loadProduct();
+
+    });
+
+    async function loadProduct() {
+        const userId = localStorage.getItem('id');
+        try {
+            const fetchProduct = await fetchProduits(userId);
+            products.value = fetchProduct;
+        } catch (error) {
+            console.error('There was a problem with the fetch operation:', error);
+        }
+    }
+
+    function refreshPage() {
+        loadProduct();
+    }
+
+    function formatPrice(value) {
+        return Number(value).toLocaleString('fr-CD');
+     }
+
+    function updateQuantity(item, quantity) {
+        if (quantity < 1) item.quantity = 1;
+        updateTotal();
+    }
+    function removeFromInvoice(productId){
+        invoiceItems.value = invoiceItems.value.filter(item => item.product.id !== productId);
+        updateTotal();
+    }
+
+    function addToInvoice(product){
+        const existing =invoiceItems.value.find(item => item.product.id === product.id);
+        if(existing){
+            existing.quantity +=1;
+
+        }else{
+            invoiceItems.value.push({
+                product:product,
+                quantity:1,
+                price:product.price,
+                purchase_price:product.purchase_price
+            });
+        }
+
+        updateTotal();
+    }
+    function updateTotal(){
+        totalAmount.value = invoiceItems.value.reduce((sum, item) => {
+            return sum + item.quantity * item.price;
+        },0);
+    }
+    
+    watch(amountPaid, (newVal) => {
+    const diff = newVal - totalAmount.value;
+    change.value = diff > 0 ? diff : 0;
+    });
+
+    const verifierStockProduits = () => {
+        const produitsInsuffisants = invoiceItems.value.filter(item => {
+            return item.product.stock < item.quantity;
+        });
+
+        if (produitsInsuffisants.length > 0) {
+            const noms = produitsInsuffisants.map(item => {
+                return `'${item.product.name}' (stock: ${item.product.stock}, demandé: ${item.quantity})`;
+            }).join(', ');
+
+            toast.add({
+                severity: 'error',
+                summary: 'Stock insuffisant',
+                detail: `Stock insuffisant pour ${noms}`,
+                life: 5000
+            });
+            return false;
+        }
+
+        return true;
+    };
+    async function createInvoice(){
+          if (amountPaid.value < totalAmount.value) {
+            toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
+            return;
+        }
+
+        change.value =amountPaid.value - totalAmount.value;
+        if (!verifierStockProduits()) {
+        return; // Stoppe la création si stock insuffisant
+        }
+        const invoiceData = {
+            client_name :clientName.value,
+            total_amount:totalAmount.value,
+            amount_paid:amountPaid.value,
+            cashier:localStorage.getItem('id'),
+            change:change.value,
+            items:invoiceItems.value.map(item => ({
+                product: item.product.id,
+                quantity: item.quantity,
+                price: item.price,
+                purchase_price: item.purchase_price
+            }))
+        };
+        try{
+            if(clientName.value){
+  
+            await createInvoiceAPI(invoiceData);
+            toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
+            printInvoice(invoiceData)
+             invoiceItems.value = [];
+             totalAmount.value = 0;
+             amountPaid.value = 0;
+            change.value = 0;
+            clientName.value = '';
+        }else{
+         toast.add({ severity: 'warn', summary: 'Utilisateur non identifié', detail: 'Veuillez compté le nom du client.', life: 3000 });
+          
+        }
+        }catch (error) {
+                console.error('Erreur lors de la création de la facture :', error);
+                if (error.response && error.response.data) {
+                    console.error('Détails de l’erreur :', error.response.data);
+                }
+        }
+    }
+
+function printInvoice(invoiceData) {
+  const printWindow = window.open('', '', 'width=800,height=1000');
+
+  const style = `
+    <style>
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          zoom: 2; /* Agrandir le contenu imprimé */
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: monospace;
+        font-size: 13px;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        padding: 16px;
+        max-width: 100%;
+      }
+      .center {
+        text-align: center;
+      }
+      .bold {
+        font-weight: bold;
+      }
+      .line {
+        border-top: 1px dashed #000;
+        margin: 12px 0;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        white-space: nowrap;
+      }
+      .product {
+        margin-bottom: 10px;
+      }
+    </style>
+  `;
+
+  let content = `
+    <html>
+      <head>
+        <title>Facture</title>
+        ${style}
+      </head>
+      <body>
+        <div class="container">
+          <div class="center bold">TICKET DE VENTE</div>
+          <div class="center">${new Date().toLocaleString()}</div>
+          <div class="line"></div>
+          <div><strong>Client:</strong> ${invoiceData.client_name}</div>
+          <div class="line"></div>
+  `;
+
+  invoiceItems.value.forEach(item => {
+    content += `
+      <div class="product">
+        <div>${item.product.name}</div>
+        <div class="row">
+          <span>${item.quantity} x ${formatPrice(item.price)}</span>
+          <span>${formatPrice(item.quantity * item.price)} FC</span>
+        </div>
+      </div>
+    `;
+  });
+
+  content += `
+          <div class="line"></div>
+          <div class="row bold">
+            <span>Total</span>
+            <span>${formatPrice(invoiceData.total_amount)} FC</span>
+          </div>
+          <div class="row">
+            <span>Payé</span>
+            <span>${formatPrice(amountPaid.value)} FC</span>
+          </div>
+          <div class="row">
+            <span>Monnaie</span>
+            <span>${formatPrice(invoiceData.change)} FC</span>
+          </div>
+          <div class="line"></div>
+          <div class="center">Merci pour votre achat !</div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.write(content);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+}
+
+
+
+
+
+
+      
+</script>
+
+<template>
+  <div class="flex flex-col md:flex-row gap-6 p-4">
+    <!-- Colonne gauche : Produits -->
+    <div class="w-full md:w-1/2 border rounded-lg p-4 shadow-sm bg-white">
+      <h3 class="text-lg font-bold mb-4">Produits disponibles</h3>
+
+      <div class="mb-3">
+        <InputText
+          v-model="filters.global.value"
+          placeholder="🔍 Rechercher un produit..."
+          class="w-full"
+        />
+      </div>
+
+      <DataTable
+        :value="products"
+        :rows="5"
+        :paginator="true"
+        :filters="filters"
+        dataKey="id"
+        responsiveLayout="scroll"
+      >
+        <Column field="name" header="Nom" />
+        <Column field="price" header="Prix">
+          <template #body="{ data }">
+            {{ formatPrice(data.price) }} FC
+          </template>
+        </Column>
+        <Column>
+          <template #body="{ data }">
+            <Button
+              icon="pi pi-plus"
+              label="Ajouter"
+              @click="addToInvoice(data)"
+              class="p-button-sm"
+            />
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+
+    <!-- Colonne droite : Facture -->
+    <!-- Facture -->
+<div class="w-full md:w-1/2 border rounded-lg p-4 shadow-sm bg-white">
+  <h3 class="text-lg font-bold mb-4">Nouvelle facture</h3>
+
+  <div class="mb-4">
+    <label for="client" class="block mb-1 font-medium">Nom du client :</label>
+    <InputText id="client" v-model="clientName" class="w-full" />
+  </div>
+
+  <DataTable
+    :value="invoiceItems"
+    dataKey="product.id"
+    :paginator="true"
+    :rows="5"
+    responsiveLayout="scroll"
+    class="text-sm"
+  >
+    <Column field="product.name" header="Produit" />
+
+    <Column header="Qté">
+      <template #body="{ data }">
+        <InputNumber
+          v-model="data.quantity"
+          @input="updateQuantity(data, data.quantity)"
+          :min="1"
+          showButtons
+          buttonLayout="horizontal"
+          incrementButtonIcon="pi pi-plus"
+          decrementButtonIcon="pi pi-minus"
+          class="w-20"
+        />
+      </template>
+    </Column>
+
+    <Column field="price" header="Prix">
+      <template #body="{ data }">
+        {{ formatPrice(data.price) }} FC
+      </template>
+    </Column>
+
+    <Column header="Sous-total">
+      <template #body="{ data }">
+        {{ formatPrice(data.quantity * data.price) }} FC
+      </template>
+    </Column>
+
+    <Column header="Action">
+      <template #body="{ data }">
+        <Button
+          icon="pi pi-trash"
+          severity="danger"
+          rounded
+          text
+          @click="removeFromInvoice(data.product.id)"
+        />
+      </template>
+    </Column>
+  </DataTable>
+
+  <div class="mt-4 text-right text-lg font-bold">
+    Total : {{ formatPrice(totalAmount) }} FC
+  </div>
+
+  <div class="mt-4">
+    <label for="amountPaid" class="block mb-1 font-medium">Montant payé (FC) :</label>
+    <InputNumber
+      id="amountPaid"
+      v-model="amountPaid"
+      :min="0"
+      class="w-40"
+    />
+  </div>
+
+  <div class="mt-2 text-right font-semibold">
+    Reste : {{ formatPrice(change) }} FC
+  </div>
+
+  <div class="mt-4 text-right">
+    <Button
+      label="Payer et créer facture"
+      icon="pi pi-check"
+      @click="createInvoice"
+      severity="success"
+    />
+  </div>
+</div>
+
+  </div>
+</template>
+
+<style scoped>
+@media (max-width: 768px) {
+  table {
+    font-size: 0.85rem;
+  }
+}
+
+
+
+</style>

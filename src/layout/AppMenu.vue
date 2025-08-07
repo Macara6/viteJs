@@ -78,7 +78,7 @@ const model = ref([]);
         },
         {
             label:'Factures',
-            icon:'pi pi-shopping-cart',
+            icon:'pi pi-ticket',
             to:'/pages/Invoice'
 
         },
@@ -88,12 +88,19 @@ const model = ref([]);
             icon:'pi pi-fw pi-chart-line',
             to:'/pages/Bilan'
         },
-
+        /**
         {
             label:'Statistique',
             icon:'pi pi-fw pi-chart-pie',
             to:'/pages/Statistique'
         },
+        */
+       {
+         label:'Vente',
+         icon:'pi pi-shopping-cart',
+         to:'/pages/vente'
+       },
+
         {
             label:'Notification',
             icon:'pi pi-fw pi-bell',

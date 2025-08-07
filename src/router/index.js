@@ -102,6 +102,11 @@ const router = createRouter({
                     component:() => import('@/views/pages/Bilan.vue')
 
                 },
+                {
+                    path:'/pages/vente',
+                    name:'Vente',
+                    component:() => import('@/views/pages/Vente.vue')
+                },
 
                 {
                     path: '/pages/Employee',
@@ -149,7 +154,8 @@ const router = createRouter({
                     path:'/pages/EntryNoteList',
                     name:'EntryNote',
                     component: () => import('@/views/pages/EntryNoteList.vue')
-                }
+                },
+              
                 
             ]
         },
