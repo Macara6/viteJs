@@ -220,8 +220,7 @@ export async function createUserAPI(userData){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-       
-
+    
         return response.data;
 
     }catch(error){
@@ -301,7 +300,6 @@ export async function fetchUserProfilById(userId){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('User profil fetched :', response.data);
         return response.data;
     }catch(error){
         console.error('Error fetching user profile:', error.response?.data || error);
@@ -309,7 +307,53 @@ export async function fetchUserProfilById(userId){
     }
 
 }
+export async function updateUserAPI(userData){
+    const UPDATE_USER_API = `${API_BASE}user/update/`;
+    try{
+        const response = await axios.put(UPDATE_USER_API, userData, {
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json',
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.log('Error to updating user', error.response?.data || error);
+        throw error;
+    }
+}
 
+
+export async function updateUserProfile(prodileData){
+    const UPATE_PROFILE = `${API_BASE}userProfil/update/`;
+    try{
+        const response = await axios.put(UPATE_PROFILE, prodileData, {
+            headers :{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch(error){
+        console.log('error to update user profile');
+        throw error;
+    }
+}
+
+export async function createUserProfl(profileCreateData){
+    const CREATE_USER_PROFILE = `${API_BASE}userProfil/create/`;
+    try{
+        const response = await axios.post(CREATE_USER_PROFILE, profileCreateData,{
+            headers :{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        console.log('profil creer avec success');
+        return response.data;
+    } catch(error){
+        console.error('error de creeation du profile:', error);
+        throw error;
+    }
+}
 // fonction pour gerer afficher les abonnements 
 export async function fetchSubscription(){
     const SUBSRIPTION_URL =`${API_BASE}listSubsription/`;
@@ -347,7 +391,6 @@ export async function updateSubscription(userId, subscriptionData){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('Subscription update: ', response.data);
         return response.data;
     } catch (error) {
         console.log('Error update subscription :', error.response ? error.response.data : error);

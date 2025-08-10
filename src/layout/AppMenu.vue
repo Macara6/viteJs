@@ -100,12 +100,18 @@ const model = ref([]);
          icon:'pi pi-shopping-cart',
          to:'/pages/vente'
        },
+        {
+            label:'Ma boutique',
+            icon:'pi pi-briefcase',
+            to:'/pages/Boutique'
+        },
 
         {
             label:'Notification',
             icon:'pi pi-fw pi-bell',
             to:'/pages/Notification'
         },
+
 
 
 
