@@ -1,7 +1,6 @@
 
 import axios from "axios";
-const API_BASE = ' http://127.0.0.1:8000/';
-
+const API_BASE = ' https://pos.bilatech.org/';
 
 export async function login(usernam, password) {
     const LOGIN_URL = `${API_BASE}login/`;
