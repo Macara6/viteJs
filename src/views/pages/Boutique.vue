@@ -2,14 +2,15 @@
 
 
 <script setup>
-import { createUserProfl, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile } from '@/service/Api';
+import { createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 
 const userProfile = ref(null);
 const user = ref(null);
 const toast = useToast();
+const subscription = ref(null);
 const submitted = ref(false);
 const showDialog = ref(false);
 const showDialogUpdateUser = ref(false);
@@ -21,8 +22,10 @@ const userId = localStorage.getItem('id');
 
 
 onMounted(async () => {
-    fetchUserProfil();
-    fetchUser();
+   await fetchUserProfil();
+    await fetchUser();
+    await fetchUserSubscription();
+
 });
 
 
@@ -127,6 +130,32 @@ async function saveProfile(){
         toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
     }
 }
+async function fetchUserSubscription(){
+    try{
+        const result = await fecthSubscriptionByUserId(userId);
+        subscription.value = Array.isArray(result) ? result[0] : result;
+        console.log('Abonnement Utilisateur:', subscription.value);
+    }catch(error){
+        console.error('Erreur lors de la récupération de l’abonnement', error);
+    }
+}
+function status(statutSubscription){
+    return statutSubscription === true ? 'Actif' : 'Expirée';
+}
+const progressPercent = computed(()=> {
+    if (!subscription.value || !subscription.value.start_date || !subscription.value.end_date){
+        return 0;
+    }
+    const start = new Date(subscription.value.start_date);
+    const end = new Date(subscription.value.end_date);
+    const now = new Date();
+    const totalDuration = end - start;
+    const elapsed = now - start;
+    if (now >= end) return 0;
+    if (now <= start) return 100;
+    const remainingPercent = ((totalDuration - elapsed) / totalDuration) * 100;
+    return Math.max(0, Math.min(100, Math.round(remainingPercent)));
+})
 
 
 
@@ -136,33 +165,69 @@ async function saveProfile(){
 </script>
 
 <template>
-   <div class="grid md:grid-cols-2 gap-6 card">
-    <div>
-      <div class="font-semibold text-xl mb-4 text-primary">Profil de la Boutique</div>
-      <div class="mb-2"><strong>Nom de la boutique :</strong> {{ userProfile ? userProfile.entrep_name : 'Non défini' }}</div>
-      <div class="mb-2"><strong>Numéro d'impôt :</strong> {{ userProfile ? userProfile.impot_number : 'Non défini' }}</div>
-      <div class="mb-2"><strong>RCCM :</strong> {{ userProfile ? userProfile.rccm_number : 'Non défini' }}</div>
-      <div class="mb-2"><strong>Téléphone :</strong> {{ userProfile ? userProfile.phone_number : 'Non défini' }}</div>
-      <div class="mb-2"><strong>Adresse :</strong> {{ userProfile ? userProfile.adress : 'Non défini' }}</div>
-      <div class="mb-2"><strong>Devise :</strong> {{ userProfile ? userProfile.currency_preference : 'Non défini' }}</div>
-      <Button 
-        :label="userProfile ? 'Modifier' : 'Créer le profil'" 
-        icon="pi pi-pencil" 
-        class="mt-4" 
-        @click="openEditDialog" 
-      />
-    </div>
+    <div class="grid md:grid-cols-2 gap-6 card">
+  <!-- Colonne Profil Boutique -->
+  <div>
+    <div class="font-semibold text-xl mb-4 text-primary">Profil de la Boutique</div>
+    <div class="mb-2"><strong>Nom de la boutique :</strong> {{ userProfile ? userProfile.entrep_name : 'Non défini' }}</div>
+    <div class="mb-2"><strong>Numéro d'impôt :</strong> {{ userProfile ? userProfile.impot_number : 'Non défini' }}</div>
+    <div class="mb-2"><strong>RCCM :</strong> {{ userProfile ? userProfile.rccm_number : 'Non défini' }}</div>
+    <div class="mb-2"><strong>Téléphone :</strong> {{ userProfile ? userProfile.phone_number : 'Non défini' }}</div>
+    <div class="mb-2"><strong>Adresse :</strong> {{ userProfile ? userProfile.adress : 'Non défini' }}</div>
+    <div class="mb-2"><strong>Devise :</strong> {{ userProfile ? userProfile.currency_preference : 'Non défini' }}</div>
+    <Button 
+      :label="userProfile ? 'Modifier' : 'Créer le profil'" 
+      icon="pi pi-pencil" 
+      class="mt-4" 
+      @click="openEditDialog" 
+    />
+  </div>
 
-    <div>
-      <div class="font-semibold text-xl mb-4 text-primary">Informations de l'utilisateur</div>
-       <div class="mb-2"><strong>Nom d'utilisateur :</strong>{{ user? user.username :'Non défini' }} </div>
-      <div class="mb-2"><strong>Nom :</strong>{{ user?.first_name || 'Non défini' }} {{ user?.last_name || '' }} </div>
-      <div class="mb-2"><strong>Email :</strong>{{ user?.email }} </div>
-      <Button label="Modifier mes informations" icon="pi pi-user-edit" class="mt-4" @click="openEditUserDialog" />
+  <!-- Colonne Utilisateur + Abonnement -->
+  <div>
+    <div class="font-semibold text-xl mb-4 text-primary">Informations de l'utilisateur</div>
+    <div class="mb-2"><strong>Nom d'utilisateur :</strong> {{ user ? user.username : 'Non défini' }}</div>
+    <div class="mb-2"><strong>Nom :</strong> {{ user?.first_name || 'Non défini' }} {{ user?.last_name || '' }}</div>
+    <div class="mb-2"><strong>Email :</strong> {{ user?.email || 'Non défini' }}</div>
+    <Button label="Modifier mes informations" icon="pi pi-user-edit" class="mt-4 mb-6" @click="openEditUserDialog" />
+
+    <div class="font-semibold text-xl mb-4 text-primary">Abonnement</div>
+    <div class="mb-2">
+    <strong>Type :</strong> {{ subscription?.subscription_type || 'Non défini' }}
+      <i 
+    v-if="subscription && (subscription.subscription_type === 'MEDIUM' || subscription.subscription_type === 'PREMIUM')" 
+    class="pi pi-verified ml-2"
+    :style="{ color: subscription.subscription_type === 'MEDIUM' ? 'green' : 'blue' }"
+    title="Abonnement vérifié"
+    ></i>
     </div>
+    <div class="mb-2"><strong>Début :</strong> {{ subscription?.start_date || 'Non défini' }}</div>
+    <div class="mb-2"><strong>Fin :</strong> {{ subscription?.end_date || 'Non défini' }}</div>
+    <div class="mb-2">
+        <strong>Statut :</strong> 
+        <span 
+            :class="status(subscription?.is_active) === 'Actif' ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'"
+        >
+            {{ status(subscription?.is_active) }}
+        </span>
+    </div>
+    <div v-if="subscription" class="mb-2">
+    <label class="block mb-1 font-semibold text-sm">Durée restante de l'abonnement :</label>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div 
+        class="h-4 rounded-full transition-all duration-500" 
+        :style="{
+            width: progressPercent + '%', 
+            backgroundColor: subscription.subscription_type === 'PREMIUM' ? '#3b82f6' : '#22c55e'
+        }"
+        ></div>
+    </div>
+    <small>{{ progressPercent }}% restant</small>
+    </div>
+  </div>
+</div>
 
 
-    </div>
       <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '450px' }">
     <div class="flex flex-col gap-4">
       <div>

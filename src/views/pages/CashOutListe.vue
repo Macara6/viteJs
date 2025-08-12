@@ -2,7 +2,7 @@
 
 
 <script setup>
-import { deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUsers } from '@/service/Api';
+import { deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUserProfilById, fetchUsers } from '@/service/Api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
@@ -19,6 +19,7 @@ import { onMounted, ref } from 'vue';
     const deleteCashOutDialog = ref(false)
     const selectedCashoutToDelete = ref(null);
     const toast = useToast();
+    const userProfile = ref(null);
 
 
     const signatureUrl = '/demo/signature.png';
@@ -26,6 +27,7 @@ import { onMounted, ref } from 'vue';
 
     onMounted(async () => {
         await loadCashOutAndUser();
+        await fetchUserProfil();
 
     });
 
@@ -62,12 +64,21 @@ import { onMounted, ref } from 'vue';
          showModal.value = true;
          console.log('Donne details',cashoutDetails);
         
-
     } catch (error){
         console.log('Erreur lors de la recuperation du details du bon', error);
     }   
 
  }   
+async function fetchUserProfil(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+        console.log('Profil utilisateur récupéré :', result);
+    } catch(error){
+        console.error('Erreur lors de la récuperation du profi utilisateur', error);
+    }
+}
 
 function formatDate(value){
     const options = {
@@ -142,6 +153,14 @@ function deleteToCahOut(cashout){
     deleteCashOutDialog.value = true;
 }
 
+function devise(userId){
+    if(userId.is_superuser){
+        return 'USD';
+    }else{
+        return userProfile.currency_preference;
+    }
+}
+
 </script>
 
 
@@ -157,9 +176,13 @@ function deleteToCahOut(cashout){
           
             <Column field="id" header="Id" style="min-width: 100px"></Column>
             <Column field="total_amount" header="TOTAL" style="min-width: 200px">
-                <template #body="slotProps">
-                   USD {{ slotProps.data.total_amount }}
+                <template #body="slotProps" v-if="userI?.is_superuser">
+                  USD {{ slotProps.data.total_amount }}
                 </template>
+                <template #body="slotProps" v-else>
+                     {{ userProfile? userProfile.currency_preference : 'Non défini'  }} {{ slotProps.data.total_amount }}
+                </template>
+                
             </Column>
             <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>
             <Column field="created_at" header="DATE" style="min-width: 200px">
@@ -192,42 +215,59 @@ function deleteToCahOut(cashout){
       
     <!-- En-tête -->
     <div class="flex justify-between items-center mb-6">
-       
+      
         <div class="text-left flex-2"> 
+        <template v-if="userProfile?.is_superuser">
             <h2 class="text-lg font-medium mb-2">BILATECH S.A.R.L.U</h2>
             <p class="ext-xl font-semibold mb-2">KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25</p>
-            <p class="ext-xl font-semibold mb-1">Date : {{ formatDate(new Date()) }}</p>
 
-            <h2 class="text-xl font-semibold mb-1">Bon de sortie N°/:000{{ selectedCashout }}/25</h2>
-            <h3 class="text-lg font-medium mb-2">Demandeur : 
+        </template>
+        <template v-else>
+      <!-- Affichage profil utilisateur -->
+        <h2 class="text-lg font-medium mb-2">{{  userProfile ? userProfile.entrep_name : 'Non défini' }}</h2>
+        <p class="text-xl font-semibold mb-2">{{ userProfile ? userProfile.adress : 'Non défini' }}</p>
+
+        </template>
+         <p class="ext-xl font-semibold mb-1">Date : {{ formatDate(new Date()) }}</p>
+         <h2 class="text-xl font-semibold mb-1">Bon de sortie N°/:000{{ selectedCashout }}/25</h2>
+         <h3 class="text-lg font-medium mb-2">Demandeur : 
             <span class="font-normal">
                 {{ cashoutList.find(c => c.id === selectedCashout)?.motif || 'N/A' }}
             </span>
-            </h3>
+        </h3>
         </div>
         <img src="/demo/bila.png" alt="Logo" class="h-40" /> 
         </div>
-
+        
     <!-- Table des détails -->
             <div v-if="cashoutDetails.length > 0">
             <DataTable :value="cashoutDetails" class="mb-4">
                 <Column field="id" header="ID" />
                 <Column field="reason" header="Motif" />
                 <Column field="amount" header="Montant">
-                <template #body="slotProps">
+                <template #body="slotProps" v-if="userId?.is_superuser">
                     USD {{ slotProps.data.amount }}
                 </template>
+                <template #body="slotProps" v-else>
+                    {{ userProfile? userProfile.currency_preference : 'Non défini'  }} {{ slotProps.data.amount }}
+                </template>
+
                 </Column>
             </DataTable>
 
       <!-- Total -->
-        <div class="text-right font-bold text-lg mb-6">
+        <div class="text-right font-bold text-lg mb-6" v-if="userId.is_superuser">
             Total : {{ calculateTotal() }} USD
+        </div>
+        <div class="text-right font-bold text-lg mb-6" v-else>
+            
+            Total : {{ calculateTotal() }} {{ userProfile? userProfile.currency_preference : 'Non défini'  }}
+            
         </div>
 
       <!-- Signature -->
       
-      <div class="flex justify-end mt-10">
+      <div class="flex justify-end mt-10" v-if="userId.is_superuser">
         <div class="text-center">
           <p class="text-sm">Mr DELOR Musangania</p>
           <p class="text-sm">PDG BILATECH</p>

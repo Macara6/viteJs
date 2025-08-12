@@ -105,6 +105,16 @@ const model = ref([]);
             icon:'pi pi-briefcase',
             to:'/pages/Boutique'
         },
+        {
+            label:'Dépasses',
+            icon:'pi pi-arrow-circle-up',
+            to:'/pages/CashOutListe'
+        },
+        {
+            label:'Nouveau Bon de sortie',
+            icon: 'pi pi-tag',
+            to:'/pages/CreateCashout'
+        },
 
         {
             label:'Notification',

@@ -114,7 +114,6 @@ export async function updateProductAPI(productId, productData){
     }
 }
 
-
 // afficher toutes les factures du parent et ses enfant 
 export async function fetchInvoicesAllUsers() {
     let INVOICE_URL = `${API_BASE}invoicesView/`;
@@ -363,6 +362,22 @@ export async function fetchSubscription(){
     }catch(error){
         console.error('errer tetching subscriptions');
         throw error;
+    }
+}
+
+// function pour affiche l'abonnement selon l'utilisateur 
+export async function fetchSubscriptionByUser(subscriptionUser){
+    const URL_SUBSCRIOTION = `${API_BASE}subscription/user/${subscriptionUser}/`;
+    try{
+        const response = await axios.get(URL_SUBSCRIOTION, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch(error){
+        console.error('erreur to feching subscription');
+        throw error; 
     }
 }
 // fonction pour creer l'abonnment
