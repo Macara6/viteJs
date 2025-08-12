@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = ' https://pos.bilatech.org/';
+const API_BASE = ' http://127.0.0.1:8000/';
 
 
 export async function login(usernam, password) {
@@ -53,6 +53,57 @@ export async function refreshToken(){
     }
 
 }
+// fonction pour verifier le code secrete
+export async function verifySecretKey(key){
+    const VERIFY_KEY_URL =`${API_BASE}secret_key/verify/`;
+    try{
+        const response = await axios.post(VERIFY_KEY_URL, 
+          {key},
+          {
+            headers:{
+                'Authorization' : `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+        return response.data;
+    } catch (error) {
+        console.error('Error verifying secret key:', error.response?.data || error);
+        throw error;
+    }
+}
+// fonction pourverifier le status du code secret 
+export async function checkSecretKeyStatus() {
+    const STATUS_URL = `${API_BASE}secret_key/status/`;
+
+    try {
+        const response = await axios.get(STATUS_URL, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data; // { has_key: true } ou { has_key: false }
+    } catch (error) {
+        console.error('Error checking secret key status:', error.response?.data || error);
+        throw error;
+    }
+}
+
+export async function createOrUpdateSecretKey(secretData){
+    const SECRET_KEY_URL = `${API_BASE}secret_key/`; 
+    try{
+        const response = await axios.post(SECRET_KEY_URL, secretData, {
+            headers :{
+                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+          console.error('Error checking secret key status:', error.response?.data || error);
+        throw error;
+    }
+}
+
+
 
 // fonction pour afficher les categorys
 export async function fetchCategorys(){
@@ -148,6 +199,21 @@ export async function fetchInvoicesAllChildrent(onlyChildren = true) {
         console.error('Error fetching invoices', error);
         throw error;
     }
+}
+export async function deleteInvoiceAPI(invoiceId){
+    const DELETE_INVOICE = `${API_BASE}invoices/delete/${invoiceId}/`;
+    try{
+        const response = await axios.delete(DELETE_INVOICE ,{
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.log('error to deleteting invoice')
+        throw error;
+    }
+
 }
 
 export async function deleteProductAPI(productId){
@@ -285,6 +351,20 @@ export async function createInvoiceAPI(invoiceData) {
         return response.data;
     } catch(error){
         console.error('Error creating invoice:', error.response ? error.response.data : error);
+        throw error;
+    }
+}
+export async function fetchInvoiceDetail(invoiceId){
+    const URL_DeTAIL_INVOICE = `${API_BASE}invoice/detail/?invoice=${invoiceId}`;
+    try{
+        const response = await axios.get(URL_DeTAIL_INVOICE, {
+            headers:{
+                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch(error){
+        console.error['Error to fetching invoice detail', error]
         throw error;
     }
 }
@@ -562,8 +642,10 @@ export async function fetchEntryNoteDetail(entryNoteId){
         return response.data;
     }catch(error){
         console.error('Error feching EntryNoteDetail',error.response?.data || error);
+        
     }
 }
+
 
 export  async function deleteEntryNote(entryNoteId){
     const URL_DELETE_ENTRYNOTE = `${API_BASE}entryNote/delete/${entryNoteId}/`;

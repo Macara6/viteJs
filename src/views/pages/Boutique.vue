@@ -2,7 +2,10 @@
 
 
 <script setup>
-import { createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile } from '@/service/Api';
+import {
+    checkSecretKeyStatus, createOrUpdateSecretKey,
+    createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
+} from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 
@@ -16,7 +19,13 @@ const showDialog = ref(false);
 const showDialogUpdateUser = ref(false);
 const isEditMode = ref(true);
 
-
+const hasSecretKey = ref(false);
+const showSecretKeyDialog = ref(false);
+const secretKeyForm = ref({
+  old_key: '',
+  new_key: ''
+});
+const isCreatingSecret = ref(false);
 
 const userId = localStorage.getItem('id');
 
@@ -25,8 +34,52 @@ onMounted(async () => {
    await fetchUserProfil();
     await fetchUser();
     await fetchUserSubscription();
+    await checkSecretKey();
 
 });
+// fonction verifier le code secret
+async function checkSecretKey(){
+    try{
+        const res = await checkSecretKeyStatus()
+        hasSecretKey.value = res.has_key || false; 
+    } catch (error) {
+    console.error("Erreur lors de la vérification du code secret :", error);
+  }
+}
+
+async function saveSecretKey(){
+    try{
+        if(!secretKeyForm.value.new_key){
+         toast.add({ severity: 'warn', summary: 'Attention', detail: 'Veuillez entrer un nouveau code secret', life: 3000 });
+         return;
+        }
+        const payload = {};
+        
+        if(!isCreatingSecret.value){
+            if(!secretKeyForm.value.old_key){
+                toast.add({ severity: 'warn', summary: 'Attention', detail: 'Veuillez entrer votre ancien code', life: 3000 });
+                return ;
+             }
+             payload.old_key = secretKeyForm.value.old_key;
+        }
+        payload.new_key = secretKeyForm.value.new_key;
+        
+        await createOrUpdateSecretKey(payload);
+        toast.add({ severity: 'success', summary: 'Succès', detail: isCreatingSecret.value ? 'Code secret créé' : 'Code secret modifié', life: 3000 });
+        await checkSecretKey();
+       showSecretKeyDialog.value = false;
+
+    } catch (error) {
+    console.error("Erreur lors de l'enregistrement du code secret :", error);
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
+  }
+}
+
+function openSecretKeyDialog(){
+    isCreatingSecret.value = !hasSecretKey.value;
+    secretKeyForm.value = { old_key:'', new_key:'' };
+    showSecretKeyDialog.value = true;
+}
 
 
 async function fetchUserProfil(){
@@ -225,6 +278,14 @@ const progressPercent = computed(()=> {
     <small>{{ progressPercent }}% restant</small>
     </div>
   </div>
+    <div class="mt-6">
+    <Button 
+      :label="hasSecretKey ? 'Modifier mon code secret' : 'Créer un code secret'"
+      icon="pi pi-key"
+      class="p-button-warning"
+      @click="openSecretKeyDialog"
+    />
+  </div>
 </div>
 
 
@@ -293,6 +354,27 @@ const progressPercent = computed(()=> {
     <template #footer>
       <Button label="Annuler" icon="pi pi-times" text @click="showDialogUpdateUser = false" />
       <Button label="Enregistrer" icon="pi pi-check" @click="updateUser" />
+    </template>
+  </Dialog>
+
+
+    <!-- Dialog Code secret -->
+  <Dialog v-model:visible="showSecretKeyDialog" :header="isCreatingSecret ? 'Créer un code secret' : 'Modifier le code secret'" :modal="true" :style="{ width: '400px' }">
+    <div class="flex flex-col gap-4">
+      <div v-if="!isCreatingSecret">
+        <label class="font-semibold mb-1 block">Ancien code secret</label>
+        <Password v-model="secretKeyForm.old_key" class="w-full" toggleMask />
+
+      </div>
+
+      <div>
+        <label class="font-semibold mb-1 block">Nouveau code secret</label>
+        <Password v-model="secretKeyForm.new_key" class="w-full" toggleMask />
+      </div>
+    </div>
+    <template #footer>
+      <Button label="Annuler" icon="pi pi-times" text @click="showSecretKeyDialog = false" />
+      <Button label="Enregistrer" icon="pi pi-check" @click="saveSecretKey" />
     </template>
   </Dialog>
 

@@ -1,6 +1,10 @@
 <script setup>
 
-import { createProductAPI, deleteProductAPI, fetchCategorys, fetchProduits, updateProductAPI } from '@/service/Api';
+import {
+    createProductAPI, deleteProductAPI, fetchCategorys, fetchProduits,
+    fetchUserProfilById,
+    updateProductAPI, verifySecretKey
+} from '@/service/Api';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
@@ -18,16 +22,51 @@ const deleteProductDialog = ref(false);
 const deleteProductsDialog = ref(false);
 const product = ref({});
 const selectedProducts = ref();
+const userProfile = ref(null)
 const filters = ref({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS }
 });
 const submitted = ref(false);
 
+const showSensitiveInfo = ref(false);
+const secretKey = ref('');
+const secretDialog = ref(false);
+const submittedSecret = ref(false);
+
 
 onMounted(async () => {
      await loadProductsAndCategories();
+     await fetchUserProfil();
 });
 
+
+async function fetchUserProfil(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+        console.log('Profil utilisateur récupéré :', result);
+    } catch(error){
+        console.error('Erreur lors de la récuperation du profi utilisateur', error);
+    }
+}
+
+async function verifySecret(){
+    submittedSecret.value = true;
+    if(!secretKey.value) return
+    try{
+        const isValid =  await verifySecretKey(secretKey.value);
+        if(isValid.valid){
+            showSensitiveInfo.value = true;
+            secretDialog.value = false;
+            toast.add({ severity: 'success', summary: 'Succès', detail: 'Code secret validé', life: 3000 });
+        }else{
+            toast.add({ severity: 'error', summary: 'Erreur', detail: 'Code secret invalide', life: 3000 });
+        }
+    } catch (error) {
+        toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur de vérification', life: 3000 });
+    }
+}
 async function loadProductsAndCategories(){
     const userId = localStorage.getItem('id');
     
@@ -224,6 +263,7 @@ function formatPrice(price){
                 <template #end>
                     <Button label="Actualiser" icon ="pi pi-refresh" severity="primary" class="m-2" @click="refreshPage"/>
                     <Button label="Export" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
+                    <Button label="Afficher prix d'achat & bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true" />
                 </template>
             </Toolbar>
 
@@ -255,23 +295,29 @@ function formatPrice(price){
                 <Column field="id" header="ID" sortable style="min-width: 7rem"></Column>
                 <Column field="name" header="Nom poduit" sortable style="min-width: 16rem"></Column>
                 
-                <Column field="price" header="Prix vente" sortable style="min-width: 8rem">
+                <Column field="price" header="Prix vente" sortable style="min-width: 9rem">
                     <template #body="slotProps">
-                        {{ formatPrice(slotProps.data.price )}} FC
+                        {{ formatPrice(slotProps.data.price )}}
                     </template>
                 </Column>
 
-                <Column field="puchase_price" header="Prix achat" sortable style="min-width: 10rem">
+                <Column v-if="showSensitiveInfo" field="puchase_price" header="Prix achat" sortable style="min-width:9rem">
                     <template #body="slotProps">
-                        {{ formatPrice(slotProps.data.purchase_price) }} FC
+                        {{ formatPrice(slotProps.data.purchase_price) }} 
                     </template>
                 </Column>
-                <Column field="" header="Bénéfice" sortable style="min-width: 12rem">
+                <Column field="" header="Devise" sortable style="min-width: 2rem">
+                    <template #body="slotProps">
+                        {{ userProfile? userProfile.currency_preference :'No definie' }} 
+                    </template>
+                </Column>
+                <Column v-if="showSensitiveInfo" field="" header="Bénéfice" sortable style="min-width:6rem">
                     <template #body="slotProps">
                         {{ calculateDenfice(slotProps.data.price,slotProps.data.purchase_price) }} %
                     </template>
                 </Column>
-                <Column field="stock" header="stock" sortable style="min-width: 10rem">
+
+                <Column field="stock" header="stock" sortable style="min-width:6rem">
                 
                 </Column>
                 <Column field="created_at" header="Date " sortable style="min-width: 12rem">
@@ -304,12 +350,12 @@ function formatPrice(price){
 
                 <div class="grid grid-cols-12 gap-4">
                     <div class="col-span-6">
-                        <label for="price" class="block font-bold mb-3">Price Vente</label>
-                        <InputNumber id="price" v-model="product.price" mode="currency" currency="CDF" locale="en-US" fluid />
+                        <label for="price" class="block font-bold mb-3">Price Vente {{ userProfile? userProfile.currency_preference :'No definie' }} </label>
+                        <InputNumber id="price" v-model="product.price" fluid />
                     </div>
                     <div class="col-span-6">
-                        <label for="puchase_price" class="block font-bold mb-3">Prix Achat</label>
-                        <InputNumber id="price" v-model="product.purchase_price" mode="currency" currency="CDF" locale="en-US" fluid />
+                        <label for="puchase_price" class="block font-bold mb-3">Prix Achat {{ userProfile? userProfile.currency_preference :'No definie' }} </label>
+                        <InputNumber id="price" v-model="product.purchase_price" fluid />
                     </div>
                     <div class="col-span-6">
                         <label for="stock" class="block font-bold mb-3">Stock</label>
@@ -364,6 +410,18 @@ function formatPrice(price){
                 <Button label="Yes" icon="pi pi-check" text @click="deleteSelectedProducts" />
             </template>
         </Dialog>
+
+        <Dialog v-model:visible="secretDialog" header="Entrer code secret" :modal="true" :closable="false" :style="{ width: '350px' }">
+        <div>
+            <label for="secret">Code secret</label>
+            <InputText id="secret" v-model.trim="secretKey" :class="{ 'p-invalid': submittedSecret && !secretKey }" autofocus />
+            <small v-if="submittedSecret && !secretKey" class="p-error">Le code secret est requis.</small>
+        </div>
+        <template #footer>
+            <Button label="Annuler" icon="pi pi-times" text @click="secretDialog = false" />
+            <Button label="Valider" icon="pi pi-check" @click="verifySecret" />
+        </template>
+       </Dialog>
 
     </div>
 </template>

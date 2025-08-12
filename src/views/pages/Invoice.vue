@@ -1,11 +1,17 @@
 <script setup>
 
-import { fetchInvoicesAllChildrent, fetchInvoicesAllUsers, fetchUsers } from '@/service/Api';
+import {
+    deleteInvoiceAPI,
+    fetchInvoiceDetail,
+    fetchInvoicesAllChildrent, fetchInvoicesAllUsers, fetchUserProfilById,
+    fetchUsers
+} from '@/service/Api';
 import { FilterMatchMode } from '@primevue/core';
+import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 
 
-
+const toast = useToast();
 const invoices = ref([]);
 const invoice = ref({});
 const users =  ref({});
@@ -15,13 +21,17 @@ const filters = ref({
 });
 const deleteInvoiceDialog = ref(false);
 const deleteInvoicesDialog = ref(false);
+const invoiceDetails = ref(null);
 const selectedInvoices = ref();
+const userProfile = ref(null);
+const showModal = ref(false);
 
 const showOnlyChildren = ref(false);
 
 
 onMounted (async () =>{
    await loadInvoiceAndAdmin();
+   await fetchUserProfil();
 });
 
 function sortInvoicesByDate(){
@@ -31,6 +41,30 @@ function sortInvoicesByDate(){
     }); 
 }
 
+async function fetchUserProfil(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+        console.log('Profil utilisateur récupéré :', result);
+    } catch(error){
+        console.error('Erreur lors de la récuperation du profi utilisateur', error);
+    }
+}
+async function ViewDetailInvoice(invoiceId){
+    try{
+        const details = await fetchInvoiceDetail(invoiceId);
+        selectedInvoices.value = invoiceId,
+        invoiceDetails.value = details;
+        showModal.value = true;
+        console.log('Donne details invoice', invoiceDetails);
+    }catch(error){
+        console.error('error to fetching detail invoice', error);
+        throw error;
+    }
+}
+
+
 
 async function loadInvoiceAndAdmin(){
     try {
@@ -38,9 +72,6 @@ async function loadInvoiceAndAdmin(){
             fetchUsers(),
             showOnlyChildren.value ? fetchInvoicesAllChildrent(true) : fetchInvoicesAllUsers()
         ]);
-
-        console.log('Invoices:', invoicesData);
-
         users.value = fetchedUsers.reduce((acc, user) => {
             acc[user.id] = user.username;
             return acc;
@@ -54,7 +85,6 @@ async function loadInvoiceAndAdmin(){
             };
         });
         
-
         sortInvoicesByDate();
     } catch (error) {
         console.error('Erreur de chargement des données:', error);
@@ -85,18 +115,32 @@ function formatDate(value){
 
 function confirmDeleteInvoice(invoic){
     invoice.value = invoic;
-    deleteInvoiceDialog.value = true;
+    deleteInvoicesDialog.value = true;
 
 }
 function confirmDeleteSelected(){
     deleteInvoicesDialog.value = true;
 }
 
-function deleteSelectedInvoices(){
+ function deleteSelectedInvoices(){
     invoices.value = invoices.value.filter((val) => !selectedInvoices.value.includes(val));
+   
     deleteInvoicesDialog.value = false;
     selectedInvoices.value = null;
 }
+async function deleteInvoice(){
+    try{
+        await  deleteInvoiceAPI(invoice.value.id);
+        invoices.value = invoices.value.filter((val) => val.id !==invoice.value.id);
+        deleteInvoicesDialog.value = false;
+        selectedInvoices.value = null;
+        toast.add({ severity: 'success', summary:'Successful',detail:'Invoice delect', life:3000});
+    } catch(error){
+        console.error('Error deletin invoice', error);
+         toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete invoice', life: 3000 });
+    }
+}
+
 
 function remiseTaux(totalPayer,value){
    const remise = (value*100)/totalPayer;
@@ -157,14 +201,19 @@ function formaPrice(price){
                     </div>
                 </template>
                 <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
-                <Column field="id" header="ID" sortable style="min-width: 12rem"></Column>
-                <Column field="client_name" header="Nom Client(e)" sortable style="min-width: 16rem"></Column>
+                <Column field="id" header="ID" sortable style="min-width:3rem"></Column>
+                <Column field="client_name" header="Nom Client(e)" sortable style="min-width:8rem"></Column>
                 <Column field="cashier_name" header="Cassier(e)" sortable style="min-width: 8rem">
              
                 </Column>
                 <Column field="total_amount" header="Total" sortable style="min-width: 8rem">
                     <template #body="slotProps">
-                            {{formaPrice(slotProps.data.total_amount) }} Fc
+                            {{formaPrice(slotProps.data.total_amount) }}
+                    </template>
+                </Column>
+                <Column field="profit_amount" header="Bénefince" sortable style="min-width: 8rem;">
+                    <template #body="slotProps">
+                        {{ formaPrice(slotProps.data.profit_amount)}}
                     </template>
                 </Column>
                 <Column field="change" header="Reste" sortable style="min-width: 8rem">
@@ -177,14 +226,20 @@ function formaPrice(price){
                             {{ formaPrice(slotProps.data.amount_paid) }} 
                         </template>
                 </Column>
+                <Column field="" header="Devise" sortable style="min-width:2rem" >
+                    <template #body="">
+                        {{ userProfile ? userProfile.currency_preference :'No définie'}}
+                    </template>
+                </Column>
                 <Column field="created_at" header="Date" sortable style="min-width: 8rem">
                   <template #body = "slotProps">
                     {{ formatDate(slotProps.data.created_at) }}
                   </template>
                 </Column>
                 <Column field="inventoryStatus" header="Action" sortable style="min-width: 12rem">
-                    <template #body="">
-                        <Button icon="pi pi-pencil" outlined rounded class="mr-2"  />
+                    <template #body="slotProps">
+                        <Button icon="pi pi-eye" outlined rounded class="mr-2" @click="ViewDetailInvoice(slotProps.data.id)" />
+                        <Button icon="pi pi-trash"  outlined rounded severity="danger" @click="confirmDeleteInvoice(slotProps.data)" />
                     </template> 
                 </Column>
 
@@ -197,8 +252,88 @@ function formaPrice(price){
             </div>  
             <template #footer>
                 <Button label="No" icon="pi pi-times" text @click="deleteProductsDialog = false" />
-                <Button label="Yes" icon="pi pi-check" text @click="deleteSelectedInvoices" />
+                <Button label="Yes" icon="pi pi-check" text @click="deleteInvoice" />
             </template>
         </Dialog>
+
+
+
+
+
+<Dialog v-model:visible="showModal" modal header="🧾 Détails de la facture" :style="{ width: '55vw' }">
+  <div class="p-6 bg-gray-50 rounded-md shadow-sm" id="cashout-pdf-content" style="overflow-y: auto; max-height: 70vh;">
+    
+    <!-- En-tête de facture -->
+    <div class="flex justify-between items-start border-b pb-4 mb-4">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">
+          {{ userProfile ? userProfile.entrep_name : 'Entreprise non définie' }}
+        </h2>
+        <p class="text-gray-600">
+          {{ userProfile ? userProfile.adress : 'Adresse non définie' }}
+        </p>
+        <p class="mt-2 text-sm">
+          <strong>Client :</strong> {{ invoices.find(c=> c.id === selectedInvoices)?.client_name|| 'Non défini' }}
+        </p>
+        <p class="text-sm">
+          <strong>Caissier :</strong> {{ invoices.find(c=> c.id === selectedInvoices)?.cashier_name|| 'Non défini' }}
+        </p>
+      </div>
+      <div class="text-right text-sm text-gray-500">
+        <p><strong>Date :</strong>{{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) ||'N/A' }} </p>
+        <p><strong>Facture ID :</strong> {{ selectedInvoices }}</p>
+      </div>
+    </div>
+
+    <!-- Détails Produits -->
+    <div v-if="invoiceDetails.length > 0">
+      <DataTable :value="invoiceDetails" class="p-datatable-sm shadow-sm rounded-md">
+        
+        <Column field="product_name" header="Produit" style="min-width: 200px;">
+          <template #body="slotProps">
+            <span class="font-medium">{{ slotProps.data.product_name }}</span>
+          </template>
+        </Column>
+
+        <Column field="price" header="Prix U">
+          <template #body="slotProps">
+            {{ userProfile ? userProfile.currency_preference : '' }}
+            {{ formaPrice(slotProps.data.price) }}
+          </template>
+        </Column>
+
+        <Column field="quantity" header="Qté" style="width: 80px; text-align: center;">
+          <template #body="slotProps">
+            {{ slotProps.data.quantity }}
+          </template>
+        </Column>
+
+        <Column header="Total">
+          <template #body="slotProps">
+            {{ userProfile ? userProfile.currency_preference : '' }}
+            {{ formaPrice(slotProps.data.price * slotProps.data.quantity) }}
+          </template>
+        </Column>
+
+      </DataTable>
+    </div>
+
+    <!-- Total général -->
+    <div class="flex justify-end mt-6 border-t pt-4">
+      <div class="text-right">
+        <p class="text-lg font-bold">
+          Total :
+          <span class="text-green-600">
+            {{ userProfile ? userProfile.currency_preference : '' }}
+            {{ invoices.find( c=> c.id === selectedInvoices)?.total_amount || 'N/A'}}
+          </span>
+        </p>
+      </div>
+    </div>
+    
+  </div>
+</Dialog>
+
+
     </div>
 </template>

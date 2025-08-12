@@ -243,7 +243,7 @@ function hideDialog(){
                     <template #body="slotProps">
                         <Button 
                         v-if="isSuperuser"
-                        icon="" 
+                        icon="pi pi-eye" 
                         label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
 
                         <Button 
