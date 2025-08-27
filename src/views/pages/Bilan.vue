@@ -2,7 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchInvoicesAllUsers, fetchUserById, getUsersCreatedByMe } from '@/service/Api';
+import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe } from '@/service/Api';
 import jsPDF from 'jspdf';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -12,14 +12,18 @@ const pieOptions = ref(null);
 const lineData = ref(null);
 const lineOptions = ref(null);
 const invoices = ref([]);
-const total_Amount = ref(0)
-
+const cashoutList = ref([]);
+const invoicesUserConnect = ref([]);
+const total_Amount = ref(0);
 const today = new Date().toISOString().split('T')[0];
+const userConnect = localStorage.getItem('username')
+
 const selectDate = ref({
     global:{ value:today }
 })
 const childUserIds = ref([]);
 let allUsers = [];
+const userProfile = ref(null);
 
 
 const user = ref({}); // utilisateur connecté
@@ -29,29 +33,41 @@ const childUsers = ref([]);
 onMounted(async () => {
     const userId = localStorage.getItem('id');
     user.value = await fetchUserById(userId);
-
     const allInvoices = await fetchInvoicesAllUsers();
-    
      allUsers = await getUsersCreatedByMe();
-
-     
-   
-    
      childUsers.value = allUsers.filter(u => u.created_by === parseInt(userId));
-
-    console.log("Enfant(s) détecté(s) :", childUsers.value);
-        
-     
     // Inclure factures de l'utilisateur connecté + celles de ses enfants
     invoices.value = allInvoices
-    console.log("Invoices :", invoices.value);
-
+    invoicesUserConnect.value = allInvoices.filter(u =>u.cashier ===parseInt(userId));
     calculateTotalAmount();
+    
+    calcalateProfitAmountUserConnect();
+    await fetchCashOutList();
+    calculateCashoutTotalAmout();
     setColorOptions();
+    await fetchUserProfil();
     updateLineData();
+
 });
 
 
+async function fetchCashOutList(){
+    const userId = localStorage.getItem('id');
+    cashoutList.value = await fetchCashOut(userId);
+     calculateCashoutTotalAmout();
+    console.log('total depasse du jour', total_AmountCashOut.value)
+}
+
+async function fetchUserProfil(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+       
+    } catch(error){
+        console.error('Erreur lors de la récuperation du profi utilisateur', error);
+    }
+}
 
 function getWeekRange(date){
     const start = new Date(date);
@@ -62,8 +78,8 @@ function getWeekRange(date){
     return { start, end };
 }
 
-const todaysInvoices= computed(() =>{
 
+const todaysInvoices= computed(() =>{
     const selectedDate = selectDate.value.global.value;  
     return invoices.value.filter(invoice =>{
         const invoiceData = new Date(invoice.created_at);
@@ -72,6 +88,24 @@ const todaysInvoices= computed(() =>{
   
 });
 
+ const todaysInvoicesUserConnect = computed(() => {
+  const selectedDate = selectDate.value.global.value;
+  return invoicesUserConnect.value.filter(invoice => {
+    const invoiceDate = new Date(invoice.created_at);
+    return invoiceDate.toISOString().split('T')[0] === selectedDate;
+  });
+});
+
+ const todayCashouts = computed(() => {
+    const selectedDate = selectDate.value.global.value;
+    return cashoutList.value.filter(cashout =>{
+        const cashoutData= new Date(cashout.created_at);
+        return cashoutData.toISOString().split('T')[0] === selectedDate;
+    });
+ });
+
+const todaysCashoutCount = computed(() => todayCashouts.value.length);
+const todaysInvoiesUserConnectCaount = computed(() => todaysInvoicesUserConnect.value.length);
 const todaysInvoicesCount = computed(()=> todaysInvoices.value.length);
 
 function calculateTotalAmount(){
@@ -81,7 +115,46 @@ function calculateTotalAmount(){
             total_Amount.value += Number(invoice.total_amount);
         }
     });
-    console.log('Tatl amount for today :', total_Amount.value);
+    
+}
+
+
+const total_AmountUserConnect = computed(() => {
+  return todaysInvoicesUserConnect.value.reduce((sum, invoice) => {
+    const amount = Number(invoice.total_amount);
+    return !isNaN(amount) ? sum + amount : sum;
+  }, 0);
+});
+
+const total_AmountCashOut = computed(() => {
+    return todayCashouts.value.reduce((sum, cashout) => {
+        const amount = Number(cashout.total_amount);
+        return !isNaN(amount) ? sum + amount : sum
+    }, 0);
+});
+
+const total_ProfitAmount = computed(() =>{
+    return todaysInvoicesUserConnect.value.reduce((sum, invoice) => {
+        const amount = Number(invoice.profit_amount);
+        return !isNaN(amount)? sum + amount : sum;
+    }, 0);
+});
+
+function calcalateProfitAmountUserConnect(){
+    total_ProfitAmount.value = 0;
+    todaysInvoicesUserConnect.value.forEach(invoice => {
+        if(invoice.profit_amount != null && !isNaN (invoice.profit_amount)){
+            total_ProfitAmount.value += Number(invoice.profit_amount);
+        }
+    });   
+}
+function calculateCashoutTotalAmout() {
+  total_AmountCashOut.value = 0;
+  todayCashouts.value.forEach(cashout => {
+    if (cashout.total_amount != null && !isNaN(cashout.total_amount)) {
+      total_AmountCashOut.value += Number(cashout.total_amount);
+    }
+  });
 }
 
 function loadImageAsBase64(url) {
@@ -108,7 +181,6 @@ function loadImageAsBase64(url) {
     const marginLeft = 14;
     let y = 20;
 
-
     const logoUrl = '/demo/bilatech.png'; // Par exemple : '/assets/logo.png'
 
         const logoImage = await loadImageAsBase64(logoUrl);
@@ -129,7 +201,7 @@ function loadImageAsBase64(url) {
     y +=8
     doc.text(`Date: ${selectDate.value.global.value}`, marginLeft,y);
     y +=8;
-    doc.text(`Total factures: ${todaysInvoicesCount.value}`,marginLeft, y);
+   
     y +=8;
     doc.text(`Montant total: ${formatPrice(total_Amount.value)} Fc`, marginLeft,y);
     y +=12;
@@ -368,15 +440,15 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div>
-                        <span class="block text-muted-color font-medium mb-4">Total facture {{ selectDate.global.value }}</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ todaysInvoicesCount }}</div>
+                        <span class="block text-muted-color font-medium mb-4"> Nombres de factures</span>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ todaysInvoiesUserConnectCaount}}</div>
                     </div>
                     <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
                         <i class="pi pi-shopping-cart text-blue-500 !text-xl"></i>
                     </div>
                 </div>
-                <span class="text-primary font-medium">24 new </span>
-                <span class="text-muted-color">since last visit</span>
+                <span class="text-primary font-medium">{{ selectDate.global.value }} : </span>
+                <span class="text-muted-color">{{ userConnect }}</span>
             </div>
         </div>
 
@@ -385,10 +457,10 @@ watch(
                 <div class="flex justify-between mb-4">
                     <div>
                         <span class="block text-muted-color font-medium mb-4">Total </span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{formatPrice(total_Amount) }} FC</div>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{formatPrice(total_AmountUserConnect) }} {{ userProfile? userProfile.currency_preference :'No definie' }} </div>
                     </div>
-                    <div class="flex items-center justify-center bg-orange-100 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        FC
+                    <div class="flex items-center justify-center bg-green-500 dark:bg-orange-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                      <i class="pi  pi-arrow-down-left"></i>
                     </div>
                 </div>
                 <span class="text-primary font-medium">Tota pour aujourd'huit </span>
@@ -401,11 +473,11 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div>
-                        <span class="block text-muted-color font-medium mb-4">Total Utilisateurs (Caisses)</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">{{ allUsers.length + 1}}</div>
+                        <span class="block text-muted-color font-medium mb-4">Bénéfince estimés</span>
+                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl"> {{ formatPrice(total_ProfitAmount) }} {{ userProfile? userProfile.currency_preference :'No definie' }}</div>
                     </div>
-                    <div class="flex items-center justify-center bg-cyan-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-users text-cyan-500 !text-xl"></i>
+                    <div class="flex items-center justify-center bg-green-100 dark:bg-cyan-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-wallet "></i>
                     </div>
                 </div>
                 <span class="text-primary font-medium"> </span>
@@ -417,15 +489,16 @@ watch(
             <div class="card mb-0">
                 <div class="flex justify-between mb-4">
                     <div>
-                        <span class="block text-muted-color font-medium mb-4">Comments</span>
-                        <div class="text-surface-900 dark:text-surface-0 font-medium text-xl">152 Unread</div>
+                        <span class="block text-muted-color font-medium mb-4">Total dépassée </span>
+                        <div class="text-red-600 dark:text-surface-0 font-medium text-xl"> - {{ formatPrice(total_AmountCashOut )}} {{ userProfile? userProfile.currency_preference :'No definie' }}</div>
                     </div>
-                    <div class="flex items-center justify-center bg-purple-100 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-comment text-purple-500 !text-xl"></i>
+                    <div class="flex items-center justify-center bg-red-600 dark:bg-purple-400/10 rounded-border" style="width: 2.5rem; height: 2.5rem">
+                       <i class="pi pi-arrow-up-right !text-xl" style="color: orange;"></i>
+
                     </div>
                 </div>
-                <span class="text-primary font-medium">85 </span>
-                <span class="text-muted-color">responded</span>
+                <span class="text-red-600 font-medium"> {{ todaysCashoutCount }} </span>
+                <span class="text-muted-color">Nombres des dépasses </span>
             </div>
         </div>
         

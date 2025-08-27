@@ -46,18 +46,19 @@ async function fetchUserProfil(){
     try{
         const result = await fetchUserProfilById(userId);
         userProfile.value = Array.isArray(result) ? result[0] : result;
-        console.log('Profil utilisateur récupéré :', result);
+       
     } catch(error){
         console.error('Erreur lors de la récuperation du profi utilisateur', error);
     }
 }
+
 async function ViewDetailInvoice(invoiceId){
     try{
         const details = await fetchInvoiceDetail(invoiceId);
         selectedInvoices.value = invoiceId,
         invoiceDetails.value = details;
         showModal.value = true;
-        console.log('Donne details invoice', invoiceDetails);
+        
     }catch(error){
         console.error('error to fetching detail invoice', error);
         throw error;
@@ -84,7 +85,6 @@ async function loadInvoiceAndAdmin(){
                 cashier_name
             };
         });
-        
         sortInvoicesByDate();
     } catch (error) {
         console.error('Erreur de chargement des données:', error);
@@ -226,9 +226,9 @@ function formaPrice(price){
                             {{ formaPrice(slotProps.data.amount_paid) }} 
                         </template>
                 </Column>
-                <Column field="" header="Devise" sortable style="min-width:2rem" >
-                    <template #body="">
-                        {{ userProfile ? userProfile.currency_preference :'No définie'}}
+                <Column field="cashier_currency" header="Devise" sortable style="min-width:2rem" >
+                    <template #body="slotProps">
+                        {{ slotProps.data.cashier_currency }}
                     </template>
                 </Column>
                 <Column field="created_at" header="Date" sortable style="min-width: 8rem">
@@ -310,7 +310,7 @@ function formaPrice(price){
 
         <Column header="Total">
           <template #body="slotProps">
-            {{ userProfile ? userProfile.currency_preference : '' }}
+            {{ invoices.find(c=> c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
             {{ formaPrice(slotProps.data.price * slotProps.data.quantity) }}
           </template>
         </Column>
@@ -324,7 +324,7 @@ function formaPrice(price){
         <p class="text-lg font-bold">
           Total :
           <span class="text-green-600">
-            {{ userProfile ? userProfile.currency_preference : '' }}
+            {{ invoices.find(c=> c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
             {{ invoices.find( c=> c.id === selectedInvoices)?.total_amount || 'N/A'}}
           </span>
         </p>

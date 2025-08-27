@@ -138,7 +138,7 @@ function smoothScroll(id) {
                                     <i class="pi pi-fw pi-shopping-cart  !text-2xl text-slate-700"></i>
                                 </div>
                                 <div class="mt-6 mb-1 text-surface-900 dark:text-surface-0 text-xl font-semibold">E-commerce</div>
-                                <span class="text-surface-600 dark:text-surface-200">réation de boutiques en ligne performantes et sécurisées.</span>
+                                <span class="text-surface-600 dark:text-surface-200">réalisation des boutiques en ligne performantes et sécurisées.</span>
                             </div>
                         </div>
                     </div>

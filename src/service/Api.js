@@ -167,7 +167,6 @@ export async function updateProductAPI(productId, productData){
 // afficher toutes les factures du parent et ses enfant 
 export async function fetchInvoicesAllUsers() {
     let INVOICE_URL = `${API_BASE}invoicesView/`;
-
     try {
         const response = await axios.get(INVOICE_URL, {
             headers:{
@@ -260,14 +259,12 @@ export async function getUsersCreatedByMe() {
 // fonction detail user
 export async function fetchUserById(userId){
     const USER_URL = `${API_BASE}usersView/${userId}/`;
-    console.log('Feching user from:', USER_URL);
     try{
         const response = await axios.get(USER_URL,{
             headers:{
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('API Response:', response.data);
         return response.data;
     }catch (error){
         console.error('error fecthing user:', error)
@@ -314,7 +311,7 @@ export async function updateUser(userId,userData){
                 'Authorization':`Bearer ${localStorage.getItem('token')}`,
             }
         });
-        console.log('User Update')
+      
         return response;
 
     } catch(error){
@@ -425,7 +422,7 @@ export async function createUserProfl(profileCreateData){
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
         });
-        console.log('profil creer avec success');
+      
         return response.data;
     } catch(error){
         console.error('error de creeation du profile:', error);
