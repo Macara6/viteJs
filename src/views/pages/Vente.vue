@@ -1,5 +1,5 @@
 <script setup>
-import { createInvoiceAPI, fetchProduits } from '@/service/Api';
+import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 
@@ -14,15 +14,16 @@ import { onMounted, ref, watch } from 'vue';
         const totalAmount = ref(0);
         const amountPaid = ref(0);
         const change = ref(0);
-
+        const userProfile = ref(null);
         const search = ref('');
         const toast = useToast();
 
     onMounted(async () => {
         await loadProduct();
+        await fetchUserProfl();
 
     });
-
+  
     async function loadProduct() {
         const userId = localStorage.getItem('id');
         try {
@@ -32,7 +33,15 @@ import { onMounted, ref, watch } from 'vue';
             console.error('There was a problem with the fetch operation:', error);
         }
     }
-
+    async function fetchUserProfl(){
+      const userId = localStorage.getItem('id');
+      try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+      } catch(error){
+        console.error('Erreur lors du chargement du profile utilisateur', error);
+      }
+    }
     function refreshPage() {
         loadProduct();
     }
@@ -108,6 +117,9 @@ import { onMounted, ref, watch } from 'vue';
         if (!verifierStockProduits()) {
         return; // Stoppe la création si stock insuffisant
         }
+        if(!clientName.value || clientName.value.trim() ==''){
+          clientName.value = 'Client Dievers'
+        }
         const invoiceData = {
             client_name :clientName.value,
             total_amount:totalAmount.value,
@@ -122,8 +134,7 @@ import { onMounted, ref, watch } from 'vue';
             }))
         };
         try{
-            if(clientName.value){
-  
+            
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
             printInvoice(invoiceData)
@@ -132,10 +143,7 @@ import { onMounted, ref, watch } from 'vue';
              amountPaid.value = 0;
             change.value = 0;
             clientName.value = '';
-        }else{
-         toast.add({ severity: 'warn', summary: 'Utilisateur non identifié', detail: 'Veuillez compté le nom du client.', life: 3000 });
-          
-        }
+   
         }catch (error) {
                 console.error('Erreur lors de la création de la facture :', error);
                 if (error.response && error.response.data) {
@@ -199,7 +207,11 @@ function printInvoice(invoiceData) {
       </head>
       <body>
         <div class="container">
-          <div class="center bold">TICKET DE VENTE</div>
+          <div class="center bold">${userProfile.value ? userProfile.value.entrep_name : 'Non défini' }</div>
+          <div class="center">${userProfile.value ? userProfile.value.adress : 'Non défini' }</div>
+          <div class="center"> RCCM: ${userProfile.value ? userProfile.value.rccm_number : 'Non défini' }</div>
+          <div class="center">IMPÔT: ${userProfile.value ? userProfile.value.impot_number : 'Non défini' }</div>
+           <div class="center">PHONE: ${userProfile.value ? userProfile.value.phone_number : 'Non défini' }</div>
           <div class="center">${new Date().toLocaleString()}</div>
           <div class="line"></div>
           <div><strong>Client:</strong> ${invoiceData.client_name}</div>
@@ -212,7 +224,7 @@ function printInvoice(invoiceData) {
         <div>${item.product.name}</div>
         <div class="row">
           <span>${item.quantity} x ${formatPrice(item.price)}</span>
-          <span>${formatPrice(item.quantity * item.price)} FC</span>
+          <span>${formatPrice(item.quantity * item.price)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
         </div>
       </div>
     `;
@@ -222,15 +234,15 @@ function printInvoice(invoiceData) {
           <div class="line"></div>
           <div class="row bold">
             <span>Total</span>
-            <span>${formatPrice(invoiceData.total_amount)} FC</span>
+            <span>${formatPrice(invoiceData.total_amount)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
           </div>
           <div class="row">
             <span>Payé</span>
-            <span>${formatPrice(amountPaid.value)} FC</span>
+            <span>${formatPrice(amountPaid.value)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
           </div>
           <div class="row">
             <span>Monnaie</span>
-            <span>${formatPrice(invoiceData.change)} FC</span>
+            <span>${formatPrice(invoiceData.change)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
           </div>
           <div class="line"></div>
           <div class="center">Merci pour votre achat !</div>
@@ -279,7 +291,7 @@ function printInvoice(invoiceData) {
         <Column field="name" header="Nom" />
         <Column field="price" header="Prix">
           <template #body="{ data }">
-            {{ formatPrice(data.price) }} FC
+            {{ formatPrice(data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
           </template>
         </Column>
         <Column>
@@ -332,13 +344,13 @@ function printInvoice(invoiceData) {
 
     <Column field="price" header="Prix">
       <template #body="{ data }">
-        {{ formatPrice(data.price) }} FC
+        {{ formatPrice(data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
       </template>
     </Column>
 
     <Column header="Sous-total">
       <template #body="{ data }">
-        {{ formatPrice(data.quantity * data.price) }} FC
+        {{ formatPrice(data.quantity * data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
       </template>
     </Column>
 
@@ -356,11 +368,11 @@ function printInvoice(invoiceData) {
   </DataTable>
 
   <div class="mt-4 text-right text-lg font-bold">
-    Total : {{ formatPrice(totalAmount) }} FC
+    Total : {{ formatPrice(totalAmount) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
   </div>
 
   <div class="mt-4">
-    <label for="amountPaid" class="block mb-1 font-medium">Montant payé (FC) :</label>
+    <label for="amountPaid" class="block mb-1 font-medium">Montant payé ({{ userProfile? userProfile.currency_preference :'No definie' }}) :</label>
     <InputNumber
       id="amountPaid"
       v-model="amountPaid"
@@ -370,7 +382,7 @@ function printInvoice(invoiceData) {
   </div>
 
   <div class="mt-2 text-right font-semibold">
-    Reste : {{ formatPrice(change) }} FC
+    Reste : {{ formatPrice(change) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
   </div>
 
   <div class="mt-4 text-right">

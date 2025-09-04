@@ -1,6 +1,6 @@
 
 import axios from "axios";
-const API_BASE = ' https://pos.bilatech.org/';
+const API_BASE = 'https://pos.bilatech.org/';
 
 export async function login(usernam, password) {
     const LOGIN_URL = `${API_BASE}login/`;

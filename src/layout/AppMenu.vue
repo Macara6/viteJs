@@ -1,213 +1,76 @@
 <script setup>
-import { ref } from 'vue';
-
+import { fetchProduits } from '@/service/Api';
+import { computed, onMounted, ref } from 'vue';
 import AppMenuItem from './AppMenuItem.vue';
- 
+
 const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-const model = ref([]);
-// fisible pour le client et tous le monde
- if(isSuperUser){
-    // Menu administrateur 
-    model.value =[
-    {
+const lowStockCount = ref(0);
+const userId = localStorage.getItem('id');
+
+const loadLowStock = async () => {
+  try {
+    const products = await fetchProduits(userId);
+    lowStockCount.value = products.filter(p => p.stock < 10).length;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+onMounted(() => {
+  loadLowStock();
+  setInterval(loadLowStock, 3000);
+});
+
+// Menu calculé avec badge réactif
+const model = computed(() => {
+  if (isSuperUser) {
+    return [
+      {
         label: 'GESTION CLIENT',
         items: [
-            //{ 
-        // label: 'Dashboard', icon: 'pi pi-fw pi-home', to: '/dashbord' 
-            // },
-            {
-                label:'Utilisateurs',
-                icon:'pi pi-fw pi-users',
-                to:'/pages/Utilisateur'
-            },
-
-            {
-            label:'Abonnements',
-            icon :'pi pi-money-bill',
-            to:'/pages/Subscription'
-           },
-         ], 
-            
-     },
-     {
-        label :'ADMINISTRATION',
-        items:[
-            {
-                label:'Dépasses',
-                icon:'pi pi-arrow-circle-up',
-                to:'/pages/CashOutListe'
-            },
-            {
-                label:'Nouveau Bon de sortie',
-                icon: 'pi pi-tag',
-                to:'/pages/CreateCashout'
-            },
-            {
-                label:"Nouveau Bon D'entrée",
-                icon: 'pi pi-check-square',
-                to:'/pages/CreateEntryNote'
-            },
-            {
-                label:"Entrées",
-                icon:'pi pi-arrow-circle-down',
-                to:'/pages/EntryNoteList'
-            }
-
+          { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
+          { label: 'Abonnements', icon: 'pi pi-money-bill', to: '/pages/Subscription' }
         ]
-        
-     
-     }
+      },
+      {
+        label: 'ADMINISTRATION',
+        items: [
+          { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
+          { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
+          { label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
+          { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' }
+        ]
+      }
     ];
-
-
- } else {
-    model.value = [
-        {
+  } else {
+    return [
+      {
         label: 'ACCUEIL',
         items: [
-            {
-                label:'Utilisateurs',
-                icon:'pi pi-fw pi-users',
-                to:'/pages/Utilisateur'
-            },  
-
-        {
-        label: 'Gestion Stock',
-        icon: 'pi pi-shopping-bag',
-         to: '/pages/Produit'
-        },
-        {
-            label:'Factures',
-            icon:'pi pi-ticket',
-            to:'/pages/Invoice'
-
-        },
-
-        {
-            label:'Bilan/Jour',
-            icon:'pi pi-fw pi-chart-line',
-            to:'/pages/Bilan'
-        },
-        /**
-        {
-            label:'Statistique',
-            icon:'pi pi-fw pi-chart-pie',
-            to:'/pages/Statistique'
-        },
-        */
-       {
-         label:'Vente',
-         icon:'pi pi-shopping-cart',
-         to:'/pages/vente'
-       },
-        {
-            label:'Ma boutique',
-            icon:'pi pi-briefcase',
-            to:'/pages/Boutique'
-        },
-        {
-            label:'Dépasses',
-            icon:'pi pi-arrow-circle-up',
-            to:'/pages/CashOutListe'
-        },
-        {
-            label:'Nouveau Bon de sortie',
-            icon: 'pi pi-tag',
-            to:'/pages/CreateCashout'
-        },
-
-        {
-            label:'Notification',
-            icon:'pi pi-fw pi-bell',
-            to:'/pages/Notification'
-        },
-
-
-
-
-
-
-          ]
-        }
-    ];
-  
- }
-
-
-   // fisible pour la gestion administartif (admin) 
- 
-
-
-
- /**
- 
-    {
-        label: 'Pages',
-        icon: 'pi pi-fw pi-briefcase',
-        to: '/pages',
-        items: [
-         
-            {
-                label: 'Landing',
-                icon: 'pi pi-fw pi-globe',
-                to: '/landing'
-            },
-              
-            {
-                label: 'Auth',
-                icon: 'pi pi-fw pi-user',
-                items: [
-                    {
-                        label: 'Login',
-                        icon: 'pi pi-fw pi-sign-in',
-                        to: '/auth/login'
-                    },
-                    {
-                        label: 'Error',
-                        icon: 'pi pi-fw pi-times-circle',
-                        to: '/auth/error'
-                    },
-                    {
-                        label: 'Access Denied',
-                        icon: 'pi pi-fw pi-lock',
-                        to: '/auth/access'
-                    }
-                   
-                ]
-            },
- 
-            {
-                label: 'Not Found',
-                icon: 'pi pi-fw pi-exclamation-circle',
-                to: '/pages/notfound'
-            },
-            {
-                label: 'Empty',
-                icon: 'pi pi-fw pi-circle-off',
-                to: '/pages/empty'
-            },
-            {
-                label: 'Employees',
-                icon: 'pi pi-fw pi-circle-off',
-                to: '/pages/Employee'
-            },
-
+          { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
+          { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
+          { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
+          { label: 'Bilan/Jour', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+          { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
+          { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
+          { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
+          { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
+          {
+            label: 'Notification',
+            icon: 'pi pi-fw pi-bell',
+            to: '/pages/Notification',
+            badge: lowStockCount,
+            // 👈 mettre la valeur ici
+          }
         ]
-    },
-     */
-
-
-
-
+      }
+    ];
+  }
+});
 </script>
 
 <template>
-    <ul class="layout-menu">
-        <template v-for="(item, i) in model" :key="item">
-            <app-menu-item v-if="!item.separator" :item="item" :index="i"></app-menu-item>
-            <li v-if="item.separator" class="menu-separator"></li>
-        </template>
-    </ul>
+  <ul class="layout-menu">
+    <app-menu-item v-for="(item, i) in model" :key="i" :item="item" :index="i" />
+  </ul>
 </template>
-
-<style lang="scss" scoped></style>
