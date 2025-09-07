@@ -72,7 +72,6 @@ import { onMounted, ref, watch } from 'vue';
                 purchase_price:product.purchase_price
             });
         }
-
         updateTotal();
     }
     function updateTotal(){
@@ -133,8 +132,7 @@ import { onMounted, ref, watch } from 'vue';
                 purchase_price: item.purchase_price
             }))
         };
-        try{
-            
+        try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
             printInvoice(invoiceData)

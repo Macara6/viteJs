@@ -304,7 +304,6 @@ export async function createUserAPI(userData){
 
 export async function updateUser(userId,userData){
     const UPDATE_URL = `${API_BASE}userUpdateView/${userId}/`;
-
     try{
         const response = await axios.put(UPDATE_URL,userData, {
             headers:{
@@ -320,7 +319,7 @@ export async function updateUser(userId,userData){
 }
 // ffoncton pour supprimer l'utilisateur 
 export async function deleteUserAPI(userId){
-    const DELETE_USER_URL = `${API_BASE}/user/delete/${userId}/`;
+    const DELETE_USER_URL = `${API_BASE}user/delete/${userId}/`;
     try{
         const response = await axios.delete(DELETE_USER_URL, {
             headers:{
