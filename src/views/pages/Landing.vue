@@ -1,10 +1,29 @@
 <script setup>
+import { ref } from 'vue';
 function smoothScroll(id) {
     document.body.click();
     document.querySelector(id).scrollIntoView({
         behavior: 'smooth'
     });
 }
+const downloading = ref(false);
+function downloadApp() {
+    const fileUrl = '/demo/apk/bila-sol.apk'; // renommer Url en fileUrl
+    const link = document.createElement('a');
+    link.href = fileUrl;        // ok maintenant
+    link.download = 'bila-sol.apk';
+    downloading.value = true;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+        downloading.value = false;
+    }, 1000);
+}
+
+
+
 </script>
 
 <template>
@@ -256,7 +275,28 @@ function smoothScroll(id) {
     <p class="text-lg md:text-xl text-[#F9A825]">
       Une interface simple, intuitive et rapide à prendre en main pour tous vos besoins de gestion POS.
     </p>
+    <div class="flex flex-col items-center justify-center mt-6 gap-4">
+  <!-- Icône de l'app -->
+    <img 
+        src="/demo/bila_icon_512.png" 
+        alt="Icône BilaTech POS" 
+        class="w-24 h-24 rounded-lg shadow-md" 
+    />
+
+    <!-- Bouton téléchargement -->
+    <Button 
+    :disabled="downloading"
+    class="flex items-center justify-center gap-3 !px-6 !py-3 text-lg bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-300"
+    @click="downloadApp"
+    >
+    <i class="pi pi-download text-2xl"></i>
+    <i class="pi pi-android text-4xl"></i>
+    <span>{{ downloading ? 'Téléchargement...' : 'Télécharger l\'application (V 1.0.1)' }}</span>
+    </Button>
+    </div>
   </div>
+    
+
 
   <!-- Décorations subtiles -->
   <div class="absolute top-0 left-0 w-32 h-32 bg-[#F9A825]/20 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
@@ -397,7 +437,7 @@ function smoothScroll(id) {
                     </div>
                 </div>
                 </div>
-
+ 
 
 
 

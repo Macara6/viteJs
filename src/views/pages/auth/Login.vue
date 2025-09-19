@@ -29,7 +29,7 @@ const handleLogin = async() => {
        if (userData && userData.token){
         
             if(userData.is_superuser){
-                router.push('/pages/Subscription'); 
+                router.push('/pages/Utilisateur'); 
             } else{
                 router.push('/pages/Bilan'); 
             }

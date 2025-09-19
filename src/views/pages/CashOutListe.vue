@@ -2,7 +2,9 @@
 
 
 <script setup>
-import { deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUserProfilById, fetchUsers } from '@/service/Api';
+import {
+    deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUserProfilById, fetchUsers
+} from '@/service/Api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
@@ -240,7 +242,7 @@ function devise(userId){
         </div>
         
     <!-- Table des détails -->
-            <div v-if="cashoutDetails.length > 0">
+        <div v-if="cashoutDetails.length > 0">
             <DataTable :value="cashoutDetails" class="mb-4">
                 <Column field="id" header="ID" />
                 <Column field="reason" header="Motif" />

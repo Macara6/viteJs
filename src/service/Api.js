@@ -25,7 +25,6 @@ export async function login(usernam, password) {
     }
 }
 
-
 // fonction pour actualiser le token
 export async function refreshToken(){
     const REFRESH_TOKEN_URL = `${API_BASE}refresh-token/`;
@@ -130,7 +129,7 @@ export async function  createProductAPI(productData){
       return response.data;
 
     }catch(error){
-        console.error('Error creating product', error.response ? error.response.data : error);
+       ( console.error('Error creating product', error.response ? error.response.data : error))
     }
 }
 
