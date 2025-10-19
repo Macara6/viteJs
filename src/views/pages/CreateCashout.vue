@@ -66,7 +66,6 @@ import { useRouter } from 'vue-router';
 <template>
     <Fluid>
  
-
         <div class="flex mt-8">
             <div class="card flex flex-col gap-4 w-full">
                 <div class="font-semibold text-xl">Nouveu Bon de sortie</div>

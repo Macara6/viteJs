@@ -78,7 +78,6 @@ async function loadProductsAndCategories(){
 
   try{      
        
-
         const [fetchedProducts, fetchedCategorys] = await Promise.all([
                 fetchProduits(userId), fetchCategorys()
             ]);
@@ -102,7 +101,7 @@ async function loadProductsAndCategories(){
 
 function refreshPage(){
     products.value = [];
-    categorys.value = [];
+    categorys.value = []
     loadProductsAndCategories();
 }
 
@@ -168,7 +167,7 @@ async function saveProduct () {
 
         }else{
             const createdProduct = await createProductAPI(productData);
-        
+    
             products.value.push(createdProduct);
             toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
         }
@@ -410,6 +409,7 @@ function formatPrice(price){
                 <Button label="Yes" icon="pi pi-check" text @click="deleteSelectedProducts" />
             </template>
         </Dialog>
+        
 
         <Dialog v-model:visible="secretDialog" header="Entrer code secret" :modal="true" :closable="false" :style="{ width: '350px' }">
         <div>

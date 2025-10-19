@@ -288,7 +288,6 @@ function hideDialog(){
                         <InputText id="password" v-model="user.confirPasswor" type="password" required="true"/>
                         <small v-if="submitted && user.password != user.confirPasswor" class="text-red-500">Le mot de pass doit etre le même</small>
                     </div>
-
                 </div>
 
 

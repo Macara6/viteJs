@@ -7,6 +7,7 @@ function smoothScroll(id) {
     });
 }
 const downloading = ref(false);
+const downloadCount = ref(0);
 function downloadApp() {
     const fileUrl = '/demo/apk/bila-sol.apk'; // renommer Url en fileUrl
     const link = document.createElement('a');
@@ -16,6 +17,8 @@ function downloadApp() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+     downloadCount.value += 1;
 
     setTimeout(() => {
         downloading.value = false;
@@ -45,6 +48,7 @@ function downloadApp() {
                 >
                     <i class="pi pi-bars !text-3xl"></i>
                 </Button>
+              
 
                 <!-- Desktop Menu -->
                 <div class="items-center grow justify-between hidden lg:flex absolute lg:static w-full left-0 top-full px-12 lg:px-0 z-20 rounded-b-xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-lg">
@@ -293,7 +297,9 @@ function downloadApp() {
     <i class="pi pi-android text-4xl"></i>
     <span>{{ downloading ? 'Téléchargement...' : 'Télécharger l\'application (V 1.0.1)' }}</span>
     </Button>
+
     </div>
+
   </div>
     
 
