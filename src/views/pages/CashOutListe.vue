@@ -8,8 +8,16 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
+
+
+// Exemple : largeur du dialog selon l’écran
+const dialogWidth = computed(() => {
+  if (window.innerWidth < 640) return "95vw"; // téléphone
+  if (window.innerWidth < 1024) return "80vw"; // tablette
+  return "50vw"; // ordinateur
+});
 
     const userId = localStorage.getItem('id');
     const cashoutList = ref([]);
@@ -23,7 +31,7 @@ import { onMounted, ref } from 'vue';
     const toast = useToast();
     const userProfile = ref(null);
 
-
+    const isSuperUser = localStorage.getItem('is_superuser') === 'true';
     const signatureUrl = '/demo/signature.png';
     
 
@@ -168,150 +176,213 @@ function devise(userId){
 
 
 <template>
-   <div>
+  <div>
     <div class="card">
+      <div class="font-semibold text-xl mb-4">Liste des Dépenses</div>
 
-        <div class="card">
-        <div class="font-semibold text-xl mb-4">Lieste des depasses</div>
-        <ToggleButton v-model="balanceFrozen" onIcon="pi pi-lock" offIcon="pi pi-lock-open" onLabel="Balance" offLabel="Balance" />
+      <ToggleButton
+        v-model="balanceFrozen"
+        onIcon="pi pi-lock"
+        offIcon="pi pi-lock-open"
+        onLabel="Balance"
+        offLabel="Balance"
+      />
 
-        <DataTable :value="cashoutList" scrollable scrollHeight="400px" class="mt-6">
-          
-            <Column field="id" header="Id" style="min-width: 100px"></Column>
-            <Column field="total_amount" header="TOTAL" style="min-width: 200px">
-                <template #body="slotProps" v-if="userI?.is_superuser">
-                  USD {{ slotProps.data.total_amount }}
-                </template>
-                <template #body="slotProps" v-else>
-                     {{ userProfile? userProfile.currency_preference : 'Non défini'  }} {{ slotProps.data.total_amount }}
-                </template>
-                
-            </Column>
-            <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>
-            <Column field="created_at" header="DATE" style="min-width: 200px">
-                <template #body="slotProps">
-                    {{ formatDate(slotProps.data.created_at) }}
-                </template>
-            </Column>
-            <Column field="user_name" header="DONATEUR" style="min-width: 200px"></Column>
-            <Column field="" header="ACTION" style="min-width: 200px">
-                <template #body="slotProps">
-                    <Button 
-                        label=""
-                        icon="pi pi-eye"
-                        class="p-button-sm p-button-info mr-2"
-                        @click="ViewDetailCashout(slotProps.data.id)"
-                    />
-                   
-                     <Button icon="pi pi-trash" class="p-button-sm p-button-info mr-2" severity="danger" @click="deleteToCahOut(slotProps.data)" />
-                 
-                  
-                </template>
-            </Column>
-        </DataTable>
+      <DataTable
+        :value="cashoutList"
+        scrollable
+        scrollHeight="400px"
+        class="mt-6"
+      >
+        <Column field="id" header="Id" style="min-width: 100px"></Column>
+
+        <Column field="total_amount" header="TOTAL" style="min-width: 200px">
+          <template #body="slotProps" v-if="isSuperUser">
+            USD {{ slotProps.data.total_amount }}
+          </template>
+          <template #body="slotProps" v-else>
+            {{ userProfile ? userProfile.currency_preference : "Non défini" }}
+            {{ slotProps.data.total_amount }}
+          </template>
+        </Column>
+
+        <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>
+
+        <Column field="created_at" header="DATE" style="min-width: 200px">
+          <template #body="slotProps">
+            {{ formatDate(slotProps.data.created_at) }}
+          </template>
+        </Column>
+
+        <Column field="user_name" header="DONATEUR" style="min-width: 200px"></Column>
+
+        <Column header="ACTION" style="min-width: 150px">
+          <template #body="slotProps">
+            <Button
+              icon="pi pi-eye"
+              class="p-button-sm p-button-info mr-2"
+              @click="ViewDetailCashout(slotProps.data.id)"
+            />
+            <Button
+              icon="pi pi-trash"
+              class="p-button-sm"
+              severity="danger"
+              @click="deleteToCahOut(slotProps.data)"
+            />
+          </template>
+        </Column>
+      </DataTable>
     </div>
-</div> 
-</div>
 
-    <Dialog v-model:visible="showModal" modal header="Détails du bon de sortie" :style="{ width: '50vw' }">
-      <div class="p-9" id="cashout-pdf-content" style="overflow-y: auto; max-height: 70vh;">
-      
-    <!-- En-tête -->
-    <div class="flex justify-between items-center mb-6">
-      
-        <div class="text-left flex-2"> 
-        <template v-if="userProfile?.is_superuser">
-            <h2 class="text-lg font-medium mb-2">BILATECH S.A.R.L.U</h2>
-            <p class="ext-xl font-semibold mb-2">KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25</p>
+    <!-- 💠 Dialog responsive -->
+    <Dialog
+      v-model:visible="showModal"
+      modal
+      header="Détails du bon de sortie"
+      :style="{ width: dialogWidth }"
+      class="responsive-dialog"
+    >
+      <div
+        class="p-6 overflow-y-auto max-h-[70vh] space-y-6"
+        id="cashout-pdf-content"
+      >
+        <!-- En-tête -->
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div class="text-left flex-1">
+            <template v-if="isSuperUser">
+              <h2 class="text-lg font-semibold">BILATECH S.A.R.L.U</h2>
+              <p class="text-sm md:text-base">
+                KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25
+              </p>
+            </template>
 
-        </template>
-        <template v-else>
-      <!-- Affichage profil utilisateur -->
-        <h2 class="text-lg font-medium mb-2">{{  userProfile ? userProfile.entrep_name : 'Non défini' }}</h2>
-        <p class="text-xl font-semibold mb-2">{{ userProfile ? userProfile.adress : 'Non défini' }}</p>
+            <template v-else>
+              <h2 class="text-lg font-semibold">
+                {{ userProfile ? userProfile.entrep_name : "Non défini" }}
+              </h2>
+              <p class="text-sm md:text-base">
+                {{ userProfile ? userProfile.adress : "Non défini" }}
+              </p>
+            </template>
 
-        </template>
-         <p class="ext-xl font-semibold mb-1">Date : {{ formatDate(new Date()) }}</p>
-         <h2 class="text-xl font-semibold mb-1">Bon de sortie N°/:000{{ selectedCashout }}/25</h2>
-         <h3 class="text-lg font-medium mb-2">Demandeur : 
-            <span class="font-normal">
-                {{ cashoutList.find(c => c.id === selectedCashout)?.motif || 'N/A' }}
-            </span>
-        </h3>
+            <p class="text-sm md:text-base">
+              Date : {{ formatDate(new Date()) }}
+            </p>
+            <h3 class="text-base md:text-lg font-medium">
+              Bon de sortie N° : 000{{ selectedCashout }}/25
+            </h3>
+            <h3 class="text-base md:text-lg font-medium">
+              Demandeur :
+              <span class="font-normal">
+                {{
+                  cashoutList.find((c) => c.id === selectedCashout)?.motif ||
+                  "N/A"
+                }}
+              </span>
+            </h3>
+          </div>
+
+          <img src="/demo/bila.png" alt="Logo" class="h-24 md:h-32 lg:h-40" />
         </div>
-        <img src="/demo/bila.png" alt="Logo" class="h-40" /> 
-        </div>
-        
-    <!-- Table des détails -->
+
+        <!-- Table des détails -->
         <div v-if="cashoutDetails.length > 0">
-            <DataTable :value="cashoutDetails" class="mb-4">
-                <Column field="id" header="ID" />
-                <Column field="reason" header="Motif" />
-                <Column field="amount" header="Montant">
-                <template #body="slotProps" v-if="userId?.is_superuser">
-                    USD {{ slotProps.data.amount }}
-                </template>
-                <template #body="slotProps" v-else>
-                    {{ userProfile? userProfile.currency_preference : 'Non défini'  }} {{ slotProps.data.amount }}
-                </template>
+          <DataTable :value="cashoutDetails" class="mb-4" responsiveLayout="scroll">
+            <Column field="id" header="ID" />
+            <Column field="reason" header="Motif" />
+            <Column field="amount" header="Montant">
+              <template #body="slotProps" v-if="isSuperUser">
+                USD {{ slotProps.data.amount }}
+              </template>
+              <template #body="slotProps" v-else>
+                {{
+                  userProfile ? userProfile.currency_preference : "Non défini"
+                }}
+                {{ slotProps.data.amount }}
+              </template>
+            </Column>
+          </DataTable>
 
-                </Column>
-            </DataTable>
-
-      <!-- Total -->
-        <div class="text-right font-bold text-lg mb-6" v-if="userId.is_superuser">
+          <!-- Total -->
+          <div
+            class="text-right font-bold text-base md:text-lg mb-4"
+            v-if="isSuperUser"
+          >
             Total : {{ calculateTotal() }} USD
-        </div>
-        <div class="text-right font-bold text-lg mb-6" v-else>
-            
-            Total : {{ calculateTotal() }} {{ userProfile? userProfile.currency_preference : 'Non défini'  }}
-            
+          </div>
+          <div class="text-right font-bold text-base md:text-lg mb-4" v-else>
+            Total : {{ calculateTotal() }}
+            {{ userProfile ? userProfile.currency_preference : "Non défini" }}
+          </div>
+
+          <!-- Signature -->
+          <div class="flex justify-end mt-6" v-if="isSuperUser">
+            <div class="text-center">
+              <p class="text-sm">Mr DELOR Musangania</p>
+              <p class="text-sm">PDG BILATECH</p>
+              <img :src="signatureUrl" alt="Signature" class="h-16 md:h-24 mt-2" />
+            </div>
+          </div>
         </div>
 
-      <!-- Signature -->
-      
-      <div class="flex justify-end mt-10" v-if="userId.is_superuser">
-        <div class="text-center">
-          <p class="text-sm">Mr DELOR Musangania</p>
-          <p class="text-sm">PDG BILATECH</p>
-          <img :src="signatureUrl" alt="Signature" class="h-24 mt-2" />
+        <!-- Aucun détail -->
+        <div v-else class="text-center text-gray-500">
+          Aucun détail trouvé.
         </div>
       </div>
-    </div>
 
-          
-    <!-- Message si aucun détail -->
-     <div v-else class="text-center text-gray-500">
-      Aucun détail trouvé.
-     </div>
+      <!-- Bouton bas -->
+      <div
+        class="sticky bottom-0 bg-white py-3 px-4 shadow-md flex justify-end"
+      >
+        <Button
+          label="Télécharger PDF"
+          icon="pi pi-download"
+          class="p-button-success"
+          @click="downloadPDF"
+        />
+      </div>
+    </Dialog>
+
+    <!-- ✅ Dialog de confirmation suppression -->
+    <Dialog
+      v-model:visible="deleteCashOutDialog"
+      :style="{ width: '90%', maxWidth: '450px' }"
+      header="Confirmation"
+      modal
+    >
+      <div class="flex items-center gap-4">
+        <i class="pi pi-exclamation-triangle text-3xl text-yellow-500" />
+        <span>
+          Êtes-vous sûr de vouloir supprimer le bon de sortie N°
+          {{ selectedCashoutToDelete?.id }} ?
+        </span>
+      </div>
+      <template #footer>
+        <Button
+          label="Non"
+          icon="pi pi-times"
+          text
+          @click="deleteCashOutDialog = false"
+        />
+        <Button
+          label="Oui"
+          icon="pi pi-check"
+          text
+          severity="danger"
+          @click="confirmDeleteCashout"
+        />
+      </template>
+    </Dialog>
   </div>
-
-  <div 
-    style="position: sticky; bottom: 0; background: white; padding: 1rem; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 10;"
-  >
-    <Button 
-      label="Télécharger PDF"
-      icon="pi pi-download"
-      class="p-button-success"
-      @click="downloadPDF"
-    />
-  </div>
- 
-</Dialog>
-
-<Dialog v-model:visible="deleteCashOutDialog" :style="{ width: '450px' }" header="Confirm" :modal="true">
-            <div class="flex items-center gap-4">
-                <i class="pi pi-exclamation-triangle !text-3xl" />
-                <span>
-                Êtes-vous sûr de vouloir supprimer le bon de sortie N° {{ selectedCashoutToDelete?.id }} ?
-                </span>
-            </div>
-            <template #footer>
-                <Button label="No" icon="pi pi-times" text @click="deleteCashOutDialog = false" />
-                <Button label="Yes" icon="pi pi-check" text @click="confirmDeleteCashout" />
-            </template>
-     </Dialog>
-
-
-   
 </template>
+
+
+
+<style scoped>
+.responsive-dialog {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+</style>

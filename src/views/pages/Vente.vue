@@ -264,11 +264,12 @@ function printInvoice(invoiceData) {
       
 </script>
 
+
 <template>
-  <div class="flex flex-col md:flex-row gap-6 p-4">
-    <!-- Colonne gauche : Produits -->
-    <div class="w-full md:w-1/2 border rounded-lg p-4 shadow-sm bg-white">
-      <h3 class="text-lg font-bold mb-4">Produits disponibles</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 min-h-screen">
+    <!-- 🟩 Produits -->
+    <div class="card-container">
+      <h3 class="text-lg font-bold mb-4 text-gray-800">Produits disponibles</h3>
 
       <div class="mb-3">
         <InputText
@@ -278,131 +279,179 @@ function printInvoice(invoiceData) {
         />
       </div>
 
-      <DataTable
-        :value="products"
-        :rows="5"
-        :paginator="true"
-        :filters="filters"
-        dataKey="id"
-        responsiveLayout="scroll"
-      >
-        <Column field="name" header="Nom" />
-        <Column field="price" header="Prix">
-          <template #body="{ data }">
-            {{ formatPrice(data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
-          </template>
-        </Column>
-        <Column>
-          <template #body="{ data }">
-            <Button
-              icon="pi pi-plus"
-              label="Ajouter"
-              @click="addToInvoice(data)"
-              class="p-button-sm"
-            />
-          </template>
-        </Column>
-      </DataTable>
+      <div class="overflow-x-auto">
+        <DataTable
+          :value="products"
+          :rows="5"
+          :paginator="true"
+          :filters="filters"
+          dataKey="id"
+          responsiveLayout="scroll"
+        >
+          <Column field="name" header="Nom" />
+          <Column field="price" header="Prix">
+            <template #body="{ data }">
+              {{ formatPrice(data.price) }}
+              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+            </template>
+          </Column>
+          <Column header="Action">
+            <template #body="{ data }">
+              <Button
+                icon="pi pi-plus"
+                label="Ajouter"
+                @click="addToInvoice(data)"
+                class="p-button-sm"
+              />
+            </template>
+          </Column>
+        </DataTable>
+      </div>
     </div>
 
-    <!-- Colonne droite : Facture -->
-    <!-- Facture -->
-<div class="w-full md:w-1/2 border rounded-lg p-4 shadow-sm bg-white">
-  <h3 class="text-lg font-bold mb-4">Nouvelle facture</h3>
+    <!-- 🟩 Facture -->
+    <div class="card-container">
+      <h3 class="text-lg font-bold mb-4 text-gray-800">Nouvelle facture</h3>
 
-  <div class="mb-4">
-    <label for="client" class="block mb-1 font-medium">Nom du client :</label>
-    <InputText id="client" v-model="clientName" class="w-full" />
-  </div>
+      <div class="mb-4">
+        <label for="client" class="block mb-1 font-medium text-gray-700">Nom du client :</label>
+        <InputText id="client" v-model="clientName" class="w-full" />
+      </div>
 
-  <DataTable
-    :value="invoiceItems"
-    dataKey="product.id"
-    :paginator="true"
-    :rows="5"
-    responsiveLayout="scroll"
-    class="text-sm"
-  >
-    <Column field="product.name" header="Produit" />
+      <div class="overflow-x-auto">
+        <DataTable
+          :value="invoiceItems"
+          dataKey="product.id"
+          :paginator="true"
+          :rows="5"
+          responsiveLayout="scroll"
+          class="text-sm"
+        >
+          <Column field="product.name" header="Produit" />
 
-    <Column header="Qté">
-      <template #body="{ data }">
+          <Column header="Qté" style="width: 80px; text-align: center;">
+            <template #body="{ data }">
+              <div class="flex justify-center items-center">
+                <InputNumber
+                  v-model="data.quantity"
+                  @input="updateQuantity(data, data.quantity)"
+                  :min="1"
+                  showButtons
+                  buttonLayout="vertical"
+                  incrementButtonIcon="pi pi-angle-up"
+                  decrementButtonIcon="pi pi-angle-down"
+                  class="quantity-input"
+                  inputClass="text-center"
+                />
+              </div>
+            </template>
+          </Column>
+
+
+          <Column field="price" header="Prix">
+            <template #body="{ data }">
+              {{ formatPrice(data.price) }}
+              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+            </template>
+          </Column>
+
+          <Column header="Sous-total">
+            <template #body="{ data }">
+              {{ formatPrice(data.quantity * data.price) }}
+              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+            </template>
+          </Column>
+
+          <Column header="Action">
+            <template #body="{ data }">
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                rounded
+                text
+                @click="removeFromInvoice(data.product.id)"
+              />
+            </template>
+          </Column>
+        </DataTable>
+      </div>
+
+      <div class="mt-4 text-right text-lg font-bold text-gray-800">
+        Total :
+        {{ formatPrice(totalAmount) }}
+        {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+      </div>
+
+      <div class="mt-4">
+        <label for="amountPaid" class="block mb-1 font-medium text-gray-700">
+          Montant payé ({{ userProfile ? userProfile.currency_preference : 'Non défini' }}) :
+        </label>
         <InputNumber
-          v-model="data.quantity"
-          @input="updateQuantity(data, data.quantity)"
-          :min="1"
-          showButtons
-          buttonLayout="horizontal"
-          incrementButtonIcon="pi pi-plus"
-          decrementButtonIcon="pi pi-minus"
-          class="w-20"
+          id="amountPaid"
+          v-model="amountPaid"
+          :min="0"
+          class="w-full sm:w-40"
         />
-      </template>
-    </Column>
+      </div>
 
-    <Column field="price" header="Prix">
-      <template #body="{ data }">
-        {{ formatPrice(data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
-      </template>
-    </Column>
+      <div class="mt-2 text-right font-semibold text-gray-700">
+        Reste :
+        {{ formatPrice(change) }}
+        {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+      </div>
 
-    <Column header="Sous-total">
-      <template #body="{ data }">
-        {{ formatPrice(data.quantity * data.price) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
-      </template>
-    </Column>
-
-    <Column header="Action">
-      <template #body="{ data }">
+      <div class="mt-4 text-right">
         <Button
-          icon="pi pi-trash"
-          severity="danger"
-          rounded
-          text
-          @click="removeFromInvoice(data.product.id)"
+          label="Payer et créer facture"
+          icon="pi pi-check"
+          @click="createInvoice"
+          severity="success"
+          class="w-full sm:w-auto"
         />
-      </template>
-    </Column>
-  </DataTable>
-
-  <div class="mt-4 text-right text-lg font-bold">
-    Total : {{ formatPrice(totalAmount) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
-  </div>
-
-  <div class="mt-4">
-    <label for="amountPaid" class="block mb-1 font-medium">Montant payé ({{ userProfile? userProfile.currency_preference :'No definie' }}) :</label>
-    <InputNumber
-      id="amountPaid"
-      v-model="amountPaid"
-      :min="0"
-      class="w-40"
-    />
-  </div>
-
-  <div class="mt-2 text-right font-semibold">
-    Reste : {{ formatPrice(change) }} {{ userProfile? userProfile.currency_preference :'No definie' }}
-  </div>
-
-  <div class="mt-4 text-right">
-    <Button
-      label="Payer et créer facture"
-      icon="pi pi-check"
-      @click="createInvoice"
-      severity="success"
-    />
-  </div>
-</div>
+      </div>
+    </div>
 
   </div>
 </template>
 
 <style scoped>
+.card-container {
+  @apply border rounded-lg p-4 shadow-md bg-white flex flex-col justify-between;
+  min-height: 600px;
+}
+
+/* ✅ Ajustement esthétique du champ quantité */
+.quantity-input {
+  @apply w-24 sm:w-28;
+}
+
 @media (max-width: 768px) {
+  .card-container {
+    min-height: auto;
+  }
   table {
     font-size: 0.85rem;
   }
 }
 
+.quantity-input {
+  width: 3.5rem; /* réduit la largeur globale */
+}
 
+.quantity-input .p-inputtext {
+  text-align: center;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.quantity-input .p-button {
+  height: 1rem;
+  padding: 0;
+}
+
+.quantity-input .p-button .pi {
+  font-size: 0.65rem;
+}
 
 </style>
+
