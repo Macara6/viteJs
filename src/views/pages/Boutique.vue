@@ -3,8 +3,9 @@
 
 <script setup>
 import {
-    checkSecretKeyStatus, createOrUpdateSecretKey,
-    createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
+  changePassword,
+  checkSecretKeyStatus, createOrUpdateSecretKey,
+  createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
 } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
@@ -29,6 +30,14 @@ const isCreatingSecret = ref(false);
 
 const userId = localStorage.getItem('id');
 
+const showChangePasswordDialog = ref(false);
+
+const passwordForm = ref({
+  old_password: '',
+  new_password: '',
+});
+const loadingChangePassword = ref(false);
+
 
 onMounted(async () => {
    await fetchUserProfil();
@@ -37,6 +46,29 @@ onMounted(async () => {
     await checkSecretKey();
 
 });
+
+
+function openChangePasswordDialog() {
+  passwordForm.value = { old_password: '', new_password: '' };
+  showChangePasswordDialog.value = true;
+}
+
+async function handleChangePassword() {
+  if (!passwordForm.value.old_password || !passwordForm.value.new_password) {
+    toast.add({ severity: 'warn', summary: 'Attention', detail: 'Veuillez remplir tous les champs', life: 3000 });
+    return;
+  }
+  loadingChangePassword.value = true;
+  try {
+    await changePassword(passwordForm.value.old_password, passwordForm.value.new_password);
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Mot de passe modifié avec succès', life: 3000 });
+    showChangePasswordDialog.value = false;
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: error.detail || 'Impossible de changer le mot de passe', life: 3000 });
+  } finally {
+    loadingChangePassword.value = false;
+  }
+}
 // fonction verifier le code secret
 async function checkSecretKey(){
     try{
@@ -46,6 +78,8 @@ async function checkSecretKey(){
     console.error("Erreur lors de la vérification du code secret :", error);
   }
 }
+
+
 
 async function saveSecretKey(){
     try{
@@ -216,80 +250,84 @@ const progressPercent = computed(()=> {
 
 
 </script>
-
 <template>
-    <div class="grid md:grid-cols-2 gap-6 card">
-  <!-- Colonne Profil Boutique -->
-  <div>
-    <div class="font-semibold text-xl mb-4 text-primary">Profil de la Boutique</div>
-    <div class="mb-2"><strong>Nom de la boutique :</strong> {{ userProfile ? userProfile.entrep_name : 'Non défini' }}</div>
-    <div class="mb-2"><strong>Numéro d'impôt :</strong> {{ userProfile ? userProfile.impot_number : 'Non défini' }}</div>
-    <div class="mb-2"><strong>RCCM :</strong> {{ userProfile ? userProfile.rccm_number : 'Non défini' }}</div>
-    <div class="mb-2"><strong>Téléphone :</strong> {{ userProfile ? userProfile.phone_number : 'Non défini' }}</div>
-    <div class="mb-2"><strong>Adresse :</strong> {{ userProfile ? userProfile.adress : 'Non défini' }}</div>
-    <div class="mb-2"><strong>Devise :</strong> {{ userProfile ? userProfile.currency_preference : 'Non défini' }}</div>
-    <Button 
-      :label="userProfile ? 'Modifier' : 'Créer le profil'" 
-      icon="pi pi-pencil" 
-      class="mt-4" 
-      @click="openEditDialog" 
-    />
-  </div>
+  <div class="p-6 space-y-6">
 
-  <!-- Colonne Utilisateur + Abonnement -->
-  <div>
-    <div class="font-semibold text-xl mb-4 text-primary">Informations de l'utilisateur</div>
-    <div class="mb-2"><strong>Nom d'utilisateur :</strong> {{ user ? user.username : 'Non défini' }}</div>
-    <div class="mb-2"><strong>Nom :</strong> {{ user?.first_name || 'Non défini' }} {{ user?.last_name || '' }}</div>
-    <div class="mb-2"><strong>Email :</strong> {{ user?.email || 'Non défini' }}</div>
-    <Button label="Modifier mes informations" icon="pi pi-user-edit" class="mt-4 mb-6" @click="openEditUserDialog" />
+    <!-- ================= Profil Boutique ================= -->
+    <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200">
+      <h2 class="text-2xl font-bold text-blue-600 mb-5">Profil de la Boutique</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+        <div><strong>Nom :</strong> {{ userProfile?.entrep_name || 'Non défini' }}</div>
+        <div><strong>Numéro d'impôt :</strong> {{ userProfile?.impot_number || 'Non défini' }}</div>
+        <div><strong>RCCM :</strong> {{ userProfile?.rccm_number || 'Non défini' }}</div>
+        <div><strong>Téléphone :</strong> {{ userProfile?.phone_number || 'Non défini' }}</div>
+        <div class="sm:col-span-2"><strong>Adresse :</strong> {{ userProfile?.adress || 'Non défini' }}</div>
+        <div><strong>Devise :</strong> {{ userProfile?.currency_preference || 'Non défini' }}</div>
+      </div>
+      <div class="mt-5">
+        <Button 
+          :label="userProfile ? 'Modifier' : 'Créer le profil'" 
+          icon="pi pi-pencil" 
+          class="p-button-rounded p-button-sm p-button-info" 
+          @click="openEditDialog" 
+        />
+      </div>
+    </div>
 
-    <div class="font-semibold text-xl mb-4 text-primary">Abonnement</div>
-    <div class="mb-2">
-    <strong>Type :</strong> {{ subscription?.subscription_type || 'Non défini' }}
-      <i 
-    v-if="subscription && (subscription.subscription_type === 'MEDIUM' || subscription.subscription_type === 'PREMIUM')" 
-    class="pi pi-verified ml-2"
-    :style="{ color: subscription.subscription_type === 'MEDIUM' ? 'green' : 'blue' }"
-    title="Abonnement vérifié"
-    ></i>
+    <!-- ================= Utilisateur + Abonnement ================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Colonne Utilisateur -->
+      <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
+        <h2 class="text-2xl font-bold text-blue-600 mb-4">Informations de l'utilisateur</h2>
+        <div class="text-gray-700 space-y-1">
+          <div><strong>Nom d'utilisateur :</strong> {{ user?.username || 'Non défini' }}</div>
+          <div><strong>Nom :</strong> {{ user?.first_name || 'Non défini' }} {{ user?.last_name || '' }}</div>
+          <div><strong>Email :</strong> {{ user?.email || 'Non défini' }}</div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mt-4">
+          <Button label="Modifier mes informations" icon="pi pi-user-edit" class="p-button-sm p-button-info" @click="openEditUserDialog"/>
+          <Button label="Changer le mot de passe" icon="pi pi-lock" class="p-button-sm p-button-danger" @click="openChangePasswordDialog"/>
+          <Button :label="hasSecretKey ? 'Modifier mon code secret' : 'Créer un code secret'" icon="pi pi-key" class="p-button-sm p-button-warning" @click="openSecretKeyDialog"/>
+        </div>
+      </div>
+
+      <!-- Colonne Abonnement -->
+      <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
+        <h2 class="text-2xl font-bold text-blue-600 mb-4">Abonnement</h2>
+        <div class="text-gray-700 space-y-2">
+          <div>
+            <strong>Type :</strong> {{ subscription?.subscription_type || 'Non défini' }}
+            <i v-if="subscription && (subscription.subscription_type === 'MEDIUM' || subscription.subscription_type === 'PREMIUM')" 
+               class="pi pi-verified ml-2"
+               :style="{ color: subscription.subscription_type === 'MEDIUM' ? 'green' : 'blue' }" 
+               title="Abonnement vérifié">
+            </i>
+          </div>
+          <div><strong>Début :</strong> {{ subscription?.start_date || 'Non défini' }}</div>
+          <div><strong>Fin :</strong> {{ subscription?.end_date || 'Non défini' }}</div>
+          <div>
+            <strong>Statut :</strong>
+            <span :class="status(subscription?.is_active) === 'Actif' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">
+              {{ status(subscription?.is_active) }}
+            </span>
+          </div>
+          <div v-if="subscription">
+            <label class="block font-semibold text-sm mb-1">Durée restante :</label>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+              <div class="h-4 rounded-full transition-all duration-500"
+                   :style="{ width: progressPercent + '%', backgroundColor: subscription.subscription_type === 'PREMIUM' ? '#3b82f6' : '#22c55e' }"></div>
+            </div>
+            <small>{{ progressPercent }}% restant</small>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <div class="mb-2"><strong>Début :</strong> {{ subscription?.start_date || 'Non défini' }}</div>
-    <div class="mb-2"><strong>Fin :</strong> {{ subscription?.end_date || 'Non défini' }}</div>
-    <div class="mb-2">
-        <strong>Statut :</strong> 
-        <span 
-            :class="status(subscription?.is_active) === 'Actif' ? 'text-green-500 font-semibold' : 'text-red-500 font-semibold'"
-        >
-            {{ status(subscription?.is_active) }}
-        </span>
-    </div>
-    <div v-if="subscription" class="mb-2">
-    <label class="block mb-1 font-semibold text-sm">Durée restante de l'abonnement :</label>
-    <div class="w-full bg-gray-200 rounded-full h-4">
-        <div 
-        class="h-4 rounded-full transition-all duration-500" 
-        :style="{
-            width: progressPercent + '%', 
-            backgroundColor: subscription.subscription_type === 'PREMIUM' ? '#3b82f6' : '#22c55e'
-        }"
-        ></div>
-    </div>
-    <small>{{ progressPercent }}% restant</small>
-    </div>
-  </div>
-    <div class="mt-6">
-    <Button 
-      :label="hasSecretKey ? 'Modifier mon code secret' : 'Créer un code secret'"
-      icon="pi pi-key"
-      class="p-button-warning"
-      @click="openSecretKeyDialog"
-    />
-  </div>
-</div>
 
 
-      <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '450px' }">
+  <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '450px' }">
     <div class="flex flex-col gap-4">
       <div>
         <label class="font-semibold mb-1 block">Nom de la boutique</label>
@@ -378,4 +416,36 @@ const progressPercent = computed(()=> {
     </template>
   </Dialog>
 
+
+  <Dialog
+    v-model:visible="showChangePasswordDialog"
+    header="Changer le mot de passe"
+    :modal="true"
+    :style="{ width: '400px' }"
+  >
+  <div class="flex flex-col gap-4">
+    <div>
+      <label class="font-semibold mb-1 block">Ancien mot de passe</label>
+      <Password v-model="passwordForm.old_password" class="w-full" toggleMask feedback="false" />
+    </div>
+
+    <div>
+      <label class="font-semibold mb-1 block">Nouveau mot de passe</label>
+      <Password v-model="passwordForm.new_password" class="w-full" toggleMask feedback="true" />
+    </div>
+  </div>
+
+  <template #footer>
+    <Button label="Annuler" icon="pi pi-times" text @click="showChangePasswordDialog = false" />
+    <Button 
+      label="Changer" 
+      icon="pi pi-check" 
+      :loading="loadingChangePassword" 
+      @click="handleChangePassword" 
+    />
+  </template>
+</Dialog>
+
+
+  </div>
 </template>

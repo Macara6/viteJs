@@ -1,6 +1,6 @@
 <script setup>
 
-import { login } from '@/service/Api';
+import { fecthSubscriptionByUserId, login } from '@/service/Api';
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -27,7 +27,18 @@ const handleLogin = async() => {
        const userData = await login(username.value, password.value); 
 
        if (userData && userData.token){
-        
+          let subscription = null;
+            try{
+              subscription = await fecthSubscriptionByUserId(userData.id)
+            }catch(error){
+              console.log('Aucun abonnement trouvé pour cet utilisateur');
+            }
+
+            if(subscription && subscription.subscription_type ==='BASIC'){
+            errorMessage.value = "Votre abonnement BASIC ne permet pas l'accès à cette application";
+            return;
+           }
+           
             if(userData.is_superuser){
                 router.push('/pages/Utilisateur'); 
             } else{
@@ -56,6 +67,7 @@ const handleLogin = async() => {
     }
   
 }
+
 
 
 </script>
@@ -118,6 +130,13 @@ const handleLogin = async() => {
           <i v-if="loading" class="pi pi-spin pi-spinner text-white"></i>
           <span v-else>Se connecter</span>
         </Button>
+
+        <div class="text-center mt-4">
+          <RouterLink to="/reset" class="text-sm text-primary hover:underline">
+            Mot de passe oublié 
+          </RouterLink>
+        </div>
+        
       </div>
     </div>
   </div>

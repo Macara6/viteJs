@@ -3,197 +3,229 @@
 
 <script setup>
 import {
-    deleteCashout, fetchCashOut, fetchCashOutDetail, fetchUserProfilById, fetchUsers
+  deleteCashout,
+  fetchCashOut,
+  fetchCashOutDetail,
+  fetchUserProfilById,
+  fetchUsers,
+  getUsersCreatedByMe,
 } from '@/service/Api';
+
+import { FilterMatchMode } from '@primevue/core/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
+const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 
-
-// Exemple : largeur du dialog selon l’écran
 const dialogWidth = computed(() => {
   if (window.innerWidth < 640) return "95vw"; // téléphone
   if (window.innerWidth < 1024) return "80vw"; // tablette
   return "50vw"; // ordinateur
 });
 
-    const userId = localStorage.getItem('id');
-    const cashoutList = ref([]);
-    const usersMap = ref({});
-    const selectedCashout = ref(null);
-    const cashoutDetails = ref([]);
-    const showModal = ref(false);
-    const balanceFrozen = ref(false);
-    const deleteCashOutDialog = ref(false)
-    const selectedCashoutToDelete = ref(null);
-    const toast = useToast();
-    const userProfile = ref(null);
 
-    const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-    const signatureUrl = '/demo/signature.png';
-    
+const userId = localStorage.getItem('id');
+const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+const signatureUrl = '/demo/SignatureDe.png';
 
-    onMounted(async () => {
-        await loadCashOutAndUser();
-        await fetchUserProfil();
+const cashoutList = ref([]);
+const usersMap = ref({});
+const selectedCashout = ref(null);
+const cashoutDetails = ref([]);
+const showModal = ref(false);
+const deleteCashOutDialog = ref(false);
+const selectedCashoutToDelete = ref(null);
+const toast = useToast();
+const userProfile = ref(null);
+const selectedUserFilter = ref(null);
+const childUsers = ref([]);
 
-    });
+/* ===================== ⚙️ Initialisation ===================== */
+onMounted(async () => {
+  await getUserChildren();
+  selectedUserFilter.value = userId; // par défaut, utilisateur connecté
+  await refreshUserData(); // charge profil + cashouts
+});
 
-    async function loadCashOutAndUser(){
-
-        try{
-
-            const [cashouts, users] = await Promise.all([
-                fetchCashOut(userId),
-                fetchUsers()
-            ]);
-
-            usersMap.value = users.reduce((acc, user) => {
-                acc[user.id] = user.username;
-                return acc;
-            }, {});
-
-            cashoutList.value = cashouts.map(cashout => ({
-                ...cashout,
-                user_name: usersMap.value[cashout.user] || 'Inconnu'
-            }));
-            
-       } catch(error){
-         console.error('Erreur lors du chargement des bons de sortie:', error);
-       }
-
-    }
-    
- async function ViewDetailCashout(cashoutId){
-
-    try{
-         const details = await fetchCashOutDetail(cashoutId);
-         selectedCashout.value = cashoutId;
-         cashoutDetails.value = details;
-         showModal.value = true;
-         console.log('Donne details',cashoutDetails);
-        
-    } catch (error){
-        console.log('Erreur lors de la recuperation du details du bon', error);
-    }   
-
- }   
-async function fetchUserProfil(){
-    const userId = localStorage.getItem('id');
-    try{
-        const result = await fetchUserProfilById(userId);
-        userProfile.value = Array.isArray(result) ? result[0] : result;
-        console.log('Profil utilisateur récupéré :', result);
-    } catch(error){
-        console.error('Erreur lors de la récuperation du profi utilisateur', error);
-    }
+/* ===================== 🔁 Rafraîchir toutes les données liées ===================== */
+async function refreshUserData() {
+  await Promise.all([fetchUserProfil(), loadCashOutAndUser()]);
 }
 
-function formatDate(value){
-    const options = {
-
-        year:'numeric',
-        month:'2-digit',
-        day:'2-digit',
-        hour:'2-digit',
-        minute:'2-digit',
-        hour12:false,
-    };
-    const date = new Date(value);
-    return date.toLocaleDateString('sv-SE', options).replace(' ',' |  ');
-}
-function calculateTotal() {
-    return cashoutDetails.value.reduce((sum, item) => sum + parseFloat(item.amount), 0).toFixed(2);
+/* ===================== Récupérer les enfants ===================== */
+async function getUserChildren() {
+  try {
+    const allCreatedUsers = await getUsersCreatedByMe();
+    childUsers.value = allCreatedUsers;
+  } catch (error) {
+    console.error('Erreur getUserChildren', error);
+  }
 }
 
+/* ===================== Charger les cashouts ===================== */
+async function loadCashOutAndUser() {
+  try {
+    const activeUserId = selectedUserFilter.value || userId;
+
+    const [cashouts, users] = await Promise.all([
+      fetchCashOut(activeUserId),
+      fetchUsers()
+    ]);
+
+    usersMap.value = users.reduce((acc, user) => {
+      acc[user.id] = user.username;
+      return acc;
+    }, {});
+
+    cashoutList.value = cashouts.map(cashout => ({
+      ...cashout,
+      user_name: usersMap.value[cashout.user] || 'Inconnu'
+    }));
+  } catch (error) {
+    console.error('Erreur lors du chargement des bons de sortie:', error);
+  }
+}
+
+/* =====================  Charger le profil utilisateur actif ===================== */
+async function fetchUserProfil() {
+  const activeUserId = selectedUserFilter.value || userId;
+  try {
+    const result = await fetchUserProfilById(activeUserId);
+    userProfile.value = Array.isArray(result) ? result[0] : result;
+  } catch (error) {
+    console.error('Erreur lors de la récupération du profil utilisateur', error);
+  }
+}
+
+/* =====================  Voir les détails ===================== */
+async function ViewDetailCashout(cashoutId) {
+  try {
+    const details = await fetchCashOutDetail(cashoutId);
+    selectedCashout.value = cashoutId;
+    cashoutDetails.value = details;
+    showModal.value = true;
+  } catch (error) {
+    console.log('Erreur lors de la récupération des détails du bon', error);
+  }
+}
+
+/* =====================  PDF ===================== */
 async function downloadPDF() {
   const element = document.getElementById('cashout-pdf-content');
-
-  console.log('downloadPDF called');
-  
-  if (!element) {
-    console.log('Element not found');
-    return;
-  }
   if (!element) return;
 
-  // Générer un canvas à partir de l'élément HTML
   const canvas = await html2canvas(element, { scale: 2 });
-
-  // Convertir le canvas en image
   const imgData = canvas.toDataURL('image/png');
-
-  // Créer un PDF au format A4 (210mm x 297mm)
   const pdf = new jsPDF('p', 'mm', 'a4');
 
-  // Calculer largeur/hauteur de l'image dans le PDF pour garder le ratio
   const pdfWidth = pdf.internal.pageSize.getWidth();
   const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-  // Ajouter l'image dans le PDF
   pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-
-  // Sauvegarder le PDF avec un nom personnalisé
   pdf.save(`bon_sortie_${selectedCashout.value}.pdf`);
 }
 
-async function confirmDeleteCashout(){
-
-    try{
-        if(!selectedCashoutToDelete.value) return;
-
-        await deleteCashout(selectedCashoutToDelete.value.id);
-        cashoutList.value = cashoutList.value.filter(
-            c => c.id  !== selectedCashoutToDelete.value.id
-        );
-
-        deleteCashOutDialog.value =false;
-        selectedCashoutToDelete.value = null;
-        toast.add({ severity: 'success', summary: 'Successful', detail: 'Bon supprimer', life: 3000 });
-
-
-    }catch(error){
-        console.error('Erreur lors de la suppression du bon de sortie:', error);
-    }
+/* ===================== Suppression ===================== */
+function deleteToCahOut(cashout) {
+  selectedCashoutToDelete.value = cashout;
+  deleteCashOutDialog.value = true;
 }
 
-function deleteToCahOut(cashout){
-    selectedCashoutToDelete.value =cashout;
-    deleteCashOutDialog.value = true;
+async function confirmDeleteCashout() {
+  try {
+    if (!selectedCashoutToDelete.value) return;
+
+    await deleteCashout(selectedCashoutToDelete.value.id);
+    cashoutList.value = cashoutList.value.filter(
+      c => c.id !== selectedCashoutToDelete.value.id
+    );
+
+    deleteCashOutDialog.value = false;
+    selectedCashoutToDelete.value = null;
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'Bon supprimé', life: 3000 });
+  } catch (error) {
+    console.error('Erreur lors de la suppression du bon de sortie:', error);
+  }
 }
 
-function devise(userId){
-    if(userId.is_superuser){
-        return 'USD';
-    }else{
-        return userProfile.currency_preference;
-    }
+/* =====================  Fonctions utilitaires ===================== */
+function formatDate(value) {
+  const options = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  };
+  const date = new Date(value);
+  return date.toLocaleDateString('sv-SE', options).replace(' ', ' | ');
 }
+
+function calculateTotal() {
+  return cashoutDetails.value.reduce((sum, item) => sum + parseFloat(item.amount), 0).toFixed(2);
+}
+
+/* =====================  Détection du changement d’utilisateur ===================== */
+watch(selectedUserFilter, async () => {
+  await refreshUserData();
+});
 
 </script>
+
 
 
 <template>
   <div>
     <div class="card">
-      <div class="font-semibold text-xl mb-4">Liste des Dépenses</div>
-
-      <ToggleButton
-        v-model="balanceFrozen"
-        onIcon="pi pi-lock"
-        offIcon="pi pi-lock-open"
-        onLabel="Balance"
-        offLabel="Balance"
-      />
+      <div class="font-semibold text-xl mb-4">Liste des Dépasses</div>
 
       <DataTable
         :value="cashoutList"
         scrollable
         scrollHeight="400px"
         class="mt-6"
+        :filters="filters"
       >
+
+      <template #header>
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+
+            <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Mes dépasses</h4>
+
+            <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
+
+
+            <Dropdown
+                  v-model="selectedUserFilter"
+                  :options="childUsers"
+                  optionLabel="username"
+                  optionValue="id"
+                  placeholder="Filtrer par utilisateur"
+                  class="w-full sm:w-60"
+                  @change="loadCashOutAndUser"
+                  showClear
+                />
+              <!-- Recherche globale -->
+            <span class="relative flex items-center w-full sm:w-64">
+              <i
+                v-if="!filters['global'].value"
+                class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
+              ></i>
+
+              <InputText
+                v-model="filters['global'].value"
+                placeholder="     Rechercher..."
+                class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
+              />
+            </span>
+
+
+            </div>
+          </div>
+        </template>
         <Column field="id" header="Id" style="min-width: 100px"></Column>
 
         <Column field="total_amount" header="TOTAL" style="min-width: 200px">
@@ -234,7 +266,7 @@ function devise(userId){
       </DataTable>
     </div>
 
-    <!-- 💠 Dialog responsive -->
+    <!--  Dialog responsive -->
     <Dialog
       v-model:visible="showModal"
       modal
@@ -316,13 +348,23 @@ function devise(userId){
           </div>
 
           <!-- Signature -->
-          <div class="flex justify-end mt-6" v-if="isSuperUser">
-            <div class="text-center">
-              <p class="text-sm">Mr DELOR Musangania</p>
-              <p class="text-sm">PDG BILATECH</p>
-              <img :src="signatureUrl" alt="Signature" class="h-16 md:h-24 mt-2" />
-            </div>
-          </div>
+      
+      <div v-if="isSuperUser" class="flex justify-end mt-10">
+      <div class="text-center">
+        <p class="text-sm">Mr DELOR Musangania</p>
+        <p class="text-sm">PDG BILATECH</p>
+        <!-- ✅ Signature agrandie -->
+        <img 
+          :src="signatureUrl" 
+          alt="Signature" 
+          class="h-36 w-auto mt-2" 
+          style="object-fit: contain;"
+        />
+      </div>
+
+      </div>
+
+
         </div>
 
         <!-- Aucun détail -->

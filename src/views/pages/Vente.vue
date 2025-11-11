@@ -1,5 +1,7 @@
+
+
 <script setup>
-import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
+      import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 
@@ -17,12 +19,22 @@ import { onMounted, ref, watch } from 'vue';
         const userProfile = ref(null);
         const search = ref('');
         const toast = useToast();
+        const barcodeSearch = ref('');
+
 
     onMounted(async () => {
         await loadProduct();
         await fetchUserProfl();
 
     });
+    
+    function filterProducts() {
+    if (!barcodeSearch.value) {
+        return products.value;
+    }
+    return products.value.filter(p => p.barcode?.includes(barcodeSearch.value));
+}
+
   
     async function loadProduct() {
         const userId = localStorage.getItem('id');
@@ -149,6 +161,7 @@ import { onMounted, ref, watch } from 'vue';
                 }
         }
     }
+    
 
 function printInvoice(invoiceData) {
   const printWindow = window.open('', '', 'width=800,height=1000');
@@ -255,44 +268,46 @@ function printInvoice(invoiceData) {
   printWindow.print();
   printWindow.close();
 }
-
-
-
-
-
-
       
 </script>
 
-
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 min-h-screen">
-    <!-- 🟩 Produits -->
-    <div class="card-container">
-      <h3 class="text-lg font-bold mb-4 text-gray-800">Produits disponibles</h3>
+  <div class="bg-gray-50 min-h-screen flex flex-col md:flex-row gap-4 p-3 md:p-6">
+    
+    <!-- 🟩 Liste des produits -->
+    <div class="bg-white shadow-md rounded-xl p-4 flex-1 flex flex-col">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Produits disponibles</h3>
 
-      <div class="mb-3">
+      <!-- 🔍 Barre de recherche -->
+      <div class="flex flex-col sm:flex-row gap-2 mb-4">
         <InputText
           v-model="filters.global.value"
           placeholder="🔍 Rechercher un produit..."
-          class="w-full"
+          class="flex-1"
+        />
+        <InputText
+          v-model="barcodeSearch"
+          placeholder=" Scanner / code-barres..."
+          class="flex-1"
         />
       </div>
 
-      <div class="overflow-x-auto">
+      <!-- 📦 Liste des produits -->
+      <div class="flex-1 overflow-auto">
         <DataTable
-          :value="products"
-          :rows="5"
+          :value="filterProducts()"
+          :rows="6"
           :paginator="true"
           :filters="filters"
           dataKey="id"
           responsiveLayout="scroll"
+          class="text-sm"
         >
           <Column field="name" header="Nom" />
           <Column field="price" header="Prix">
             <template #body="{ data }">
               {{ formatPrice(data.price) }}
-              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+              {{ userProfile ? userProfile.currency_preference : '' }}
             </template>
           </Column>
           <Column header="Action">
@@ -301,7 +316,8 @@ function printInvoice(invoiceData) {
                 icon="pi pi-plus"
                 label="Ajouter"
                 @click="addToInvoice(data)"
-                class="p-button-sm"
+                size="small"
+                class="w-full md:w-auto"
               />
             </template>
           </Column>
@@ -309,16 +325,17 @@ function printInvoice(invoiceData) {
       </div>
     </div>
 
-    <!-- 🟩 Facture -->
-    <div class="card-container">
-      <h3 class="text-lg font-bold mb-4 text-gray-800">Nouvelle facture</h3>
+    <!-- 🧾 Facture -->
+    <div class="bg-white shadow-md rounded-xl p-4 flex-1 flex flex-col">
+      <h3 class="text-xl font-semibold mb-4 text-gray-800">Nouvelle facture</h3>
 
-      <div class="mb-4">
-        <label for="client" class="block mb-1 font-medium text-gray-700">Nom du client :</label>
-        <InputText id="client" v-model="clientName" class="w-full" />
+      <div class="mb-3">
+        <label for="client" class="block mb-1 font-medium text-gray-700"> Client :</label>
+        <InputText id="client" v-model="clientName" placeholder="Nom du client..." class="w-full" />
       </div>
 
-      <div class="overflow-x-auto">
+      <!-- 🧩 Liste des produits de la facture -->
+      <div class="flex-1 overflow-auto">
         <DataTable
           :value="invoiceItems"
           dataKey="product.id"
@@ -328,40 +345,32 @@ function printInvoice(invoiceData) {
           class="text-sm"
         >
           <Column field="product.name" header="Produit" />
-
           <Column header="Qté" style="width: 80px; text-align: center;">
             <template #body="{ data }">
-              <div class="flex justify-center items-center">
-                <InputNumber
-                  v-model="data.quantity"
-                  @input="updateQuantity(data, data.quantity)"
-                  :min="1"
-                  showButtons
-                  buttonLayout="vertical"
-                  incrementButtonIcon="pi pi-angle-up"
-                  decrementButtonIcon="pi pi-angle-down"
-                  class="quantity-input"
-                  inputClass="text-center"
-                />
-              </div>
+              <InputNumber
+                v-model="data.quantity"
+                @input="updateQuantity(data, data.quantity)"
+                :min="1"
+                showButtons
+                buttonLayout="vertical"
+                incrementButtonIcon="pi pi-angle-up"
+                decrementButtonIcon="pi pi-angle-down"
+                class="quantity-input"
+                inputClass="text-center"
+              />
             </template>
           </Column>
-
-
           <Column field="price" header="Prix">
             <template #body="{ data }">
-              {{ formatPrice(data.price) }}
-              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+              {{ formatPrice(data.price) }} {{ userProfile ? userProfile.currency_preference : '' }}
             </template>
           </Column>
-
           <Column header="Sous-total">
             <template #body="{ data }">
               {{ formatPrice(data.quantity * data.price) }}
-              {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+              {{ userProfile ? userProfile.currency_preference : '' }}
             </template>
           </Column>
-
           <Column header="Action">
             <template #body="{ data }">
               <Button
@@ -376,82 +385,44 @@ function printInvoice(invoiceData) {
         </DataTable>
       </div>
 
+      <!-- 💰 Totaux -->
       <div class="mt-4 text-right text-lg font-bold text-gray-800">
-        Total :
-        {{ formatPrice(totalAmount) }}
-        {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+        Total : {{ formatPrice(totalAmount) }}
+        {{ userProfile ? userProfile.currency_preference : '' }}
       </div>
 
-      <div class="mt-4">
+      <div class="mt-3">
         <label for="amountPaid" class="block mb-1 font-medium text-gray-700">
-          Montant payé ({{ userProfile ? userProfile.currency_preference : 'Non défini' }}) :
+           Montant payé :
         </label>
         <InputNumber
           id="amountPaid"
           v-model="amountPaid"
+          mode="decimal"
           :min="0"
+          :maxFractionDigits="2"
+          locale="en-US"
+          :useGrouping="false"
           class="w-full sm:w-40"
         />
       </div>
 
       <div class="mt-2 text-right font-semibold text-gray-700">
-        Reste :
-        {{ formatPrice(change) }}
-        {{ userProfile ? userProfile.currency_preference : 'Non défini' }}
+        Reste : {{ formatPrice(change) }}
+        {{ userProfile ? userProfile.currency_preference : '' }}
       </div>
 
-      <div class="mt-4 text-right">
+      <!-- ✅ Bouton -->
+      <div class="mt-5 text-right">
         <Button
-          label="Payer et créer facture"
+          label="💳 Payer et créer facture"
           icon="pi pi-check"
           @click="createInvoice"
           severity="success"
-          class="w-full sm:w-auto"
+          class="w-full sm:w-auto text-base font-semibold"
         />
       </div>
     </div>
-
   </div>
+
 </template>
-
-<style scoped>
-.card-container {
-  @apply border rounded-lg p-4 shadow-md bg-white flex flex-col justify-between;
-  min-height: 600px;
-}
-
-/* ✅ Ajustement esthétique du champ quantité */
-.quantity-input {
-  @apply w-24 sm:w-28;
-}
-
-@media (max-width: 768px) {
-  .card-container {
-    min-height: auto;
-  }
-  table {
-    font-size: 0.85rem;
-  }
-}
-
-.quantity-input {
-  width: 3.5rem; /* réduit la largeur globale */
-}
-
-.quantity-input .p-inputtext {
-  text-align: center;
-  padding: 0.25rem;
-  font-size: 0.9rem;
-}
-
-.quantity-input .p-button {
-  height: 1rem;
-  padding: 0;
-}
-
-.quantity-input .p-button .pi {
-  font-size: 0.65rem;
-}
-
-</style>
-

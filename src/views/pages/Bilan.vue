@@ -1,363 +1,429 @@
-
 <script setup>
-import { useLayout } from '@/layout/composables/layout';
-import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe } from '@/service/Api';
-import jsPDF from 'jspdf';
-import { computed, onMounted, ref, watch } from 'vue';
+import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
+import { cacheKey, loadCache, saveCache } from '@/utils/cache'
+import { formatPrice } from '@/utils/formatters'
+import { useToast } from 'primevue/usetoast'
+import { computed, onMounted, ref, watch } from 'vue'
 
-const { getPrimary, getSurface, isDarkTheme } = useLayout();
+import jsPDF from 'jspdf'
 
-// --- Références ---
-const pieData = ref(null);
-const pieOptions = ref(null);
-const lineData = ref(null);
+const toast = useToast()
 
-const invoices = ref([]);
-const cashoutList = ref([]);
-const invoicesUserConnect = ref([]);
-const total_Amount = ref(0);
+// === Refs principales ===
+const user = ref(null)
+const userProfile = ref(null)
+const invoices = ref([])
+const cashouts = ref([])
+const childUsers = ref([])
+const allUsers = ref([])
+const isLoading = ref(false)
+const showSensitiveInfo = ref(false)
+const secretKey = ref('')
+const submittedSecret = ref(false)
+const secretDialog = ref(false)
+const selectDate = ref({ global: { value: new Date().toISOString().split('T')[0] } })
+const selectedUserId = ref(null) // 'all' = par défaut, utilisateur connecté
 
-const selectDate = ref({ global:{ value: new Date().toISOString().split('T')[0] } });
+// Dashboard cards
+const todaysInvoicesUserConnectCount = ref(0)
+const total_AmountUserConnect = ref(0)
+const total_ProfitAmountUserConnect = ref(0)
+const total_AmountCashOut = ref(0)
+const todaysCashoutCount = ref(0)
 
-const user = ref({}); // utilisateur connecté
-const userProfile = ref(null);
-const allUsers = ref([]);
-const childUsers = ref([]);
+// Graphiques
+const pieData = ref(null)
+const pieOptions = ref(null)
+const lineData = ref(null)
+const lineOptions = ref(null)
 
-const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
-
-const cacheKey = (name) => `cache_${name}`;
-const saveCache = (name, data) => localStorage.setItem(cacheKey(name), JSON.stringify({ data, timestamp: Date.now() }));
-const loadCache = (name) => {
-    const cached = localStorage.getItem(cacheKey(name));
-    if (!cached) return null;
-    try {
-        const payload = JSON.parse(cached);
-        if (Date.now() - payload.timestamp < CACHE_EXPIRATION_MS) return payload.data;
-        localStorage.removeItem(cacheKey(name));
-        return null;
-    } catch { return null; }
-};
-
-onMounted(async () => {
-    const userId = localStorage.getItem('id');
-
+// ================= INIT DATA =================
+async function initData() {
+  try {
+    isLoading.value = true
+    const userId = localStorage.getItem('id')
+    const activeUserId = selectedUserId.value || userId;
     // Utilisateur connecté
-    user.value = loadCache('userConnected') || await fetchUserById(userId);
-    if (!loadCache('userConnected')) saveCache('userConnected', user.value);
-    await loadUserProfile(userId);
-    await loadInvoices();
-    await loadCashOut();
-    await loadChildUsers();
+    user.value = loadCache('userConnected') || await fetchUserById(userId)
+    if (!loadCache('userConnected')) saveCache('userConnected', user.value)
 
-    // Calculs et graphiques
-    calculateTotalAmount();
-    calculateCashoutTotalAmount();
-    setColorOptions();
-    updateLineData();
-});
+    const userProfileData = await fetchUserProfilById(user.value.id)
+    userProfile.value = Array.isArray(userProfileData) ? userProfileData[0] : userProfileData
+    user.value.currency = userProfile.value?.currency_preference || 'N/A'
 
-async function loadUserProfile(userId) {
-    const cached = loadCache('userProfile');
-    if (cached) { userProfile.value = cached; return; }
-    try {
-        const result = await fetchUserProfilById(userId);
-        userProfile.value = Array.isArray(result) ? result[0] : result;
-        saveCache('userProfile', userProfile.value);
-    } catch (error) { console.error('Erreur récupération profil utilisateur', error); }
-}
+    // Enfants
+    const allCreatedUsers = await getUsersCreatedByMe()
+    childUsers.value = allCreatedUsers
+    allUsers.value = [user.value, ...childUsers.value]
 
-async function loadInvoices() {
-    const cachedInvoices = loadCache('invoices');
-    const cachedInvoicesUser = loadCache('invoicesUserConnect');
-    if (cachedInvoices && cachedInvoicesUser) {
-        invoices.value = cachedInvoices;
-        invoicesUserConnect.value = cachedInvoicesUser;
-        return;
+    for (let i = 0; i < childUsers.value.length; i++) {
+      const childProfile = await fetchUserProfilById(childUsers.value[i].id)
+      childUsers.value[i].profile = Array.isArray(childProfile) ? childProfile[0] : childProfile
+      childUsers.value[i].currency = childUsers.value[i].profile?.currency_preference || 'N/A'
     }
-    try {
-        const allInvoices = await fetchInvoicesAllUsers();
-        invoices.value = allInvoices;
-        const userId = parseInt(localStorage.getItem('id'));
-        invoicesUserConnect.value = allInvoices.filter(i => i.cashier === userId);
-        saveCache('invoices', invoices.value);
-        saveCache('invoicesUserConnect', invoicesUserConnect.value);
-    } catch (error) { console.error('Erreur récupération factures', error); }
+
+    invoices.value = await fetchInvoicesAllUsers(activeUserId)
+    cashouts.value = await fetchCashOut(activeUserId)
+
+    console.log('cashout pour utilisateur selecte',cashouts.value)
+
+    // Met à jour le dashboard
+    updateDashboardCards();
+    updatePieChart();
+    updateLineChart();
+
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error)
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données', life: 3000 })
+  } finally {
+    isLoading.value = false
+  }
 }
 
-async function loadCashOut() {
-    const cached = loadCache('cashoutList');
-    if (cached) { cashoutList.value = cached; return; }
-    try {
-        const userId = localStorage.getItem('id');
-        const data = await fetchCashOut(userId);
-        cashoutList.value = data;
-        saveCache('cashoutList', cashoutList.value);
-    } catch (error) { console.error('Erreur récupération cashout', error); }
+// ================= Force refresh =================
+function forceRefresh() {
+  localStorage.removeItem(cacheKey('userConnected'))
+  localStorage.removeItem(cacheKey('userProfile'))
+  localStorage.removeItem(cacheKey('invoices'))
+  localStorage.removeItem(cacheKey('cashoutList'))
+  localStorage.removeItem(cacheKey('childUsers'))
+  initData()
 }
 
-async function loadChildUsers() {
-    const cached = loadCache('childUsers');
-    if (cached) { childUsers.value = cached; return; }
-    try {
-        const userId = parseInt(localStorage.getItem('id'));
-        const users = await getUsersCreatedByMe();
-        const children = users.filter(u => u.created_by === userId);
-        childUsers.value = children;
-        saveCache('childUsers', children);
-    } catch (error) { console.error('Erreur récupération utilisateurs enfants', error); }
+// ================= Dashboard Cards =================
+
+const selectedUserProfile = computed(() => {
+
+  if (selectedUserId.value === null|| parseInt(selectedUserId.value) === user.value.id) {
+    return userProfile.value  // utilisateur connecté par défaut
+  } 
+  const selectedUser = allUsers.value.find(u => u.id === parseInt(selectedUserId.value))
+  return selectedUser?.profile || { currency_preference: 'N/A' }
+})
+
+
+const currentUserId = ref(null)
+watch(selectedUserId, () => {
+  currentUserId.value = selectedUserId.value === null ? user.value.id : parseInt(selectedUserId.value)
+
+  updateDashboardCards()
+  updatePieChart()
+  updateLineChart()
+})
+
+watch(() => selectDate.value.global.value, () => {
+
+  updateDashboardCards()
+  updatePieChart()
+  updateLineChart()
+})
+
+async function updateDashboardCards() {
+  const selectedDateVal = selectDate.value.global.value
+
+  // Déterminer quel utilisateur pour les cards
+  const userIdForCards = selectedUserId.value === null 
+    ? user.value.id   // par défaut, montrer uniquement l'utilisateur connecté
+    : parseInt(selectedUserId.value)
+
+  // Filtrer invoices pour ce user
+  const filteredInvoices = invoices.value.filter(
+    inv => inv.cashier === userIdForCards &&
+           new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
+  )
+
+  const filteredCashouts = cashouts.value.filter(
+    c => c.user === userIdForCards &&
+         new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+  )
+  todaysInvoicesUserConnectCount.value = filteredInvoices.length
+  total_AmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+  total_ProfitAmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.profit_amount || 0), 0)
+  todaysCashoutCount.value = filteredCashouts.length
+  total_AmountCashOut.value = filteredCashouts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0)
 }
 
-// --- Calculs ---
-const todaysInvoices = computed(() => {
-    const selectedDate = selectDate.value.global.value;  
-    return invoices.value.filter(inv => new Date(inv.created_at).toISOString().split('T')[0] === selectedDate);
-});
+const displayUserProfile = computed(() => {
 
-const todaysInvoicesUserConnect = computed(() => {
-    const selectedDate = selectDate.value.global.value;  
-    return invoicesUserConnect.value.filter(inv => new Date(inv.created_at).toISOString().split('T')[0] === selectedDate);
-});
+  if (selectedUserId.value === null) return userProfile.value || { currency_preference: 'N/A' }
 
-const todayCashouts = computed(() => {
-    const selectedDate = selectDate.value.global.value;  
-    return cashoutList.value.filter(cash => new Date(cash.created_at).toISOString().split('T')[0] === selectedDate);
-});
+  // Sinon, profile de l'utilisateur sélectionné
+  const selectedUser = allUsers.value.find(u => u.id === parseInt(selectedUserId.value))
+  return selectedUser?.profile || { currency_preference: 'N/A' }
+})
 
-const todaysCashoutCount = computed(() => todayCashouts.value.length);
-const todaysInvoiesUserConnectCaount = computed(() => todaysInvoicesUserConnect.value.length);
-const todaysInvoicesCount = computed(()=> todaysInvoices.value.length);
 
-function calculateTotalAmount() {
-    total_Amount.value = todaysInvoices.value.reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0);
+async function updatePieChart() {
+  const selectedDateVal = selectDate.value.global.value
+  const userInvoiceTotals = {}
+
+  // Filtrer les factures selon l'utilisateur sélectionné
+  const filteredInvoices = selectedUserId.value === null
+    ? invoices.value // tous les utilisateurs
+    : invoices.value.filter(inv => inv.cashier === currentUserId.value)
+
+  // Calculer le total par utilisateur
+  filteredInvoices.forEach(inv => {
+    const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0]
+    if (invoiceDate === selectedDateVal) {
+      const uid = inv.cashier
+      userInvoiceTotals[uid] = (userInvoiceTotals[uid] || 0) + (parseFloat(inv.total_amount) || 0)
+    }
+  })
+
+  const labels = []
+  const data = []
+  const legend = []
+
+  const baseColors = [
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(255, 206, 86, 0.8)',
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
+  ]
+
+  allUsers.value.forEach((u, i) => {
+    if (u && userInvoiceTotals[u.id]) {
+      labels.push(u.username)
+      data.push(userInvoiceTotals[u.id])
+      legend.push({
+        name: u.username,
+        amount: userInvoiceTotals[u.id],
+        color: baseColors[i % baseColors.length],
+        currency: u.currency || 'N/A'
+      })
+    }
+  })
+
+  pieData.value = {
+    labels,
+    datasets: [
+      {
+        data,
+        backgroundColor: legend.map(l => l.color),
+        hoverBackgroundColor: legend.map(l => l.color.replace('0.8', '1'))
+      }
+    ],
+    legend
+  }
+
+  pieOptions.value = {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      title: { display: true, text: 'Factures par caissier(e)s' }
+    }
+  }
 }
 
-const total_AmountUserConnect = computed(() => todaysInvoicesUserConnect.value.reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0));
-const total_AmountCashOut = computed(() => todayCashouts.value.reduce((sum, cashout) => sum + (Number(cashout.total_amount) || 0), 0));
-const total_ProfitAmount = computed(() => todaysInvoicesUserConnect.value.reduce((sum, inv) => sum + (Number(inv.profit_amount) || 0), 0));
 
-function calculateCashoutTotalAmount() {
-    total_AmountCashOut.value = todayCashouts.value.reduce((sum, cashout) => sum + (Number(cashout.total_amount) || 0), 0);
+// ================= Line Chart =================
+function updateLineChart() {
+  const selectedDateVal = selectDate.value.global.value
+  const datasets = []
+  const baseColors = [
+    '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC',
+    '#26C6DA', '#FF7043', '#8D6E63', '#EC407A',
+    '#7E57C2', '#26A69A', '#EF5350', '#9CCC65'
+  ]
+
+  const startDate = new Date(selectedDateVal)
+  startDate.setDate(startDate.getDate() - 6)
+
+  const labels = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(startDate)
+    date.setDate(startDate.getDate() + i)
+    return date.toISOString().split('T')[0]
+  })
+
+  const usersToShow = selectedUserId.value === null
+    ? allUsers.value
+    : allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
+
+  for (let i = 0; i < usersToShow.length; i++) {
+    const u = usersToShow[i]
+    const currency = u.currency || 'N/A'
+
+    const userInvoices = invoices.value.filter(inv => inv.cashier === u.id)
+    const dailyTotals = {}
+    let totalAmount = 0
+
+    userInvoices.forEach(inv => {
+      const dateStr = new Date(inv.created_at).toISOString().split('T')[0]
+      if (dateStr >= labels[0] && dateStr <= labels[labels.length - 1]) {
+        const amount = parseFloat(inv.total_amount) || 0
+        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amount
+        totalAmount += amount
+      }
+    })
+
+    const data = labels.map(l => dailyTotals[l] || 0)
+    datasets.push({ label: `${u.username} (${currency}) — ${formatPrice(totalAmount)}`, data, borderColor: baseColors[i % baseColors.length], backgroundColor: baseColors[i % baseColors.length], tension: 0.3, fill: false })
+  }
+
+  lineData.value = { labels, datasets }
 }
 
-// --- PDF ---
-function loadImageAsBase64(url) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            canvas.getContext('2d').drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
-        };
-        img.onerror = reject;
-        img.src = url;
-    });
+
+async function verifySecret() {
+  submittedSecret.value = true
+  if (!secretKey.value) return
+  try {
+    const isValid = await verifySecretKey(secretKey.value)
+    if (isValid.valid) {
+      showSensitiveInfo.value = true
+      secretDialog.value = false
+      toast.add({ severity: 'success', summary: 'Succès', detail: 'Code secret validé', life: 3000 })
+    } else {
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Code secret invalide', life: 3000 })
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur de vérification', life: 3000 })
+  }
 }
+
 
 async function generatePDF() {
-    const userName = localStorage.getItem('username');
-    const doc = new jsPDF();
-    const marginLeft = 14;
-    let y = 20;
-    const logoImage = await loadImageAsBase64('/demo/bilatech.png');
-    if (logoImage) { doc.addImage(logoImage,'PNG', marginLeft, y, 30,30); y += 35; }
+  const pdf = new jsPDF('p', 'mm', 'a4')
+  const selectedDateVal = selectDate.value.global.value
+  const connectedUserProfile = userProfile.value
 
-    doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text('Rapport de facturation quotidien', marginLeft, y); y+=10;
-    doc.setFontSize(12);
-    doc.text(`Caissier(e): ${userName}`, marginLeft, y); y+=8;
-    doc.text(`Date: ${selectDate.value.global.value}`, marginLeft, y); y+=8;
-    doc.text(`Montant total: ${formatPrice(total_Amount.value)} Fc`, marginLeft, y); y+=12;
-    doc.setDrawColor(0); doc.line(marginLeft, y, 200, y); y+=10;
+  // === Entête principal avec fond vert profond ===
+  pdf.setFillColor(0, 77, 74) // 0xFF004D4A
+  pdf.rect(0, 0, 210, 30, 'F')
 
-    doc.setFont('helvetica','bold');
-    doc.text('ID', marginLeft, y);
-    doc.text('Client', marginLeft + 20, y);
-    doc.text('Montant (Fc)', marginLeft + 100, y);
-    doc.text('Retour (Fc)', marginLeft + 160, y); y+=8;
-    doc.setFont('helvetica','normal');
+  pdf.setFontSize(20)
+  pdf.setFont(undefined, 'bold')
+  pdf.setTextColor(255)
+  pdf.text('Rapport des ventes', 105, 15, { align: 'center' })
 
-    todaysInvoices.value.forEach((inv) => {
-        doc.text(`${inv.id}`, marginLeft, y);
-        doc.text(`${inv.client_name}`, marginLeft+20, y);
-        doc.text(`${formatPrice(inv.total_amount)} fc`, marginLeft+100, y);
-        doc.text(`${formatPrice(inv.change)} fc`, marginLeft+160, y); y+=8;
-        if (y>280) { doc.addPage(); y=20; }
-    });
-    doc.save(`daily_invoice_report_.pdf`);
-}
+  pdf.setFontSize(12)
+  pdf.setFont(undefined, 'normal')
+  pdf.text(`Date : ${selectedDateVal}`, 105, 23, { align: 'center' })
 
-// --- Dashboards ---
-function formatPrice(price){ return price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", "); }
+  // Ligne de séparation sous le header
+  pdf.setDrawColor(255)
+  pdf.setLineWidth(1)
+  pdf.line(12, 30, 198, 30)
 
-function changeDate(date){
-    selectDate.value.global.value = date;
-    setColorOptions();
-    calculateTotalAmount();
-    updateLineData();
-}
+  // === Profil utilisateur connecté ===
+  let currentY = 38
+  const infoLines = [
+    `Entreprise : ${connectedUserProfile.entrep_name || 'N/A'}`,
+    `Téléphone : ${connectedUserProfile.phone_number || 'N/A'}`,
+    `Adresse : ${connectedUserProfile.adress || 'N/A'}`,
+    `RCCM : ${connectedUserProfile.rccm_number || 'N/A'}`,
+    `Numéro d’impôt : ${connectedUserProfile.impot_number || 'N/A'}`,
+  ]
+  pdf.setFont(undefined, 'normal')
+  pdf.setTextColor(33, 33, 33)
+  infoLines.forEach(line => {
+    currentY += 7
+    pdf.text(line, 105, currentY, { align: 'center' })
+  })
 
+  // Ligne de séparation sous le profil
+  currentY += 6
+  pdf.setDrawColor(0, 77, 74)
+  pdf.setLineWidth(0.8)
+  pdf.line(12, currentY, 198, currentY)
+  currentY += 6
 
-function setColorOptions() {
-    const documentStyle = getComputedStyle(document.documentElement);
-    const userInvoiceTotals = {};
-    const selectedDate = selectDate.value.global.value;
-
-    invoices.value.forEach(inv => {
-        const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0];
-        if (invoiceDate === selectedDate) {
-            const uid = inv.cashier;
-            userInvoiceTotals[uid] = (userInvoiceTotals[uid] || 0) + (parseFloat(inv.total_amount) || 0);
-        }
-    });
-
-    const labels = [];
-    const data = [];
-    const all = [user.value, ...allUsers.value];
-
-    all.forEach(u => {
-        if (u && userInvoiceTotals[u.id]) {
-            labels.push(u.username);
-            data.push(userInvoiceTotals[u.id]);
-        }
-    });
-
-    // Palette de couleurs harmonieuses
-    const baseColors = [
-        'rgba(75, 192, 192, 0.8)', // turquoise
-        'rgba(255, 99, 132, 0.8)', // rouge
-        'rgba(255, 206, 86, 0.8)', // jaune
-        'rgba(54, 162, 235, 0.8)', // bleu
-        'rgba(153, 102, 255, 0.8)', // violet
-        'rgba(255, 159, 64, 0.8)', // orange
-        'rgba(0, 51, 102, 0.9)',   // bleu foncé (pour Total ou valeur par défaut)
-        'rgba(128, 128, 128, 0.8)', // gris
-        'rgba(0, 128, 0, 0.8)',     // vert foncé
-        'rgba(255, 0, 255, 0.8)'    // magenta
-    ];
-
-    const backgroundColor = labels.map((_, i) => baseColors[i % baseColors.length]);
-    const hoverBackgroundColor = labels.map((_, i) =>
-        baseColors[i % baseColors.length].replace('0.8', '1')
-    );
-
-    pieData.value = {
-        labels,
-        datasets: [
-            {
-                data,
-                backgroundColor,
-                hoverBackgroundColor
-            }
-        ]
-    };
-    pieOptions.value = {
-        responsive: true,
-        plugins: {
-            legend: { position: 'top' },
-            title: { display: true, text: 'Factures par caissier(e)s' }
-        }
-    };
-}
-
-
-// --- Graph line ---
-function formatDateISO(date) { return date.toISOString().split('T')[0]; }
-
-function getWeekRange(date){
-    const start = new Date(date); const end = new Date(date);
-    start.setDate(start.getDate() - start.getDay() +1);
-    end.setDate(end.getDate() - start.getDay() +7);
-    return { start, end };
-}
-
-function updateLineData() {
-    const { start, end } = getWeekRange(selectDate.value.global.value);
-    const labels = [];
-    const userDataMap = {};
-    const all = [user.value, ...allUsers.value];
-
-    // Générer les labels pour la semaine
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        labels.push(formatDateISO(new Date(d)));
+  // === Préparer les données utilisateurs ===
+  const tableData = allUsers.value.map(u => {
+    const userInvoices = invoices.value.filter(inv =>
+      inv.cashier === u.id &&
+      new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
+    )
+    const userCashOuts = cashouts.value.filter(c =>
+      c.user === u.id &&
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+    )
+    return {
+      name: u.username,
+      totalFacture: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0),
+      nbFactures: userInvoices.length,
+      totalCashOut: userCashOuts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
+      currency: u.currency || 'N/A'
     }
+  })
 
-    // Initialiser les données des utilisateurs
-    all.forEach(u => {
-        if (u) userDataMap[u.id] = new Array(labels.length).fill(0);
-    });
+  const startX = 12
+  const rowHeight = 8
+  const rowColors = [[245, 245, 245], [255, 255, 255]]
+  const totalColumnColor = [255, 165, 0] // orange
 
-    // Remplir les données des factures
-    invoices.value.forEach(inv => {
-        const dateStr = formatDateISO(new Date(inv.created_at));
-        const uIndex = all.findIndex(u => u?.id === inv.cashier);
-        if (uIndex !== -1) {
-            const lIndex = labels.indexOf(dateStr);
-            if (lIndex !== -1) {
-                userDataMap[all[uIndex].id][lIndex] += parseFloat(inv.total_amount || 0);
-            }
-        }
-    });
+  // === Entête du tableau ===
+  pdf.setFont(undefined, 'bold')
+  pdf.setTextColor(255)
+  pdf.setFillColor(0, 77, 74)
+  pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
+  pdf.text('Nom', startX + 2, currentY)
+  pdf.text('Total Factures', 60, currentY)
+  pdf.text('Nb Factures', 110, currentY)
+  pdf.text('Total Sorties', 150, currentY)
+  pdf.setFont(undefined, 'normal')
+  pdf.setTextColor(0)
+  currentY += rowHeight
 
-    // Calculer le total par date
-    const totalData = new Array(labels.length).fill(0);
-    labels.forEach((_, i) => {
-        all.forEach(u => {
-            if (u) totalData[i] += userDataMap[u.id][i];
-        });
-    });
+  // === Lignes du tableau ===
+  tableData.forEach((d, index) => {
+    const bgColor = rowColors[index % 2]
+    pdf.setFillColor(...bgColor)
+    pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
 
-    const colors = [
-        'rgba(75,192,192,1)',
-        'rgba(255,99,132,1)',
-        'rgba(255,206,86,1)',
-        'rgba(54,162,235,1)',
-        'rgba(153,102,255,1)',
-        'rgba(255,159,64,1)'
-    ];
+    pdf.setTextColor(0)
+    pdf.text(d.name, startX + 2, currentY)
 
-    const datasets = all.map((u, i) => ({
-        label: u.username,
-        data: userDataMap[u.id],
-        fill: false,
-        borderColor: colors[i % colors.length],
-        backgroundColor: colors[i % colors.length],
-        tension: 0.4
-    }));
+    // Total Factures en orange
+    pdf.setTextColor(...totalColumnColor)
+    pdf.text(`${formatPrice(d.totalFacture)} ${d.currency}`, 60, currentY)
 
-    // Ligne Total avec une couleur différente (par exemple bleu foncé)
-    datasets.push({
-        label: 'Total',
-        data: totalData,
-        fill: false,
-        borderColor: 'rgba(0, 51, 102, 0.9)', // bleu foncé
-        backgroundColor: 'rgba(0, 51, 102, 0.9)',
-        borderWidth: 2,
-        tension: 0.4,
-        borderDash: [5, 5]
-    });
+    pdf.setTextColor(0)
+    pdf.text(d.nbFactures.toString(), 110, currentY)
+    pdf.text(`${formatPrice(d.totalCashOut)} ${d.currency}`, 150, currentY)
 
-    lineData.value = { labels, datasets };
+    currentY += rowHeight
+  })
+
+  // === Totaux par devise (orange) ===
+  const totalsByCurrency = tableData.reduce((acc, u) => {
+    if (!acc[u.currency]) acc[u.currency] = { totalFactures: 0, nbFactures: 0, totalCashOut: 0 }
+    acc[u.currency].totalFactures += u.totalFacture
+    acc[u.currency].nbFactures += u.nbFactures
+    acc[u.currency].totalCashOut += u.totalCashOut
+    return acc
+  }, {})
+
+
+  // === Logo centré en bas ===
+  const img = new Image()
+  img.src = '/demo/bilatechslogan.png'
+  img.onload = () => {
+    const pageHeight = pdf.internal.pageSize.height
+    const logoWidth = 90
+    const logoHeight = 40
+    pdf.addImage(img, 'PNG', (210 - logoWidth) / 2, pageHeight - logoHeight - 10, logoWidth, logoHeight)
+    pdf.save(`rapport_ventes_${selectedDateVal}.pdf`)
+  }
 }
 
 
-watch([getPrimary, getSurface, isDarkTheme],()=>setColorOptions(),{immediate:true, deep:false});
-function forceRefresh() {
-   
-    localStorage.removeItem(cacheKey('userConnected'));
-    localStorage.removeItem(cacheKey('userProfile'));
-    localStorage.removeItem(cacheKey('invoices'));
-    localStorage.removeItem(cacheKey('invoicesUserConnect'));
-    localStorage.removeItem(cacheKey('cashoutList'));
-    localStorage.removeItem(cacheKey('childUsers'));
 
-    onMounted(); // Réutilise la logique déjà dans onMounted
-}
+
+
+onMounted(() => {
+  currentUserId.value = user.value?.id
+  initData()
+  updateDashboardCards();
+})
 
 </script>
+
+
+
 
 
 <template>
@@ -370,7 +436,7 @@ function forceRefresh() {
         <div class="flex justify-between items-center mb-2">
           <div>
             <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Nombres de factures</span>
-            <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">{{ todaysInvoiesUserConnectCaount }}</div>
+            <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl"> {{ todaysInvoicesUserConnectCount }}</div>
           </div>
           <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-full w-10 h-10">
             <i class="pi pi-shopping-cart text-blue-500 text-lg"></i>
@@ -388,7 +454,7 @@ function forceRefresh() {
           <div>
             <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Total</span>
             <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
-              {{ formatPrice(total_AmountUserConnect) }} {{ userProfile?.currency_preference || 'N/A' }}
+              {{ formatPrice(total_AmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
             </div>
           </div>
           <div class="flex items-center justify-center bg-green-100 dark:bg-green-400/10 rounded-full w-10 h-10">
@@ -400,21 +466,37 @@ function forceRefresh() {
         </div>
       </div>
 
-      <!-- Bénéfice estimé -->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Bénéfice estimé</span>
-            <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
-              {{ formatPrice(total_ProfitAmount) }} {{ userProfile?.currency_preference || 'N/A' }}
-            </div>
-          </div>
-          <div class="flex items-center justify-center bg-yellow-100 dark:bg-yellow-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-wallet text-yellow-500 text-lg"></i>
+     
+    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Bénéfice estimé</span>
+
+         
+          <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
+            <span v-if="showSensitiveInfo">
+                {{ formatPrice(total_ProfitAmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+            </span>
+            <span v-else>XXXXX</span>
           </div>
         </div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">Newly registered</div>
+
+        <div class="flex items-center justify-center bg-yellow-100 dark:bg-yellow-400/10 rounded-full w-10 h-10">
+          <i class="pi pi-wallet text-yellow-500 text-lg"></i>
+        </div>
       </div>
+      <Button
+      v-if="!showSensitiveInfo"
+      label="Afficher le bénéfice"
+      icon="pi pi-lock"
+      severity="warning"
+      size="small"
+      class="mt-2"
+      @click="secretDialog = true"
+    />
+
+    </div>
+
 
       <!-- Total dépassé -->
       <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
@@ -422,7 +504,7 @@ function forceRefresh() {
           <div>
             <span class="block text-red-500 dark:text-red-400 text-sm font-medium">Total dépassé</span>
             <div class="text-red-600 dark:text-red-400 font-semibold text-xl">
-              - {{ formatPrice(total_AmountCashOut) }} {{ userProfile?.currency_preference || 'N/A' }}
+               {{ formatPrice(total_AmountCashOut) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
             </div>
           </div>
           <div class="flex items-center justify-center bg-red-100 dark:bg-red-400/10 rounded-full w-10 h-10">
@@ -438,35 +520,133 @@ function forceRefresh() {
 
     <!-- Date Selector -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-      <label for="date-select" class="font-medium">Select Date:</label>
-      <InputText id="date-select" type="date" v-model="selectDate.global.value" @change="changeDate(selectDate.global.value)" class="w-full sm:w-auto"/>
+ 
+        <div class="flex flex-col">
+          <label for="user-filter" class="font-medium">Filtrer par utilisateur :</label>
 
-        <div class="flex justify-end mb-4 gap-2">
-            <Button label="Générer le Rapport" severity="success" @click="generatePDF"/>
-            <Button label="Actualiser" severity="warning" @click="forceRefresh"/>
+          <Select
+                v-model="selectedUserId"
+                :options="allUsers.map(u => ({ id: u.id, username: u.username }))"
+                optionLabel="username"
+                optionValue="id"
+                placeholder="Filtrer par utilisateur"
+                class="w-full sm:w-56"
+                showClear
+            />
+
         </div>
 
-    </div>
+        <!-- 🔹 Sélecteur de date -->
+        <div class="flex flex-col">
+          <label for="date-select" class="font-medium">Sélectionner une date :</label>
+          <InputText
+            id="date-select"
+            type="date"
+            v-model="selectDate.global.value"
+            class="w-full sm:w-auto"
+          />
+        </div>
+
+        <div class="flex justify-end gap-2 mt-4 sm:mt-0">
+          <Button label="Générer le Rapport" severity="success" @click="generatePDF"/>
+          <Button label="Actualiser" severity="warning" @click="forceRefresh"/>
+        </div>
+      </div>
+
 
     <!-- Charts Section -->
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-      <!-- Line Chart -->
+      <!-- 📈 Line Chart -->
       <div class="card p-4 shadow-sm rounded-lg flex flex-col h-full">
         <div class="text-lg font-semibold mb-4">Factures pour la semaine</div>
-        <Chart type="line" :data="lineData" :options="lineOptions" class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"/>
+        <Chart
+        id="lineChart"
+          type="line"
+          :data="lineData"
+          :options="lineOptions"
+          class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
+        />
       </div>
 
-      <!-- Doughnut Chart + Button -->
-      <div class="flex flex-col gap-4 h-full">
-     
-        <div class="card p-4 shadow-sm rounded-lg flex flex-col items-center h-full">
-          <div class="text-lg font-semibold mb-4">Factures par Caissier</div>
-          <Chart type="doughnut" :data="pieData" :options="pieOptions" class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"/>
+  <!--  Doughnut Chart + Légende -->
+  <div class="flex flex-col gap-4 h-full">
+    <div class="card p-4 shadow-sm rounded-lg flex flex-col items-center h-full">
+      <div class="text-lg font-semibold mb-4">Factures par Caissier</div>
+
+      <!-- Graphique camembert -->
+      <Chart
+      id="doughnut"
+        type="doughnut"
+        :data="pieData"
+        :options="pieOptions"
+        class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
+      />
+
+    <!-- Légende dynamique -->
+    <div v-if="pieData?.legend?.length" class="w-full mt-4 border-t pt-4 space-y-2">
+      <div v-for="(item, index) in pieData.legend" :key="index" class="flex items-center justify-between text-sm">
+        <div class="flex items-center gap-2">
+          <span :style="{ backgroundColor: item.color }" class="w-3 h-3 rounded-full"></span>
+          <span class="text-gray-700 dark:text-gray-300 font-medium">
+            {{ item.name }}
+          </span>
         </div>
+        <span class="font-semibold text-gray-900 dark:text-gray-100">
+          {{ formatPrice(item.amount) }} {{ item.currency || 'N/A' }}
+        </span>
       </div>
-
     </div>
+  </div>
+</div>
+
+
+
+</div>
+
+
+
+
+    <Dialog
+      v-model:visible="secretDialog"
+      modal
+      header="Vérification du code secret"
+      :style="{ width: '400px' }"
+      class="p-fluid"
+      >
+  <div class="field mb-4">
+    <label for="secret" class="block text-sm font-medium text-gray-700 mb-2">
+      Entrez le code secret
+    </label>
+    <Password
+      id="secret"
+      v-model="secretKey"
+      toggleMask
+      feedback="false"
+      placeholder="Code secret"
+      class="w-full"
+    />
+    <small v-if="submittedSecret && !secretKey" class="p-error block mt-1">
+      Le code secret est requis.
+    </small>
+  </div>
+
+  <div class="flex justify-end gap-2">
+    <Button
+      label="Annuler"
+      icon="pi pi-times"
+      severity="secondary"
+      @click="secretDialog =false"
+    />
+    <Button
+      label="Vérifier"
+      icon="pi pi-check"
+      severity="success"
+      @click="verifySecret"
+    />
+  </div>
+</Dialog>
+
   </div>
 </template>
 

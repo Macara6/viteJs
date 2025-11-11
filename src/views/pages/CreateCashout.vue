@@ -1,10 +1,13 @@
 
 
 <script setup>
-import { createCashOutAPI } from '@/service/Api';
+import { createCashOutAPI, fetchUserProfilById } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+
+ const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+ const userProfile = ref(null);
     
     const motif = ref('');
     const toast = useToast();
@@ -23,19 +26,14 @@ import { useRouter } from 'vue-router';
     }
 
     const handleCreatCashOut = async () =>{
-
         const userId = parseInt(localStorage.getItem('id'));
         const validDatails = details.value.filter(
             (d) => d.reason && d.reason.trim() !=='' && d.amount !== null && d.amount !==''
         );
-
         if(validDatails.length ===0){
             toast.add({severity:'error', summary:'Erreur',detail:'Veuillez ajouter un detail valide', life:3000});
         }
-
-
         const total = details.value.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-
         const payload = {
             user_id:userId,
             motif:motif.value,
@@ -54,11 +52,19 @@ import { useRouter } from 'vue-router';
         }
     }
 
-
-
-
-    
-
+    async function fetchUserProfil() {
+        const userId = localStorage.getItem('id');
+        try{
+           const result = await fetchUserProfilById(userId);
+            userProfile.value = Array.isArray(result) ? result[0] : result;
+        }catch(error){
+         console.error('Erreur lors de la récuperation du profi utilisateur', error);
+        }
+        
+    }
+onMounted(async () => {
+    await fetchUserProfil();
+})
 
 </script>
 
@@ -81,8 +87,10 @@ import { useRouter } from 'vue-router';
                     <InputText v-model="detail.reason" placeholder="Ex: Achat carburant" />
                 </div>
                 <div class="flex flex-col w-full">
-                    <label>Montant USD</label>
-                    <InputText v-model="detail.amount" type="number" placeholder="Montant USD" />
+
+                    <label v-if="isSuperUser">Montant USD</label>
+                    <label v-else>Montant {{ userProfile ? userProfile.currency_preference : 'N/A' }}</label>
+                    <InputText  v-model="detail.amount" type="number" />
                 </div>
                 <div class="flex items-end">
                     <Button icon="pi pi-trash" severity="danger" @click="removeDetail(index)" />

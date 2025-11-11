@@ -1,6 +1,8 @@
 
 import axios from "axios";
+
 const API_BASE = 'https://pos.bilatech.org/';
+
 
 export async function login(usernam, password) {
     const LOGIN_URL = `${API_BASE}login/`;
@@ -17,7 +19,6 @@ export async function login(usernam, password) {
         localStorage.setItem('email',email);
         localStorage.setItem('is_superuser', is_superuser);
 
-        console.log('token:',token, 'id', id,'username',usernam,'email',email);
         return { id, username, email, token ,is_superuser};
     } catch (error) {
         console.error('Error logging in:', error);
@@ -100,8 +101,47 @@ export async function createOrUpdateSecretKey(secretData){
         throw error;
     }
 }
+//fonction pour changer le mot de passe 
+export async function changePassword(oldPassword, newPassword){
+    const CHANGE_PASSWORD_URL = `${API_BASE}change-password/`;
+    try{
+        const response = await axios.put(CHANGE_PASSWORD_URL,{old_password: oldPassword,  new_password: newPassword,}, {
+            headers:{
+                'Authorization' :`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("Erreur lors du changement de mot de passe :", error);
+        throw error.response?.data || { detail: "Erreur inconnue" };
+    }
+}
 
-
+// function demander le code pour réinitialisation
+export async function requestPasswordReset(email){
+    const URL_REQUEST = `${API_BASE}password-reset-request/`;
+    try{
+        const response = await axios.post(URL_REQUEST, {email});
+        return response.data;
+    }catch(error){
+        console.error('error lors de la demande de la reinitialisation', error.response?.data || error);
+        throw error;
+    }
+}
+// ffonction confirme le mot de passe avec le token
+export async function confirmPasswordReset(token, newPassword){
+    const URL_CONFIRM = `${API_BASE}password-reset-confirm/`;
+    try{
+        const response = await axios.post(URL_CONFIRM,{
+            token:token,
+            new_password:newPassword
+        });
+        return response.data;
+    }catch(error){
+        console.log('error lors de la confirmation du mot de passe ', error.response?.data || error);
+        throw error;
+    }
+}
 
 // fonction pour afficher les categorys
 export async function fetchCategorys(){
@@ -115,6 +155,56 @@ export async function fetchCategorys(){
         throw error; 
     }
 }
+export async function getCategoryByUser(userID) {
+      const CATEGORY_URL_USER = `${API_BASE}category/by-user/${userID}/`;
+
+    try{
+        const response =  await axios.get(CATEGORY_URL_USER,{
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return await response.data;
+    }catch(error){
+        console.error('errer fetching produits:',error);
+        throw error; 
+    }   
+}
+
+
+export async function createCategorie(categoryData) {
+    const CATEGORY_URL_CREATE = `${API_BASE}category/create/`;
+    try{
+        const response = await axios.post(CATEGORY_URL_CREATE,categoryData,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('erreur lors de la creation du categorie',error);
+        throw error;
+    }
+    
+}
+
+export async function deleteCategorie(categoryId) {
+    const DELETE_CATEGORY_URL = `${API_BASE}category/delete/${categoryId}/`;
+    try {
+        const response = await axios.delete(DELETE_CATEGORY_URL, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Erreur lors de la suppression de la catégorie', error);
+        throw error;
+    }
+}
+
+
+
 // fonction pour creer un nouveau produit 
 export async function  createProductAPI(productData){
     const CREATE_PRODUCT_URL= `${API_BASE}productCreate/`;
@@ -124,13 +214,26 @@ export async function  createProductAPI(productData){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
       });
-      console.log('Token:', localStorage.getItem('token'));
-      console.log('Product created:', response.data);
+  
       return response.data;
 
     }catch(error){
        ( console.error('Error creating product', error.response ? error.response.data : error))
     }
+}
+// function pour creer le produit du depôt 
+export async function  createDepotProduit(productData) {
+    const CREATE_DEPOT_PRODUCT = `${API_BASE}depotProduit/`;
+    try{
+        const response = await axios.post(CREATE_DEPOT_PRODUCT, productData,{
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error de la creeation du produit depot')
+    }  
 }
 
 
@@ -178,6 +281,7 @@ export async function fetchInvoicesAllUsers() {
         throw error;
     }
 }
+
 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
     let INVOICE_URL = `${API_BASE}invoicesView/`;
@@ -241,7 +345,7 @@ export async function fetchUsers(){
         throw error;
     }
 }
-
+//
 export async function getUsersCreatedByMe() {
     const URL_BYMY = `${API_BASE}users/created-by-me/`;
     try{
@@ -255,6 +359,7 @@ export async function getUsersCreatedByMe() {
         throw error.response?.data || { detail: "Erreur inattendue lors du chargement des utilisateurs." };
     }
 }
+
 // fonction detail user
 export async function fetchUserById(userId){
     const USER_URL = `${API_BASE}usersView/${userId}/`;

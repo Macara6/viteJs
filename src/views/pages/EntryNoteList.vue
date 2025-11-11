@@ -1,11 +1,11 @@
 
 
 <script setup>
-import { deleteEntryNote, fechEntryNote, fetchEntryNoteDetail, fetchUsers } from '@/service/Api';
+import { deleteEntryNote, fechEntryNote, fetchEntryNoteDetail, fetchUserProfilById, fetchUsers, getUsersCreatedByMe } from '@/service/Api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
    
 
    const userId = localStorage.getItem('id');
@@ -19,19 +19,47 @@ import { onMounted, ref } from 'vue';
    const deleteEntryNoteDialog = ref(false);
    const selectedEntryNoteToDelete = ref(null);
    const toast = useToast();
+   
+   const userProfile = ref(null);
+   const selectedUserFilter = ref(null);
+   const childUsers = ref([]);
+   const isSuperUser = localStorage.getItem('is_superuser') === 'true';
 
-   const signatureUrl = '/demo/signature.png'
+  
+   const signatureUrl = '/demo/SignatureDe.png'
+
 
    onMounted(async () => {
-    await loadEntryNoteAndUser();
+    await getUserChildren();
+    selectedUserFilter.value = userId
+    await refreshUserData();
 
    })
-   
-   async function loadEntryNoteAndUser(){
 
+
+   watch(selectedUserFilter, async () =>{
+    await refreshUserData();
+   })
+   async function refreshUserData(){
+    await Promise.all([fetchUserProfil(),loadEntryNoteAndUser()]);
+   }
+
+   // Récuper les enfants
+   async function getUserChildren(){
+    try{
+      const allCreatedUsers = await getUsersCreatedByMe();
+      childUsers.value = allCreatedUsers;
+    }catch(error){
+      console.error('Erreur getUserChuldren:', error);
+     }
+   }
+
+   // charger les bons d'entré
+   async function loadEntryNoteAndUser(){
+    const activeUserId = selectedUserFilter.value || userId;
      try{
         const [EntryNotes, users] =await Promise.all([
-            fechEntryNote(userId),
+            fechEntryNote(activeUserId),
             fetchUsers()
         ]);
 
@@ -48,6 +76,19 @@ import { onMounted, ref } from 'vue';
         console.error('Erreur lors du chargment des bons');
      }
    }
+
+   // charger le profil utilisateur actif
+   async function fetchUserProfil(){
+     const activeUserId = selectedUserFilter.value || userId;
+     try{
+        const result = await fetchUserProfilById(activeUserId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+     }catch(error){
+        console.error('Erreur lors de la réperation du profil utilisateur');
+     }
+   }
+
+
 
    async function ViewDetailEntryNote(entryNoteId){
 
@@ -78,51 +119,74 @@ import { onMounted, ref } from 'vue';
   function calculateTotal(){
     return entryNoteDetails.value.reduce((sum, item) => sum + parseFloat(item.amount),0).toFixed(2);
   }
-  
-  async function downloadPDF() {
-  const element = document.querySelector('.p-dialog'); // Cible la boîte de dialogue entière
+
+
+async function downloadPDF() {
+  const element = document.getElementById('cashout-pdf-content');
 
   if (!element) {
     console.error('Élément du bon de sortie introuvable.');
     return;
   }
 
-  // Scroll au top si nécessaire
+  // Attendre que tout soit bien rendu
   element.scrollTop = 0;
-
-  // Attendre que le contenu soit bien visible
   await new Promise(resolve => setTimeout(resolve, 300));
 
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    logging: true
-  });
+  try {
+    // Capture du contenu
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#FFFFFF'
+    });
 
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
 
-  const pdfWidth = pdf.internal.pageSize.getWidth();
-  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    // Dimensions PDF
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
 
-  const totalPages = Math.ceil(pdfHeight / pdf.internal.pageSize.getHeight());
+    // Dimensions de l'image avec marge horizontale
+    const imgWidth = pdfWidth - 20; // 10 mm à gauche et à droite
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-  let position = 0;
-  for (let i = 0; i < totalPages; i++) {
-    if (i !== 0) pdf.addPage();
-    pdf.addImage(
-      imgData,
-      'PNG',
-      0,
-      -position,
-      pdfWidth,
-      pdfHeight
-    );
-    position += pdf.internal.pageSize.getHeight();
+    // ✅ Marge haute réduite
+    let yOffset = 5; // marge haute = 5 mm
+
+    // Centrage vertical si le contenu est plus petit que la page
+    const centeredY = (pdfHeight - imgHeight) / 2;
+    if (centeredY > yOffset) yOffset = centeredY;
+
+    // Ajout de l’image avec marge et centrage
+    pdf.addImage(imgData, 'PNG', 10, yOffset, imgWidth, imgHeight);
+
+    // Gestion du contenu sur plusieurs pages si nécessaire
+    let heightLeft = imgHeight - (pdfHeight - 20);
+    let position = yOffset - pdfHeight;
+
+    while (heightLeft > 0) {
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight - 20;
+      position -= pdfHeight - 20;
+    }
+
+    // Nom du fichier dynamique
+    const fileName = `bon_sortie_${seletedEntryNote.value || 'export'}.pdf`;
+    pdf.save(fileName);
+
+    console.log(`✅ PDF téléchargé : ${fileName}`);
+  } catch (error) {
+    console.error('Erreur lors de la génération du PDF :', error);
   }
-
-  pdf.save(`bon_sortie_${seletedEntryNote.value}.pdf`);
 }
+
+
+
+
  async function confirmDeleteEntryNote(){
     try{
         if(!selectedEntryNoteToDelete.value) return;
@@ -143,97 +207,7 @@ import { onMounted, ref } from 'vue';
     selectedEntryNoteToDelete.value = entryNoteId;
     deleteEntryNoteDialog.value = true;
  }
-
-
-function printEntryNote() {
-  const content = document.getElementById('cashout-pdf-content');
-
-  if (!content) {
-    console.error("Contenu à imprimer non trouvé !");
-    return;
-  }
-
-  const printWindow = window.open('', '', 'width=800,height=600');
-
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>Impression Bon d'Entrée</title>
-
-        <!-- Inclusion de TailwindCSS si nécessaire -->
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-
-        <!-- PrimeVue CSS (si nécessaire pour DataTable) -->
-        <link href="https://unpkg.com/primevue/resources/themes/saga-blue/theme.css" rel="stylesheet">
-        <link href="https://unpkg.com/primevue/resources/primevue.min.css" rel="stylesheet">
-        <link href="https://unpkg.com/primeicons/primeicons.css" rel="stylesheet">
-
-        <style>
-            @page {
-            margin: 0;
-          }
-          body {
-            padding: 2rem;
-            font-family: Arial, sans-serif;
-            color: #000;
-          }
-
-          /* Fixe pour les DataTables */
-          table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 1.5rem;
-          }
-
-          th, td {
-            border: 1px solid #ddd;
-            padding: 0.5rem;
-            text-align: left;
-          }
-
-          th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-          }
-
-          img {
-            max-height: 100px;
-          }
-
-          .signature img {
-            height: 80px;
-            margin-top: 10px;
-          }
-
-          @media print {
-            .no-print {
-              display: none;
-            }
-          }
-        </style>
-      </head>
-
-      <body>
-        ${content.innerHTML}
-      </body>
-    </html>
-  `);
-
-  printWindow.document.close();
-  printWindow.focus();
-
-  // Important : attendre que le contenu soit chargé avant impression
-  printWindow.onload = () => {
-    printWindow.print();
-    printWindow.close();
-  };
-}
-
-
-
-
-   
- 
+    
 </script>
 
 
@@ -242,14 +216,44 @@ function printEntryNote() {
     <div class="card">
         <div class="card">
             <div class="font-semibold text-xl mb-4">Lieste des entrées </div>
-            <ToggleButton v-model="balanceFrozen" onIcon="pi pi-lock" offIcon="pi pi-lock-open" onLabel="Balance" offLabel="Balance" />
+          
+              <DataTable 
+              :value="EntryNoteList" 
+              scrollable 
+              scrollHeight="400px"
+               class="mt-6">
 
-            <DataTable :value="EntryNoteList" scrollable scrollHeight="400px" class="mt-6">
+            <template #header>
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+
+                  <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Mes dépasses</h4>
+
+                  <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
+
+                  <Dropdown
+                        v-model="selectedUserFilter"
+                        :options="childUsers"
+                        optionLabel="username"
+                        optionValue="id"
+                        placeholder="Filtrer par utilisateur"
+                        class="w-full sm:w-60"
+                        @change="loadEntryNoteAndUser"
+                        showClear
+                      />
+                    <!-- Recherche globale -->
+
+                  </div>
+                </div>
+              </template>
             
                 <Column field="id" header="Id" style="min-width: 100px"></Column>
                 <Column field="total_amount" header="TOTAL" style="min-width: 200px">
-                    <template #body="slotProps">
+                    <template #body="slotProps" v-if="isSuperUser">
                         USD {{ slotProps.data.total_amount }} 
+                    </template>
+                    <template #body="slotProps" v-else>
+                        {{ userProfile ? userProfile.currency_preference : "Non défini" }}
+                        {{ slotProps.data.total_amount }} 
                     </template>
                 </Column>
                 <Column field="supplier_name" header="CLIENT(E)" style="min-width: 200px"></Column>
@@ -278,13 +282,18 @@ function printEntryNote() {
     </div>
 </div>
 
-<Dialog v-model:visible="showModal" modal header="Détails du bon de sortie" :style="{ width: '50vw' }">
+<Dialog
+ v-model:visible="showModal"
+  modal header="Détails du bon de sortie" 
+  :style="{ width: '50vw' }">
+
       <div id="cashout-pdf-content" style="overflow: visible; max-height: none;">
       
     <!-- En-tête -->
     <div class="flex justify-between items-center mb-6">
        
         <div class="text-left flex-2"> 
+          <template v-if="isSuperUser">
             <h2 class="text-lg font-medium mb-2">BILATECH S.A.R.L.U</h2>
             <p class="ext-xl font-semibold mb-2">KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25</p>
             <p class="ext-xl font-semibold mb-1"> Kinshasa, le {{formate(new Date()) }}</p>
@@ -295,6 +304,18 @@ function printEntryNote() {
                 {{ EntryNoteList.find(c => c.id === seletedEntryNote)?.supplier_name ||'N/A' }}
             </span>
             </h3>
+        </template>
+        <template v-else>
+          <h2 class="text-lg font-medium mb-2">{{ userProfile ? userProfile.entrep_name : 'N/A' }}</h2>
+           <p class="ext-xl font-semibold mb-2">{{ userProfile ? userProfile.adress :'N/A' }}</p>
+           <p class="ext-xl font-semibold mb-1"> le {{formate(new Date()) }}</p>
+           <h2 class="text-xl font-semibold mb-1">Reçu  N°/:000  {{ seletedEntryNote }}</h2>
+           <h3 class="text-lg font-medium mb-2">Client(e) : 
+            <span class="text_xl font-semibold mb-1">
+                {{ EntryNoteList.find(c => c.id === seletedEntryNote)?.supplier_name ||'N/A' }}
+            </span>
+          </h3>
+        </template>
         </div>
         <img src="/demo/bila.png" alt="Logo" class="h-40" /> 
         </div>
@@ -305,26 +326,43 @@ function printEntryNote() {
                 <Column field="id" header="ID" />
                 <Column field="reason" header="Motif" />
                 <Column field="amount" header="Montant">
-                <template #body="slotProps">
+                <template #body="slotProps" v-if="isSuperUser">
                     USD {{ slotProps.data.amount }}
                 </template>
+                <template #body="slotProps" v-else>
+                  {{ userProfile ? userProfile.currency_preference :'N/A'}}
+                  {{ slotProps.data.amount }}
+                </template>
+
                 </Column>
             </DataTable>
 
       <!-- Total -->
-        <div class="text-right font-bold text-lg mb-6">
+        <div v-if="isSuperUser" class="text-right font-bold text-lg mb-6">
             Total : {{ calculateTotal() }} USD
+        </div>
+        <div v-else class="text-right font-bold text-lg mb-6">
+            Total : {{ calculateTotal() }} {{ userProfile ? userProfile.currency_preference  :'N/A'}}
         </div>
 
       <!-- Signature -->
       
-      <div class="flex justify-end mt-10">
-        <div class="text-center">
-          <p class="text-sm">Mr DELOR Musangania</p>
-          <p class="text-sm">PDG BILATECH</p>
-          <img :src="signatureUrl" alt="Signature" class="h-24 mt-2" />
-        </div>
+      <div v-if="isSuperUser" class="flex justify-end mt-10">
+      <div class="text-center">
+        <p class="text-sm">Mr DELOR Musangania</p>
+        <p class="text-sm">PDG BILATECH</p>
+        <!-- ✅ Signature agrandie -->
+        <img 
+          :src="signatureUrl" 
+          alt="Signature" 
+          class="h-36 w-auto mt-2" 
+          style="object-fit: contain;"
+        />
       </div>
+      </div>
+
+
+
     </div>
 
           
@@ -335,7 +373,7 @@ function printEntryNote() {
   </div>
 
   <div 
-    style="position: sticky; bottom: 0; background: white; padding: 1rem; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); z-index: 10;"
+    
   >
     <Button 
       label="Télécharger PDF"
@@ -343,13 +381,6 @@ function printEntryNote() {
       class="p-button-success"
       @click="downloadPDF"
     />
-
-    <Button 
-  label="Imprimer"
-  icon="pi pi-print"
-  class="p-button-secondary ml-2"
-  @click="printEntryNote"
-  />
   </div>
 </Dialog>
 

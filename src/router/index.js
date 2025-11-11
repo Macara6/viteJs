@@ -107,7 +107,12 @@ const router = createRouter({
                     name:'Vente',
                     component:() => import('@/views/pages/Vente.vue')
                 },
-
+                {
+                    path:'/pages/depotProduct',
+                    name:'DepotProduct',
+                    component:()=> import('@/views/pages/DepotProduct.vue')
+                },
+                
                 {
                     path: '/pages/Employee',
                     name :'employee',
@@ -179,6 +184,11 @@ const router = createRouter({
             path: '/login',
             name: 'login',
             component: () => import('@/views/pages/auth/Login.vue')
+        },
+        {
+          path:'/reset',
+          name:'reset',
+          component: () => import('@/views/pages/ResetPassword.vue'),
         },
 
         {

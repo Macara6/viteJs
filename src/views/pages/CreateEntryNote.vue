@@ -23,6 +23,8 @@ const addDetail =()=>{
 const removeDetail =(index) =>{
     details.value.splice(index, 1);
 }
+
+
 const handleCreateEntryNote = async ()=>{
     const userId = parseInt(localStorage.getItem('id'));
     const validDetails = details.value.filter(

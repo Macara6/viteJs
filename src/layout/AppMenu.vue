@@ -10,10 +10,25 @@ const userId = localStorage.getItem('id');
 const loadLowStock = async () => {
   try {
     const products = await fetchProduits(userId);
-    lowStockCount.value = products.filter(p => p.stock < 10).length;
+     const lowStockProducts = products.filter(p => p.stock < 10);
+    
+    const now = new Date();
+    const twoDayslater = new Date();
+    twoDayslater.setDate(now.getDate()+30);
+
+    const expiringSoonProducts = products.filter((p) =>{
+      if(!p.expiration_date) return false;
+      const expDate = new Date(p.expiration_date);
+      return expDate >= now && expDate <= twoDayslater;
+    });
+    lowStockCount.value = expiringSoonProducts.length + lowStockProducts.length;
+
   } catch (error) {
     console.error(error);
   }
+
+  
+
 };
 
 onMounted(() => {
@@ -44,6 +59,7 @@ const model = computed(() => {
     ];
   } else {
     return [
+
       {
         label: 'ACCUEIL',
         items: [
@@ -53,8 +69,13 @@ const model = computed(() => {
           { label: 'Bilan/Jour', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
           { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
           { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
+          
           { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
           { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
+          { label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
+          { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+
+         // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
           {
             label: 'Notification',
             icon: 'pi pi-fw pi-bell',
@@ -63,7 +84,7 @@ const model = computed(() => {
             // 👈 mettre la valeur ici
           }
         ]
-      }
+      },
     ];
   }
 });
