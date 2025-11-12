@@ -2,9 +2,9 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
 import { usePrimeVue } from 'primevue/config';
+import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 
 
@@ -13,7 +13,7 @@ const { onMenuToggle, toggleDarkMode, isDarkTheme } = useLayout();
 const showDropdown = ref(false);
 const showProfileModal = ref(false);
 
-const router = useRoute();
+const router = useRouter();
 
 
 const PrimeVue = usePrimeVue();
@@ -22,11 +22,25 @@ const username = ref(localStorage.getItem('username') || '');
 const isSuperUser = ref(localStorage.getItem('is_superuser') === 'true');
 
 
+const logout = () => {
+    // Supprimer les infos du localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('id');
+    localStorage.removeItem('is_superuser');
+
+    // Rediriger vers la page login
+    router.push({ name: 'login' });
+};
+
+// Récupérer username au montage
+onMounted(() => {
+    username.value = localStorage.getItem('username');
+});
 
 
 onMounted(()=>  {
-        username.value = localStorage.getItem('username');
-
+    username.value = localStorage.getItem('username');
 
 });
 
@@ -93,11 +107,11 @@ const closeProfile = () => {
                     <div v-if="showDropdown" class="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border rounded shadow z-50">
                         <button
                         class="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-red-600"
-                        @click=""
+                        @click="logout"
                         >
-                        <router-link to="/">
+                        
                         <i class="pi pi-sign-out mr-2"></i> Déconnexion
-                        </router-link>
+                        
                        
                         </button>
                     </div>
