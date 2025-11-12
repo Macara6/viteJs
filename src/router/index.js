@@ -78,24 +78,28 @@ const router = createRouter({
                 {
                     path: '/pages/produit',
                     name: 'Produit',
-                    component: () => import('@/views/pages/Produit.vue')
+                    component: () => import('@/views/pages/Produit.vue'),
+                     meta: { requiresAuth: true }
                 },
 
                 {
                     path:'/pages/invoice',
                     name:'Invoice',
-                    component:() => import('@/views/pages/Invoice.vue')
+                    component:() => import('@/views/pages/Invoice.vue'),
+                     meta: { requiresAuth: true }
                 },
 
                 {
                     path:'/pages/utilisateur',
                     name:'Utilisateur',
-                    component:() => import('@/views/pages/Utilisateur.vue')
+                    component:() => import('@/views/pages/Utilisateur.vue'),
+                     meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/statistique',
                     name:'Statistique',
-                    component:() => import('@/views/pages/Statistique.vue')
+                    component:() => import('@/views/pages/Statistique.vue'),
+                     meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/bilan',
@@ -126,7 +130,9 @@ const router = createRouter({
                 {
                     path:'/pages/Boutique',
                     name:'Boutique',
-                    component:() => import('@/views/pages/Boutique.vue')
+                    component:() => import('@/views/pages/Boutique.vue'),
+                    meta: { requiresAuth: true }
+                    
                 },
                 {
                     path: '/user/:id',
@@ -142,12 +148,14 @@ const router = createRouter({
                 {
                     path:'/pages/Notification/',
                     name:'Notification',
-                    component:() => import('@/views/pages/Notification.vue')
+                    component:() => import('@/views/pages/Notification.vue'),
+                     meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/CashOutListe',
                     name:'CashOutListe',
-                    component:() => import('@/views/pages/CashOutListe.vue')
+                    component:() => import('@/views/pages/CashOutListe.vue'),
+                     meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/CreateCashout',
@@ -163,7 +171,8 @@ const router = createRouter({
                 {
                     path:'/cashout/pdf/:id',
                     name:'PrintCashout',
-                    component: () => import('@/views/pages/PrintCashout.vue')
+                    component: () => import('@/views/pages/PrintCashout.vue'),
+                     meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/EntryNoteList',
