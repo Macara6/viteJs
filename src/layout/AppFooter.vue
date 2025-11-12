@@ -2,7 +2,7 @@
 
 <template>
     <div class="layout-footer">
-       BilaTech Solution V 3.2
+       BilaTech Solution V 3.2.3
         
     </div>
 </template>

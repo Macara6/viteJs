@@ -80,6 +80,7 @@ const router = createRouter({
                     name: 'Produit',
                     component: () => import('@/views/pages/Produit.vue')
                 },
+
                 {
                     path:'/pages/invoice',
                     name:'Invoice',
@@ -99,14 +100,18 @@ const router = createRouter({
                 {
                     path:'/pages/bilan',
                     name:'Bilan',
-                    component:() => import('@/views/pages/Bilan.vue')
+                    component:() => import('@/views/pages/Bilan.vue'),
+                    meta: { requiresAuth: true }
 
                 },
+
                 {
                     path:'/pages/vente',
                     name:'Vente',
-                    component:() => import('@/views/pages/Vente.vue')
+                    component:() => import('@/views/pages/Vente.vue'),
+                    meta: { requiresAuth: true }
                 },
+
                 {
                     path:'/pages/depotProduct',
                     name:'DepotProduct',
@@ -203,5 +208,21 @@ const router = createRouter({
         }
     ]
 });
+
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token') // récupère le JWT du localStorage
+
+  // Si la route nécessite une authentification
+  if (to.meta.requiresAuth) {
+    if (token) {
+      next() // autorisé
+    } else {
+      next({ name: 'login', query: { redirect: to.fullPath } }) // redirige vers login
+    }
+  } else {
+    next() // route publique
+  }
+})
 
 export default router;

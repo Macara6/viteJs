@@ -12,6 +12,8 @@ import {
   updateProductAPI,
   verifySecretKey
 } from '@/service/Api';
+import { formatDate } from '@/utils/formatters';
+
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -421,11 +423,10 @@ async function deleteSelectedProducts() {
 
 // utilities
 function formatPrice(price) { return price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", "); }
-function formatDate(value) {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  return date.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour12: false }).replace(' ', ' ');
-}
+
+
+
+
 function calculateDenfice(prixVente, prixAchat) {
   if (!prixAchat) return 0;
   return parseFloat((((prixVente - prixAchat) * 100) / prixAchat).toFixed(2));
@@ -621,16 +622,18 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
       <div class="flex flex-col gap-4">
 
         <div>
+          <label class="block font-bold mb-2">Code barre</label>
+          <InputText v-model.trim="product.barcode" fluid />
+          
+        </div>
+
+        <div>
           <label class="block font-bold mb-2">Name</label>
           <InputText v-model.trim="product.name" :invalid="submitted && !product.name" fluid autofocus />
           <small v-if="submitted && !product.name" class="text-red-500 text-sm">Name is required.</small>
         </div>
 
-        <div>
-          <label class="block font-bold mb-2">Code barre</label>
-          <InputText v-model.trim="product.barcode" fluid />
-          
-        </div>
+
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

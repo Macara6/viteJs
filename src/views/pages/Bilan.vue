@@ -229,15 +229,22 @@ function updateLineChart() {
     '#7E57C2', '#26A69A', '#EF5350', '#9CCC65'
   ]
 
-  const startDate = new Date(selectedDateVal)
-  startDate.setDate(startDate.getDate() - 6)
+  const selectedDate = new Date(selectedDateVal)
 
+  // 🗓️ Trouver le lundi de la semaine du jour sélectionné
+  const startDate = new Date(selectedDate)
+  const day = startDate.getDay() // 0 = dimanche, 1 = lundi, ...
+  const diff = day === 0 ? -6 : 1 - day // Si dimanche, reculer de 6 jours
+  startDate.setDate(startDate.getDate() + diff)
+
+  // 📅 Générer les 7 jours de la semaine (lundi → dimanche)
   const labels = Array.from({ length: 7 }, (_, i) => {
     const date = new Date(startDate)
     date.setDate(startDate.getDate() + i)
     return date.toISOString().split('T')[0]
   })
 
+  // 👥 Déterminer les utilisateurs à afficher
   const usersToShow = selectedUserId.value === null
     ? allUsers.value
     : allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
@@ -260,11 +267,19 @@ function updateLineChart() {
     })
 
     const data = labels.map(l => dailyTotals[l] || 0)
-    datasets.push({ label: `${u.username} (${currency}) — ${formatPrice(totalAmount)}`, data, borderColor: baseColors[i % baseColors.length], backgroundColor: baseColors[i % baseColors.length], tension: 0.3, fill: false })
+    datasets.push({
+      label: `${u.username} (${currency}) — ${formatPrice(totalAmount)}`,
+      data,
+      borderColor: baseColors[i % baseColors.length],
+      backgroundColor: baseColors[i % baseColors.length],
+      tension: 0.3,
+      fill: false
+    })
   }
 
   lineData.value = { labels, datasets }
 }
+
 
 
 async function verifySecret() {

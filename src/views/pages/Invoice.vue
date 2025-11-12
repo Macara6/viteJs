@@ -1,8 +1,5 @@
 
 <script setup>
-import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
-
 import {
   deleteInvoiceAPI,
   fetchInvoiceDetail,
@@ -11,11 +8,18 @@ import {
   getUsersCreatedByMe,
   verifySecretKey
 } from '@/service/Api';
+import { FilterMatchMode } from '@primevue/core/api';
+import { useToast } from 'primevue/usetoast';
+import { onMounted, ref, watch } from 'vue';
 
+// --- Toast & Loading ---
 const toast = useToast();
 const loading = ref(false);
-// États
+
+// --- États ---
 const invoices = ref([]);
+const invoicesCache = ref([]);
+const cacheTimestamp = ref(0); // <-- correction ici
 const selectedInvoices = ref([]);
 const invoiceDetails = ref([]);
 const showModal = ref(false);
@@ -23,97 +27,119 @@ const deleteInvoicesDialog = ref(false);
 
 const userProfile = ref(null);
 const userOptions = ref([]);
-const selectedUserFilter = ref(null); // ici le Dropdown
+const selectedUserFilter = ref(null); // Dropdown utilisateur
+
+const dateFilter = ref(null); // plage de dates
 
 const showSensitiveInfo = ref(false);
 const secretDialog = ref(false);
 const submittedSecret = ref(false);
-const secretKey = ref('')
-
-const filters = ref({ global: { value: null, matchMode: 'contains' } });
-
-let invoicesCache = null;
-let cacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000;
+const secretKey = ref('');
+const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 
 // --- Helpers ---
 const formatPrice = price => price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
 const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 
-// --- Charger profil utilisateur + enfants ---
+// --- Charger profil + enfants ---
 async function loadUserProfileAndChildren() {
   loading.value = true;
   try {
-    const userId = parseInt( localStorage.getItem('id'))
+    const userId = parseInt(localStorage.getItem('id'));
     if (!userId) return;
 
-    // Profil utilisateur
     const profile = await fetchUserProfilById(userId);
     userProfile.value = Array.isArray(profile) ? profile[0] : profile;
 
-    // Enfants de l'utilisateur
     const children = await getUsersCreatedByMe();
     userOptions.value = [
-      { id: userProfile.value.id, username: userProfile.value.username }, // utilisateur connecté en premier
+      { id: userProfile.value.id, username: userProfile.value.username },
       ...children
     ];
 
-    // **Sélection par défaut : utilisateur connecté**
     selectedUserFilter.value = userId;
-    // Charger factures pour l'utilisateur connecté
-    await loadInvoicesByUser(selectedUserFilter.value);
-     
+    await loadInvoicesByUser(userId);
 
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger le profil ou les enfants', life:3000 });
-  }finally{
-    loading.value = false
-  }
-}
-
-// --- Charger factures pour un utilisateur donné ---
-async function loadInvoicesByUser(userId, forceRefresh = false) {
-  loading.value = true;
-  try {
-    const now = Date.now();
-    // on charge le cacehe si il 'existe
-    if(!forceRefresh && invoicesCache && (now - cacheTimestamp < CACHE_DURATION)){
-      invoices.value = invoicesCache
-        .filter(i => i.cashier === userId)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        return;
-    }
-
-    const invoicesData = await fetchInvoicesAllUsers(userId);
-    invoicesCache = invoicesData;
-    cacheTimestamp = now;
-
-    invoices.value = invoicesData
-      .filter(i => i.cashier === userId)  // uniquement factures de l'utilisateur sélectionné
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
-  } catch (err) {
-    console.error(err);
-    toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les factures', life:3000 });
-  }finally{
+  } finally {
     loading.value = false;
   }
 }
 
-// --- Watcher : si l'utilisateur change dans le Dropdown ---
+// --- Watchers ---
+watch(dateFilter, () => applyDateFilter());
 watch(selectedUserFilter, async (newId) => {
   if (newId) await loadInvoicesByUser(newId);
 });
 
-// --- Détails facture ---
+// --- Appliquer filtres ---
+function applyDateFilter() {
+  if (!invoicesCache.value) return;
+
+  let filtered = [...invoicesCache.value];
+
+  // Filtre par utilisateur
+  if (selectedUserFilter.value) {
+    filtered = filtered.filter(i => i.cashier === selectedUserFilter.value);
+  }
+
+  // Filtre par plage de dates
+  if (dateFilter.value && Array.isArray(dateFilter.value) && dateFilter.value[0] && dateFilter.value[1]) {
+    const [start, end] = dateFilter.value;
+    const startDate = new Date(start);
+    startDate.setHours(0,0,0,0);
+    const endDate = new Date(end);
+    endDate.setHours(23,59,59,999);
+
+    filtered = filtered.filter(inv => {
+      const invDate = new Date(inv.created_at);
+      return invDate >= startDate && invDate <= endDate;
+    });
+  }
+
+  invoices.value = filtered.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+// --- Charger factures utilisateur ---
+async function loadInvoicesByUser(userId, forceRefresh = false) {
+  loading.value = true;
+  try {
+    const now = Date.now();
+
+    if (!forceRefresh && invoicesCache.value.length && (now - cacheTimestamp.value < 5*60*1000)) {
+      invoices.value = invoicesCache.value
+        .filter(i => i.cashier === userId)
+        .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    } else {
+      const data = await fetchInvoicesAllUsers(userId);
+      invoicesCache.value = data;
+      cacheTimestamp.value = now;
+
+      invoices.value = data
+        .filter(i => i.cashier === userId)
+        .sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+
+    applyDateFilter();
+
+  } catch(err) {
+    console.error(err);
+    toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les factures', life:3000 });
+  } finally {
+    loading.value = false;
+  }
+}
+
+// --- Voir détails facture ---
 async function ViewDetailInvoice(invoiceId) {
   try {
     const details = await fetchInvoiceDetail(invoiceId);
     selectedInvoices.value = invoiceId;
     invoiceDetails.value = details;
     showModal.value = true;
-  } catch (err) {
+  } catch(err) {
     console.error(err);
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les détails', life:3000 });
   }
@@ -122,19 +148,37 @@ async function ViewDetailInvoice(invoiceId) {
 // --- Supprimer facture ---
 function confirmDeleteInvoice(inv){ 
   selectedInvoices.value = inv;
-   deleteInvoicesDialog.value =true 
-  }
+  deleteInvoicesDialog.value = true;
+}
 
-async function deleteInvoice(){
+async function deleteInvoice() {
   try {
     await deleteInvoiceAPI(selectedInvoices.value.id);
     invoices.value = invoices.value.filter(i => i.id !== selectedInvoices.value.id);
     toast.add({ severity:'success', summary:'Supprimé', detail:'Facture supprimée', life:3000 });
     showModal.value = false;
-    deleteInvoicesDialog.value =false;
-  } catch(err){
+    deleteInvoicesDialog.value = false;
+  } catch(err) {
     console.error(err);
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de supprimer la facture', life:3000 });
+  }
+}
+
+// --- Vérification code secret ---
+async function verifySecret() {
+  submittedSecret.value = true;
+  if (!secretKey.value) return;
+  try {
+    const isValid = await verifySecretKey(secretKey.value);
+    if (isValid.valid) {
+      showSensitiveInfo.value = true;
+      secretDialog.value = false;
+      toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
+    } else {
+      toast.add({ severity:'error', summary:'Erreur', detail:'Code secret invalide', life:3000 });
+    }
+  } catch(err) {
+    toast.add({ severity:'error', summary:'Erreur', detail:'Erreur de vérification', life:3000 });
   }
 }
 
@@ -142,8 +186,6 @@ async function refreshInvoices() {
   loading.value = true;
   try {
     const userId = parseInt(localStorage.getItem('id'));
-    selectedUserFilter.value = userId;
-
     if (!userId) return;
 
     // Forcer récupération serveur (ignore le cache)
@@ -163,33 +205,18 @@ async function refreshInvoices() {
       detail: 'Impossible de recharger les factures', 
       life: 3000 
     });
-  }finally{
+  } finally {
     loading.value = false;
   }
 }
 
 
-async function verifySecret() {
-  submittedSecret.value = true
-  if (!secretKey.value) return
-  try {
-    const isValid = await verifySecretKey(secretKey.value)
-    if (isValid.valid) {
-      showSensitiveInfo.value = true
-      secretDialog.value = false
-      toast.add({ severity: 'success', summary: 'Succès', detail: 'Code secret validé', life: 3000 })
-    } else {
-      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Code secret invalide', life: 3000 })
-    }
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur de vérification', life: 3000 })
-  }
-}
 // --- Mounted ---
 onMounted(async () => {
-  await loadUserProfileAndChildren(); // charge profil, enfants et factures
+  await loadUserProfileAndChildren();
 });
 </script>
+
 
 
 
@@ -204,11 +231,6 @@ onMounted(async () => {
         <!-- Left: supprimer sélection -->
         <template #start>
           <div class="flex flex-wrap gap-2 justify-end">
-          <Button 
-            label="Effacer" icon="pi pi-trash" severity="danger"
-            :disabled="!selectedInvoices || !selectedInvoices.length"
-            @click="confirmDeleteSelected" 
-          />
           <Button label="Bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true" />
           </div>
         </template>
@@ -226,10 +248,28 @@ onMounted(async () => {
               @change="refreshPage"
               showClear
             />
+
+            <label for="dateFilter" class="font-medium">Date :</label>
+            <Calendar
+              id="dateFilter"
+              v-model="dateFilter"
+              selectionMode="range"
+              dateFormat="dd/mm/yy"
+              placeholder="Sélectionner période"
+              showIcon
+              @change="applyDateFilter"
+            />
+            <Button
+              label="Réinitialiser"
+              icon="pi pi-refresh"
+              text
+              @click="dateFilter = null; applyDateFilter()"
+            />
+
+
             <Button label="Actualiser" icon="pi pi-refresh" severity="primary" @click="refreshInvoices" />
           </div>
         </template>
-
       </Toolbar>
     </div>
 
@@ -261,7 +301,7 @@ onMounted(async () => {
         </template>
 
         <!-- Colonnes -->
-        <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
+       
         <Column field="id" header="ID" sortable />
         <Column field="client_name" header="Nom Client(e)" sortable />
         <Column field="cashier_name" header="Caissier(e)" sortable />
@@ -326,7 +366,7 @@ onMounted(async () => {
             <p class="text-gray-600 text-sm sm:text-base">
               {{ userProfile ? userProfile.adress : 'Adresse non définie' }}
             </p>
-            <p class="mt-2 text-sm"><strong>Client :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</p>
+            <p class="mt-2 text-sm"><strong>Client(e) :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</p>
             <p class="text-sm"><strong>Caissier :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</p>
           </div>
           <div class="text-right text-sm sm:text-base text-gray-500 mt-2 sm:mt-0">

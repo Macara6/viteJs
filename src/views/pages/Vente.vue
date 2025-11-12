@@ -2,8 +2,14 @@
 
 <script setup>
       import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
+import { listPrinters, printTest } from '@/utils/qzPrinter';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
+
+      import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
 
         const products = ref([]);
         const selectedProducts = ref([]);
@@ -21,21 +27,72 @@ import { onMounted, ref, watch } from 'vue';
         const toast = useToast();
         const barcodeSearch = ref('');
 
+const availablePrinters = ref([]);
 
     onMounted(async () => {
+      
+        const token = localStorage.getItem('token')
+        console.log('token :', token)
+        if (!token) {
+          router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
+          return
+        }
+
+
         await loadProduct();
         await fetchUserProfl();
+        await fetchPrinters();
 
+      
+  
+   
     });
     
+
+async function fetchPrinters() {
+  try {
+    availablePrinters.value = await listPrinters();
+    toast.add({ severity: 'success', summary: 'Imprimantes trouvées', detail: availablePrinters.value.join(', '), life: 4000 });
+  } catch (error) {
+    console.error(error);
+    toast.add({ severity: 'error', summary: 'Erreur', detail: error.message, life: 4000 });
+  }
+}
+
+async function testPrinter(printerName = null) {
+  try {
+    await printTest(printerName);
+    toast.add({ severity: 'success', summary: 'Test envoyé', detail: `Texte envoyé à l’imprimante ${printerName || 'par défaut'}`, life: 4000 });
+  } catch (error) {
+    console.error(error);
+    toast.add({ severity: 'error', summary: 'Erreur', detail: error.message, life: 4000 });
+  }
+}
+
+
+
+
     function filterProducts() {
     if (!barcodeSearch.value) {
         return products.value;
     }
     return products.value.filter(p => p.barcode?.includes(barcodeSearch.value));
-}
+    }
 
+    
+
+// scanner automatiquement
+watch(barcodeSearch, (newValue) => {
+  if (!newValue) return;
+
+  const product = products.value.find(p => p.barcode === newValue);
   
+  if (product) {
+    addToInvoice(product);  // ajoute automatiquement au panier
+    barcodeSearch.value = ''; // réinitialise la barre de recherche
+  }
+});
+
     async function loadProduct() {
         const userId = localStorage.getItem('id');
         try {
@@ -71,6 +128,7 @@ import { onMounted, ref, watch } from 'vue';
         updateTotal();
     }
 
+
     function addToInvoice(product){
         const existing =invoiceItems.value.find(item => item.product.id === product.id);
         if(existing){
@@ -86,12 +144,14 @@ import { onMounted, ref, watch } from 'vue';
         }
         updateTotal();
     }
+
     function updateTotal(){
         totalAmount.value = invoiceItems.value.reduce((sum, item) => {
             return sum + item.quantity * item.price;
         },0);
     }
     
+
     watch(amountPaid, (newVal) => {
     const diff = newVal - totalAmount.value;
     change.value = diff > 0 ? diff : 0;
@@ -118,6 +178,7 @@ import { onMounted, ref, watch } from 'vue';
 
         return true;
     };
+
     async function createInvoice(){
           if (amountPaid.value < totalAmount.value) {
             toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
@@ -286,14 +347,17 @@ function printInvoice(invoiceData) {
           class="flex-1"
         />
         <InputText
+          ref="barcodeInput"
           v-model="barcodeSearch"
-          placeholder=" Scanner / code-barres..."
+          placeholder="Scanner / code-barres..."
           class="flex-1"
         />
+
       </div>
 
       <!-- 📦 Liste des produits -->
       <div class="flex-1 overflow-auto">
+       
         <DataTable
           :value="filterProducts()"
           :rows="6"
