@@ -275,6 +275,8 @@ onMounted(async () => {
 
     <!-- DataTable Factures -->
     <div class="card overflow-x-auto">
+
+
       <DataTable
         ref="dt"
         :value="invoices"
@@ -287,10 +289,16 @@ onMounted(async () => {
         :rowsPerPageOptions="[5, 10, 25]"
         currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
         class="min-w-full"
-        :loading="loading"
+      
 
       >
+
         <template #header>
+          
+        <div v-if="loading" class="text-center py-8 text-gray-500">
+         <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        </div>
+
           <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
             <div class="flex flex-1 sm:flex-none items-center gap-2 mt-2 sm:mt-0">
@@ -328,6 +336,7 @@ onMounted(async () => {
           </template>
         </Column>
       </DataTable>
+
     </div>
 
     <!-- Delete Invoice Dialog -->
