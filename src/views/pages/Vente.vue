@@ -2,7 +2,7 @@
 
 <script setup>
       import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
-import { listPrinters, printTest } from '@/utils/qzPrinter';
+
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 
@@ -41,33 +41,12 @@ const availablePrinters = ref([]);
 
         await loadProduct();
         await fetchUserProfl();
-        await fetchPrinters();
-
-      
-  
+    
    
     });
     
 
-async function fetchPrinters() {
-  try {
-    availablePrinters.value = await listPrinters();
-    toast.add({ severity: 'success', summary: 'Imprimantes trouvées', detail: availablePrinters.value.join(', '), life: 4000 });
-  } catch (error) {
-    console.error(error);
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error.message, life: 4000 });
-  }
-}
 
-async function testPrinter(printerName = null) {
-  try {
-    await printTest(printerName);
-    toast.add({ severity: 'success', summary: 'Test envoyé', detail: `Texte envoyé à l’imprimante ${printerName || 'par défaut'}`, life: 4000 });
-  } catch (error) {
-    console.error(error);
-    toast.add({ severity: 'error', summary: 'Erreur', detail: error.message, life: 4000 });
-  }
-}
 
 
 
@@ -208,7 +187,7 @@ watch(barcodeSearch, (newValue) => {
         try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoice(invoiceData)
+            printInvoiceThermal(invoiceData, '80mm');
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -224,8 +203,9 @@ watch(barcodeSearch, (newValue) => {
     }
     
 
-function printInvoice(invoiceData) {
-  const printWindow = window.open('', '', 'width=800,height=1000');
+function printInvoiceThermal(invoiceData, width = '80mm') {
+  // width peut être '58mm' ou '80mm'
+  const printWindow = window.open('', '', 'width=300,height=600');
 
   const style = `
     <style>
@@ -233,40 +213,16 @@ function printInvoice(invoiceData) {
         body {
           margin: 0;
           padding: 0;
-          width: 100%;
-          zoom: 2; /* Agrandir le contenu imprimé */
+          width: ${width};
+          font-family: monospace;
+          font-size: 12px;
         }
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        font-family: monospace;
-        font-size: 13px;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        padding: 16px;
-        max-width: 100%;
-      }
-      .center {
-        text-align: center;
-      }
-      .bold {
-        font-weight: bold;
-      }
-      .line {
-        border-top: 1px dashed #000;
-        margin: 12px 0;
-      }
-      .row {
-        display: flex;
-        justify-content: space-between;
-        white-space: nowrap;
-      }
-      .product {
-        margin-bottom: 10px;
+        .container { padding: 0; width: 100%; }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .line { border-top: 1px dashed #000; margin: 4px 0; }
+        .row { display: flex; justify-content: space-between; white-space: nowrap; }
+        .product { margin-bottom: 4px; }
       }
     </style>
   `;
@@ -279,11 +235,11 @@ function printInvoice(invoiceData) {
       </head>
       <body>
         <div class="container">
-          <div class="center bold">${userProfile.value ? userProfile.value.entrep_name : 'Non défini' }</div>
-          <div class="center">${userProfile.value ? userProfile.value.adress : 'Non défini' }</div>
-          <div class="center"> RCCM: ${userProfile.value ? userProfile.value.rccm_number : 'Non défini' }</div>
-          <div class="center">IMPÔT: ${userProfile.value ? userProfile.value.impot_number : 'Non défini' }</div>
-           <div class="center">PHONE: ${userProfile.value ? userProfile.value.phone_number : 'Non défini' }</div>
+          <div class="center bold">${userProfile.value?.entrep_name || 'Non défini'}</div>
+          <div class="center">${userProfile.value?.adress || ''}</div>
+          <div class="center">RCCM: ${userProfile.value?.rccm_number || ''}</div>
+          <div class="center">IMPOT: ${userProfile.value?.impot_number || ''}</div>
+          <div class="center">TEL: ${userProfile.value?.phone_number || ''}</div>
           <div class="center">${new Date().toLocaleString()}</div>
           <div class="line"></div>
           <div><strong>Client:</strong> ${invoiceData.client_name}</div>
@@ -296,7 +252,7 @@ function printInvoice(invoiceData) {
         <div>${item.product.name}</div>
         <div class="row">
           <span>${item.quantity} x ${formatPrice(item.price)}</span>
-          <span>${formatPrice(item.quantity * item.price)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
+          <span>${formatPrice(item.quantity * item.price)}</span>
         </div>
       </div>
     `;
@@ -306,15 +262,15 @@ function printInvoice(invoiceData) {
           <div class="line"></div>
           <div class="row bold">
             <span>Total</span>
-            <span>${formatPrice(invoiceData.total_amount)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
+            <span>${formatPrice(invoiceData.total_amount)}</span>
           </div>
           <div class="row">
             <span>Payé</span>
-            <span>${formatPrice(amountPaid.value)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
+            <span>${formatPrice(amountPaid.value)}</span>
           </div>
           <div class="row">
             <span>Monnaie</span>
-            <span>${formatPrice(invoiceData.change)} ${userProfile.value ? userProfile.value.currency_preference : 'Non défini' }</span>
+            <span>${formatPrice(invoiceData.change)}</span>
           </div>
           <div class="line"></div>
           <div class="center">Merci pour votre achat !</div>
@@ -326,9 +282,10 @@ function printInvoice(invoiceData) {
   printWindow.document.write(content);
   printWindow.document.close();
   printWindow.focus();
-  printWindow.print();
+  printWindow.print(); // ouvre boîte de dialogue
   printWindow.close();
 }
+
       
 </script>
 

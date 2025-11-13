@@ -82,7 +82,47 @@
 
       </DataTable>
     </div>
-</div>
+
+
+    <Dialog v-model:visible="productDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Product Details" :modal="true">
+      <div class="flex flex-col gap-4">
+
+        <div>
+          <label class="block font-bold mb-2">Name</label>
+          <InputText v-model.trim="product.name" :invalid="submitted && !product.name" fluid autofocus />
+          <small v-if="submitted && !product.name" class="text-red-500 text-sm">Name is required.</small>
+        </div>
+
+        <div>
+          <label class="block font-bold mb-2">Code barre</label>
+          <InputText v-model.trim="product.barcode" fluid />
+          
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    
+          <div>
+            <label class="block font-bold mb-2">Stock</label>
+            <InputNumber v-model="product.stock" integeronly fluid />
+          </div>
+
+          <div>
+          <label class="block font-bold mb-2">Date d'expiration (optionnel)</label>
+          <Calendar v-model="product.expiration_date" date-format="yy-mm-dd" :on-change="onExpirationChange" show-icon placeholder="Select a date" fluid />
+        </div>
+          <div>
+            <label class="block font-bold mb-2">Category</label>
+            <Select v-model="product.category" :options="categorys" optionLabel="name" optionValue="id" placeholder="Select a Category" fluid />
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Cancel" icon="pi pi-times" text @click="hideDialog" />
+        <Button label="Save" icon="pi pi-check" @click="saveProduct" />
+      </template>
+    </Dialog>
+
+  </div>
 </template>
 
 <style scoped>
