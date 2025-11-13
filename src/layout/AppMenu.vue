@@ -74,6 +74,7 @@ const model = computed(() => {
           { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
           { label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
           { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+          {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
 
          // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
           {

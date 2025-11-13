@@ -160,12 +160,14 @@ const router = createRouter({
                 {
                     path:'/pages/CreateCashout',
                     name:'CreateCashout',
-                    component:() => import('@/views/pages/CreateCashout.vue')
+                    component:() => import('@/views/pages/CreateCashout.vue'),
+                    meta: { requiresAuth: true }
                 },
                 {
                     path:'/pages/CreateEntryNote',
                     name:'CreateEntryNote',
-                    component:() => import('@/views/pages/CreateEntryNote.vue')
+                    component:() => import('@/views/pages/CreateEntryNote.vue'),
+                    meta: { requiresAuth: true }
                 },
                   
                 {
@@ -179,6 +181,12 @@ const router = createRouter({
                     name:'EntryNote',
                     component: () => import('@/views/pages/EntryNoteList.vue')
                 },
+                {
+                   path:'/pages/printerConfig',
+                   name:'printerCongig',
+                   component:() => import('@/views/pages/printerConfig.vue'),
+                   meta: { requiresAuth: true }
+                }
               
                 
             ]

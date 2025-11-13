@@ -7,6 +7,7 @@ import { useToast } from 'primevue/usetoast';
 import { onMounted, ref, watch } from 'vue';
 
       import { useRouter } from 'vue-router';
+// indispensable pour que qz soit reconnu
 
 const router = useRouter();
 
@@ -27,26 +28,26 @@ const router = useRouter();
         const toast = useToast();
         const barcodeSearch = ref('');
 
+
 const availablePrinters = ref([]);
+const selectedPrinter = ref(null);
+const qzDetected = ref(false);
+
+
 
     onMounted(async () => {
-      
-        const token = localStorage.getItem('token')
-        console.log('token :', token)
-        if (!token) {
-          router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } })
-          return
-        }
+
+
 
 
         await loadProduct();
         await fetchUserProfl();
+        
     
    
     });
+ 
     
-
-
 
 
 
@@ -186,8 +187,9 @@ watch(barcodeSearch, (newValue) => {
         };
         try{ 
             await createInvoiceAPI(invoiceData);
+            console.log('facture data :', invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoiceThermalQZ(invoiceData);
+            printInvoice(invoiceData);
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -202,50 +204,66 @@ watch(barcodeSearch, (newValue) => {
         }
     }
     
-
-
-function printInvoiceThermalQZ(invoiceData) {
-  if (!window.qz) {
-    alert("QZ Tray n'est pas installé ou lancé !");
-    return;
-  }
-
-  const lines = [];
-
-  lines.push("*** FACTURE ***");
-  lines.push(userProfile.value?.entrep_name || "Entreprise");
-  lines.push(userProfile.value?.adress || "");
-  lines.push("TEL: " + (userProfile.value?.phone_number || ""));
-  lines.push("-----------------------------");
-  lines.push(`Client: ${invoiceData.client_name}`);
-  lines.push(new Date().toLocaleString());
-  lines.push("-----------------------------");
-
-  invoiceItems.value.forEach((item) => {
-    const name = item.product.name.padEnd(15);
-    const qty = item.quantity;
-    const total = (item.quantity * item.price).toFixed(2);
-    lines.push(`${qty} x ${name} ${total}`);
-  });
-
-  lines.push("-----------------------------");
-  lines.push(`TOTAL: ${(invoiceData.total_amount || 0).toFixed(2)}`);
-  lines.push(`PAYÉ: ${(amountPaid.value || 0).toFixed(2)}`);
-  lines.push(`MONNAIE: ${(invoiceData.change || 0).toFixed(2)}`);
-  lines.push("-----------------------------");
-  lines.push("Merci pour votre achat !");
-  lines.push("\n\n");         // feed
-  lines.push("\x1D\x56\x41"); // cut
-
-  // Connexion et impression
-  qz.websocket.connect()
-    .then(() => {
-      const config = qz.configs.create("NomDeVotreImprimante");
-      return qz.print(config, lines);
-    })
-    .catch(console.error);
+async function connectQZ() {
+    if (!window.qz) {
+        alert("QZ Tray n'est pas installé ou lancé !");
+        return false;
+    }
+    if (!qz.websocket.isActive()) {
+        try {
+            await qz.websocket.connect();
+        } catch (err) {
+            alert("Impossible de se connecter à QZ Tray. Vérifiez qu'il est lancé et que le certificat est approuvé.");
+            console.error(err);
+            return false;
+        }
+    }
+    return true;
 }
 
+async function printInvoice(invoice) {
+    try {
+        const printerName = localStorage.getItem('printerName');
+        if (!printerName) {
+            alert("Veuillez d'abord configurer une imprimante !");
+            return;
+        }
+
+        const config = qz.configs.create(printerName);
+
+        const data = [
+            { type: 'raw', format: 'plain', data: '\x1B\x40' },
+            'Facture Bilatech Solution\n',
+            '----------------------------\n',
+            `Client: ${invoice.client_name}\n`,
+            'Produit   Qté  Prix  Total\n',
+            '----------------------------\n'
+        ];
+
+          invoice.items.forEach(item => {
+            // Trouver le produit par ID
+            const product = products.value.find(p => p.id === item.product);
+            const name = product ? product.name : 'Produit inconnu';
+            const qty = Number(item.quantity);
+            const price = Number(item.price);
+            const total = qty * price;
+            
+            data.push(`${name.padEnd(12)} ${qty.toString().padStart(3)} ${price.toFixed(2).padStart(6)} ${total.toFixed(2).padStart(6)}\n`);
+          });
+
+
+        const totalInvoice = Number(invoice.total ?? invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.price), 0));
+        data.push('----------------------------\n');
+        data.push(`Total : ${totalInvoice.toFixed(2)}\n`);
+        data.push('\x1D\x56\x41\x10');
+
+        await qz.print(config, data);
+        alert("Facture imprimée avec succès !");
+    } catch (err) {
+        console.error(err);
+        alert("Erreur impression : " + err.message);
+    }
+}
 
 
       
