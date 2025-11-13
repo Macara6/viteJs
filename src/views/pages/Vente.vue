@@ -21,7 +21,7 @@ const router = useRouter();
         const invoiceItems = ref([]);
         const clientName = ref('');
         const totalAmount = ref(0);
-        const amountPaid = ref(0);
+        const amountPaid = ref(null);
         const change = ref(0);
         const userProfile = ref(null);
         const search = ref('');
@@ -109,21 +109,44 @@ watch(barcodeSearch, (newValue) => {
     }
 
 
-    function addToInvoice(product){
-        const existing =invoiceItems.value.find(item => item.product.id === product.id);
-        if(existing){
-            existing.quantity +=1;
-
-        }else{
-            invoiceItems.value.push({
-                product:product,
-                quantity:1,
-                price:product.price,
-                purchase_price:product.purchase_price
-            });
-        }
-        updateTotal();
+function addToInvoice(product) {
+    // Vérifier le stock disponible
+    if (product.stock < 1) {
+        toast.add({
+            severity: 'error',
+            summary: 'Stock insuffisant',
+            detail: `Le produit "${product.name}" est en rupture de stock.`,
+            life: 5000
+        });
+        return;
     }
+
+    const existing = invoiceItems.value.find(item => item.product.id === product.id);
+
+    if (existing) {
+        // Vérifier que la quantité totale n'excède pas le stock
+        if (existing.quantity + 1 > product.stock) {
+            toast.add({
+                severity: 'error',
+                summary: 'Stock insuffisant',
+                detail: `Impossible d'ajouter plus de "${product.name}" (stock disponible: ${product.stock}).`,
+                life: 5000
+            });
+            return;
+        }
+        existing.quantity += 1;
+    } else {
+        invoiceItems.value.push({
+            product: product,
+            quantity: 1,
+            price: product.price,
+            purchase_price: product.purchase_price
+        });
+    }
+
+    updateTotal();
+}
+
 
     function updateTotal(){
         totalAmount.value = invoiceItems.value.reduce((sum, item) => {
@@ -187,7 +210,7 @@ watch(barcodeSearch, (newValue) => {
         };
         try{ 
             await createInvoiceAPI(invoiceData);
-            console.log('facture data :', invoiceData);
+            console.log('userProfile :', userProfile);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
             printInvoice(invoiceData);
              invoiceItems.value = [];
@@ -220,6 +243,33 @@ async function connectQZ() {
     }
     return true;
 }
+function centerText(text, lineLength = 48) {
+    const spaces = Math.floor((lineLength - text.length) / 2);
+    return ' '.repeat(spaces > 0 ? spaces : 0) + text;
+}
+
+function formatLine(name, qty, price, total, currency, lineLength = 48) {
+    // Limite le nom du produit à 12 caractères
+    const productName = name.length > 12 ? name.slice(0, 12) : name.padEnd(12);
+    const quantity = qty.toString().padStart(4);
+    const priceStr = price.toFixed(2).padStart(9);
+    const totalStr = total.toFixed(2).padStart(9);
+
+    return `${productName}${quantity} ${priceStr} ${currency} ${totalStr} ${currency}\n`;
+}
+
+// Centrer et mettre en gras / double taille
+function printHeader(name) {
+    return [
+        { type: 'raw', format: 'plain', data: '\x1B\x40' },           // Reset
+        { type: 'raw', format: 'plain', data: '\x1B\x61\x01' },       // Centre le texte
+        { type: 'raw', format: 'plain', data: '\x1B\x21\x30' },       // Double hauteur + double largeur
+        name + '\n',
+        { type: 'raw', format: 'plain', data: '\x1B\x21\x00' },       // Retour à normal
+        { type: 'raw', format: 'plain', data: '\x1B\x61\x00' }        // Alignement à gauche
+    ];
+}
+
 
 async function printInvoice(invoice) {
     try {
@@ -228,34 +278,56 @@ async function printInvoice(invoice) {
             alert("Veuillez d'abord configurer une imprimante !");
             return;
         }
-
+        const cashier_username =localStorage.getItem('username')
         const config = qz.configs.create(printerName);
+        const profile = userProfile.value || {};
+        const currency = profile.currency_preference || 'N/A';
+        const lineLength = 48; // Largeur standard 80mm
 
         const data = [
-            { type: 'raw', format: 'plain', data: '\x1B\x40' },
-            'Facture Bilatech Solution\n',
-            '----------------------------\n',
-            `Client: ${invoice.client_name}\n`,
-            'Produit   Qté  Prix  Total\n',
-            '----------------------------\n'
+            { type: 'raw', format: 'plain', data: '\x1B\x40' }, // Reset imprimante
+
+            // Nom de l'entreprise centré
+              ...printHeader(profile.entrep_name || 'Magasin'),
+
+            // Autres informations alignées à gauche
+            (profile.adress || '') + '\n',
+            'Tel     :' + (profile.phone_number || '') + '\n',
+            'RCCM    :' + (profile.rccm_number || '') + '\n',
+            'N.IMPOT : ' + (profile.impot_number || '') + '\n',
+
+            '-'.repeat(lineLength) + '\n',
+
+            `Caissier(e) : ${cashier_username}\n`,
+            `Client : ${invoice.client_name}\n`,
+            '-'.repeat(lineLength) + '\n',
+            'Produit       Qt     P.U        S.total\n',
+            '-'.repeat(lineLength) + '\n'
         ];
 
-          invoice.items.forEach(item => {
-            // Trouver le produit par ID
+        // Produits
+        invoice.items.forEach(item => {
             const product = products.value.find(p => p.id === item.product);
             const name = product ? product.name : 'Produit inconnu';
             const qty = Number(item.quantity);
             const price = Number(item.price);
             const total = qty * price;
-            
-            data.push(`${name.padEnd(12)} ${qty.toString().padStart(3)} ${price.toFixed(2).padStart(6)} ${total.toFixed(2).padStart(6)}\n`);
-          });
 
+            data.push(formatLine(name, qty,    price,    total,  currency, lineLength));
+        });
 
-        const totalInvoice = Number(invoice.total ?? invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.price), 0));
-        data.push('----------------------------\n');
-        data.push(`Total : ${totalInvoice.toFixed(2)}\n`);
-        data.push('\x1D\x56\x41\x10');
+        // Totaux
+        const totalInvoice = Number(invoice.total_amount ?? invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.price), 0));
+        data.push('-'.repeat(lineLength) + '\n');
+        data.push(`Total         : ${totalInvoice.toFixed(2)} ${currency}\n`);
+        data.push(`Montant percu : ${invoice.amount_paid.toFixed(2)} ${currency}\n`);
+        data.push(`Reste         : ${invoice.change.toFixed(2)} ${currency}\n`);
+        data.push('-'.repeat(lineLength) + '\n');
+
+        // Message final centré
+        data.push(centerText('Merci de votre confiance !', lineLength) + '\n\n');
+        data.push(centerText('Powered By Bilatech.org', lineLength) + '\n\n');
+        data.push('\x1D\x56\x41\x10'); // Coupe automatique
 
         await qz.print(config, data);
         alert("Facture imprimée avec succès !");
@@ -264,7 +336,6 @@ async function printInvoice(invoice) {
         alert("Erreur impression : " + err.message);
     }
 }
-
 
       
 </script>
@@ -400,7 +471,7 @@ async function printInvoice(invoice) {
           id="amountPaid"
           v-model="amountPaid"
           mode="decimal"
-          :min="0"
+          
           :maxFractionDigits="2"
           locale="en-US"
           :useGrouping="false"
@@ -416,8 +487,8 @@ async function printInvoice(invoice) {
       <!-- ✅ Bouton -->
       <div class="mt-5 text-right">
         <Button
-          label="💳 Payer et créer facture"
-          icon="pi pi-check"
+          label=" Payer et imprimer"
+          icon="pi pi-print"
           @click="createInvoice"
           severity="success"
           class="w-full sm:w-auto text-base font-semibold"
