@@ -187,7 +187,7 @@ watch(barcodeSearch, (newValue) => {
         try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoiceThermal(invoiceData, '80mm');
+            printInvoiceThermal(invoiceData, '2280');
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -203,26 +203,31 @@ watch(barcodeSearch, (newValue) => {
     }
     
 
-function printInvoiceThermal(invoiceData, width = '80mm') {
-  // width peut être '58mm' ou '80mm'
-  const printWindow = window.open('', '', 'width=300,height=600');
+function printInvoiceThermal(invoiceData, widthPx = 280) {
+  // largeur en pixels (≈58mm = 220px, 80mm = 280px)
+  const printWindow = window.open('', '', `width=${widthPx},height=600`);
 
   const style = `
     <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: ${widthPx}px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .container { padding: 4px; width: 100%; }
+      .center { text-align: center; }
+      .bold { font-weight: bold; }
+      .line { border-top: 1px dashed #000; margin: 4px 0; }
+      .row { display: flex; justify-content: space-between; white-space: nowrap; }
+      .product { margin-bottom: 4px; }
       @media print {
         body {
           margin: 0;
           padding: 0;
-          width: ${width};
-          font-family: monospace;
-          font-size: 12px;
+          width: ${widthPx}px;
         }
-        .container { padding: 0; width: 100%; }
-        .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .line { border-top: 1px dashed #000; margin: 4px 0; }
-        .row { display: flex; justify-content: space-between; white-space: nowrap; }
-        .product { margin-bottom: 4px; }
       }
     </style>
   `;
@@ -279,12 +284,18 @@ function printInvoiceThermal(invoiceData, width = '80mm') {
     </html>
   `;
 
+  // Écrit le contenu et attend que tout soit chargé avant d’imprimer
+  printWindow.document.open();
   printWindow.document.write(content);
   printWindow.document.close();
-  printWindow.focus();
-  printWindow.print(); // ouvre boîte de dialogue
-  printWindow.close();
+
+  // Très important : attendre le rendu avant impression
+  printWindow.onload = () => {
+    printWindow.focus();
+    printWindow.print();
+  };
 }
+
 
       
 </script>
