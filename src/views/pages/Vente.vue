@@ -187,7 +187,7 @@ watch(barcodeSearch, (newValue) => {
         try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoiceThermal(invoiceData);
+            printRawReceipt(invoiceData);
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -202,80 +202,37 @@ watch(barcodeSearch, (newValue) => {
         }
     }
     
-
-function printInvoiceThermal(invoiceData) {
-  const widthPx = 280; // largeur pour 80mm
-  const printWindow = window.open('', '', `width=${widthPx},height=600`);
-
-  const style = `
-    <style>
-      @page {
-        size: 80mm auto;
-        margin: 0;
-      }
-      body {
-        font-family: monospace;
-        font-size: 12px;
-        width: ${widthPx}px;
-        margin: 0;
-        padding: 0;
-      }
-      .container { width: 100%; padding: 8px; box-sizing: border-box; }
-      .center { text-align: center; }
-      .bold { font-weight: bold; }
-      .line { border-top: 1px dashed #000; margin: 6px 0; }
-      .row { display: flex; justify-content: space-between; }
-      .product { margin-bottom: 4px; }
-    </style>
+function printRawReceipt(invoice) {
+  const receipt = `
+        *** FACTURE ***
+Entreprise: ${userProfile.value?.entrep_name || ''}
+TEL: ${userProfile.value?.phone_number || ''}
+-----------------------------
+Client: ${invoice.client_name}
+Date: ${new Date().toLocaleString()}
+-----------------------------
+${invoice.items.map(i => {
+  const price = Number(i.price) || 0;
+  const qty = Number(i.quantity) || 0;
+  const name = (i.product?.name || '').padEnd(15);
+  const total = (price * qty).toFixed(2);
+  return `${qty} x ${name} ${total}`;
+}).join('\n')}
+-----------------------------
+TOTAL: ${(Number(invoice.total_amount) || 0).toFixed(2)}
+PAYÉ: ${(Number(invoice.amount_paid) || 0).toFixed(2)}
+MONNAIE: ${(Number(invoice.change) || 0).toFixed(2)}
+-----------------------------
+   Merci pour votre achat !
   `;
 
-  let html = `
-    <html>
-      <head>${style}</head>
-      <body>
-        <div class="container">
-          <div class="center bold">${userProfile.value?.entrep_name || 'Entreprise'}</div>
-          <div class="center">${userProfile.value?.adress || ''}</div>
-          <div class="center">TEL: ${userProfile.value?.phone_number || ''}</div>
-          <div class="line"></div>
-          <div><b>Client:</b> ${invoiceData.client_name}</div>
-          <div class="center">${new Date().toLocaleString()}</div>
-          <div class="line"></div>
-  `;
-
-  invoiceItems.value.forEach((item) => {
-    html += `
-      <div class="product">
-        <div>${item.product.name}</div>
-        <div class="row">
-          <span>${item.quantity} x ${formatPrice(item.price)}</span>
-          <span>${formatPrice(item.quantity * item.price)}</span>
-        </div>
-      </div>
-    `;
-  });
-
-  html += `
-          <div class="line"></div>
-          <div class="row bold"><span>Total</span><span>${formatPrice(invoiceData.total_amount)}</span></div>
-          <div class="row"><span>Payé</span><span>${formatPrice(amountPaid.value)}</span></div>
-          <div class="row"><span>Monnaie</span><span>${formatPrice(invoiceData.change)}</span></div>
-          <div class="line"></div>
-          <div class="center">Merci pour votre achat !</div>
-        </div>
-      </body>
-    </html>
-  `;
-
-  printWindow.document.write(html);
-  printWindow.document.close();
-
-  // Attendre que le contenu soit complètement prêt
-  printWindow.onload = () => {
-    printWindow.focus();
-    printWindow.print(); // Boîte de dialogue d’impression
-  };
+  const win = window.open('', '', 'width=300,height=600');
+  win.document.write(`<pre style="font-family: monospace; font-size: 12px">${receipt}</pre>`);
+  win.print();
 }
+
+
+
 
 
 
