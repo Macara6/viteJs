@@ -187,7 +187,7 @@ watch(barcodeSearch, (newValue) => {
         try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoiceThermal(invoiceData, '2280');
+            printInvoiceThermal(invoiceData);
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -203,56 +203,48 @@ watch(barcodeSearch, (newValue) => {
     }
     
 
-function printInvoiceThermal(invoiceData, widthPx = 280) {
-  // largeur en pixels (≈58mm = 220px, 80mm = 280px)
+function printInvoiceThermal(invoiceData) {
+  const widthPx = 280; // largeur pour 80mm
   const printWindow = window.open('', '', `width=${widthPx},height=600`);
 
   const style = `
     <style>
-      body {
+      @page {
+        size: 80mm auto;
         margin: 0;
-        padding: 0;
-        width: ${widthPx}px;
+      }
+      body {
         font-family: monospace;
         font-size: 12px;
+        width: ${widthPx}px;
+        margin: 0;
+        padding: 0;
       }
-      .container { padding: 4px; width: 100%; }
+      .container { width: 100%; padding: 8px; box-sizing: border-box; }
       .center { text-align: center; }
       .bold { font-weight: bold; }
-      .line { border-top: 1px dashed #000; margin: 4px 0; }
-      .row { display: flex; justify-content: space-between; white-space: nowrap; }
+      .line { border-top: 1px dashed #000; margin: 6px 0; }
+      .row { display: flex; justify-content: space-between; }
       .product { margin-bottom: 4px; }
-      @media print {
-        body {
-          margin: 0;
-          padding: 0;
-          width: ${widthPx}px;
-        }
-      }
     </style>
   `;
 
-  let content = `
+  let html = `
     <html>
-      <head>
-        <title>Facture</title>
-        ${style}
-      </head>
+      <head>${style}</head>
       <body>
         <div class="container">
-          <div class="center bold">${userProfile.value?.entrep_name || 'Non défini'}</div>
+          <div class="center bold">${userProfile.value?.entrep_name || 'Entreprise'}</div>
           <div class="center">${userProfile.value?.adress || ''}</div>
-          <div class="center">RCCM: ${userProfile.value?.rccm_number || ''}</div>
-          <div class="center">IMPOT: ${userProfile.value?.impot_number || ''}</div>
           <div class="center">TEL: ${userProfile.value?.phone_number || ''}</div>
-          <div class="center">${new Date().toLocaleString()}</div>
           <div class="line"></div>
-          <div><strong>Client:</strong> ${invoiceData.client_name}</div>
+          <div><b>Client:</b> ${invoiceData.client_name}</div>
+          <div class="center">${new Date().toLocaleString()}</div>
           <div class="line"></div>
   `;
 
-  invoiceItems.value.forEach(item => {
-    content += `
+  invoiceItems.value.forEach((item) => {
+    html += `
       <div class="product">
         <div>${item.product.name}</div>
         <div class="row">
@@ -263,20 +255,11 @@ function printInvoiceThermal(invoiceData, widthPx = 280) {
     `;
   });
 
-  content += `
+  html += `
           <div class="line"></div>
-          <div class="row bold">
-            <span>Total</span>
-            <span>${formatPrice(invoiceData.total_amount)}</span>
-          </div>
-          <div class="row">
-            <span>Payé</span>
-            <span>${formatPrice(amountPaid.value)}</span>
-          </div>
-          <div class="row">
-            <span>Monnaie</span>
-            <span>${formatPrice(invoiceData.change)}</span>
-          </div>
+          <div class="row bold"><span>Total</span><span>${formatPrice(invoiceData.total_amount)}</span></div>
+          <div class="row"><span>Payé</span><span>${formatPrice(amountPaid.value)}</span></div>
+          <div class="row"><span>Monnaie</span><span>${formatPrice(invoiceData.change)}</span></div>
           <div class="line"></div>
           <div class="center">Merci pour votre achat !</div>
         </div>
@@ -284,17 +267,16 @@ function printInvoiceThermal(invoiceData, widthPx = 280) {
     </html>
   `;
 
-  // Écrit le contenu et attend que tout soit chargé avant d’imprimer
-  printWindow.document.open();
-  printWindow.document.write(content);
+  printWindow.document.write(html);
   printWindow.document.close();
 
-  // Très important : attendre le rendu avant impression
+  // Attendre que le contenu soit complètement prêt
   printWindow.onload = () => {
     printWindow.focus();
-    printWindow.print();
+    printWindow.print(); // Boîte de dialogue d’impression
   };
 }
+
 
 
       
