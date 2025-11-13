@@ -187,7 +187,7 @@ watch(barcodeSearch, (newValue) => {
         try{ 
             await createInvoiceAPI(invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printRawReceipt(invoiceData);
+            printInvoiceThermalQZ(invoiceData);
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -202,37 +202,49 @@ watch(barcodeSearch, (newValue) => {
         }
     }
     
-function printRawReceipt(invoice) {
-  const receipt = `
-        *** FACTURE ***
-Entreprise: ${userProfile.value?.entrep_name || ''}
-TEL: ${userProfile.value?.phone_number || ''}
------------------------------
-Client: ${invoice.client_name}
-Date: ${new Date().toLocaleString()}
------------------------------
-${invoice.items.map(i => {
-  const price = Number(i.price) || 0;
-  const qty = Number(i.quantity) || 0;
-  const name = (i.product?.name || '').padEnd(15);
-  const total = (price * qty).toFixed(2);
-  return `${qty} x ${name} ${total}`;
-}).join('\n')}
------------------------------
-TOTAL: ${(Number(invoice.total_amount) || 0).toFixed(2)}
-PAYÉ: ${(Number(invoice.amount_paid) || 0).toFixed(2)}
-MONNAIE: ${(Number(invoice.change) || 0).toFixed(2)}
------------------------------
-   Merci pour votre achat !
-  `;
 
-  const win = window.open('', '', 'width=300,height=600');
-  win.document.write(`<pre style="font-family: monospace; font-size: 12px">${receipt}</pre>`);
-  win.print();
+
+function printInvoiceThermalQZ(invoiceData) {
+  if (!window.qz) {
+    alert("QZ Tray n'est pas installé ou lancé !");
+    return;
+  }
+
+  const lines = [];
+
+  lines.push("*** FACTURE ***");
+  lines.push(userProfile.value?.entrep_name || "Entreprise");
+  lines.push(userProfile.value?.adress || "");
+  lines.push("TEL: " + (userProfile.value?.phone_number || ""));
+  lines.push("-----------------------------");
+  lines.push(`Client: ${invoiceData.client_name}`);
+  lines.push(new Date().toLocaleString());
+  lines.push("-----------------------------");
+
+  invoiceItems.value.forEach((item) => {
+    const name = item.product.name.padEnd(15);
+    const qty = item.quantity;
+    const total = (item.quantity * item.price).toFixed(2);
+    lines.push(`${qty} x ${name} ${total}`);
+  });
+
+  lines.push("-----------------------------");
+  lines.push(`TOTAL: ${(invoiceData.total_amount || 0).toFixed(2)}`);
+  lines.push(`PAYÉ: ${(amountPaid.value || 0).toFixed(2)}`);
+  lines.push(`MONNAIE: ${(invoiceData.change || 0).toFixed(2)}`);
+  lines.push("-----------------------------");
+  lines.push("Merci pour votre achat !");
+  lines.push("\n\n");         // feed
+  lines.push("\x1D\x56\x41"); // cut
+
+  // Connexion et impression
+  qz.websocket.connect()
+    .then(() => {
+      const config = qz.configs.create("NomDeVotreImprimante");
+      return qz.print(config, lines);
+    })
+    .catch(console.error);
 }
-
-
-
 
 
 
