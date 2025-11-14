@@ -4,9 +4,8 @@
       import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
 
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
-
-      
+import { computed, onMounted, ref, watch } from 'vue';
+   
         const products = ref([]);
         const selectedProducts = ref([]);
         const filters = ref({
@@ -15,9 +14,15 @@ import { onMounted, ref, watch } from 'vue';
 
 const invoiceItems = ref([]);
         const clientName = ref('');
-        const totalAmount = ref(0);
+
+        const totalAmount = computed(() => {
+          return invoiceItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        });
+
         const amountPaid = ref(null);
         const change = ref(0);
+  
+
         const userProfile = ref(null);
 const search = ref('');
 const toast = useToast();
@@ -31,7 +36,12 @@ const qzDetected = ref(false);
 const pendingInvoices = ref([]);
 const showPendingDialog = ref(false);
 
-    onMounted(async () => {
+const showInvoiceDialog =ref(false);
+let lastInvoice = null; // pour stocker la facture pendant un  moment
+
+const showCancelConfirm = ref(false);
+
+  onMounted(async () => {
         await loadProduct();
         await fetchUserProfl();
       
@@ -42,7 +52,7 @@ const showPendingDialog = ref(false);
         return products.value;
     }
     return products.value.filter(p => p.barcode?.includes(barcodeSearch.value));
-    }
+  }
 
 
 
@@ -56,6 +66,16 @@ watch(barcodeSearch, (newValue) => {
     barcodeSearch.value = ''; // réinitialise la barre de recherche
   }
 });
+
+watch(amountPaid, (newValue) => {
+    const paid = parseFloat(newValue) || 0;
+    change.value = paid - totalAmount.value;
+});
+
+function startRealtimeCalculation() {
+    const paid = parseFloat(amountPaid.value) || 0;
+    change.value = paid - totalAmount.value;
+}
 
 
     async function loadProduct() {
@@ -147,10 +167,16 @@ function addToInvoice(product) {
         },0);
     }
     
-    watch(amountPaid, (newVal) => {
-    const diff = newVal - totalAmount.value;
-    change.value = diff > 0 ? diff : 0;
-    });
+watch(amountPaid, () => {
+  calculateChange();
+});
+
+function calculateChange() {
+    const paid = Number(amountPaid.value) || 0;
+    const total = Number(totalAmount.value) || 0;
+
+    change.value = paid > total ? paid - total : 0;
+}
 
     const verifierStockProduits = () => {
         const produitsInsuffisants = invoiceItems.value.filter(item => {
@@ -179,8 +205,13 @@ function addToInvoice(product) {
             toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
             return;
         }
+        if(invoiceItems.value.length == 0){
+            toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'la facture est vide', life: 3000 });
+            return;
+        }
 
         change.value =amountPaid.value - totalAmount.value;
+
         if (!verifierStockProduits()) {
         return; // Stoppe la création si stock insuffisant
         }
@@ -204,7 +235,10 @@ function addToInvoice(product) {
             await createInvoiceAPI(invoiceData);
             console.log('userProfile :', userProfile);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-            printInvoice(invoiceData);
+
+            lastInvoice =invoiceData;
+            showInvoiceDialog.value = true;
+
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
@@ -218,6 +252,43 @@ function addToInvoice(product) {
                 }
         }
     }
+
+
+// annuler la facture 
+
+function confirmCancelInvoice(){
+  showCancelConfirm.value = true;
+}
+function cancelInvoiceConfirmed(){
+  showCancelConfirm.value = false;
+
+  invoiceItems.value = [];
+  clientName.value = '';
+  amountPaid.value = null;
+  totalAmount.value = 0;
+  change.value = 0;
+  barcodeSearch.value = '';
+
+  toast.add({
+    severity: 'success',
+    summary: 'Facture annulée',
+    life: 2000
+  });
+
+}
+
+
+// imprimer avec l'imprimante
+function  onPrintSelected(){
+   showInvoiceDialog.value = false;
+   printInvoice(lastInvoice);
+}
+// imprimer le PDF
+function onPdfSelected(){
+  showInvoiceDialog.value = false;
+  generatePdfInvoice(lastInvoice);
+}
+
 // mettre la facture en attente
 function savePendingInvoice(){
   if(!clientName.value && invoiceItems.value.length ===0){
@@ -311,7 +382,6 @@ function printHeader(name) {
     ];
 }
 
-
 async function printInvoice(invoice) {
     try {
         const printerName = localStorage.getItem('printerName');
@@ -376,7 +446,44 @@ async function printInvoice(invoice) {
         console.error(err);
         alert("Erreur impression : " + err.message);
     }
+} 
+
+import jsPDF from "jspdf";
+
+async function generatePdfInvoice(invoice) {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    doc.setFontSize(18);
+    doc.text("FACTURE", 105, 20, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.text(`Client : ${invoice.client_name}`, 20, 40);
+    doc.text(`Caissier : ${localStorage.getItem('username')}`, 20, 48);
+
+    doc.text(`Total : ${invoice.total_amount.toFixed(2)}`, 20, 60);
+    doc.text(`Payé : ${invoice.amount_paid.toFixed(2)}`, 20, 68);
+    doc.text(`Reste : ${invoice.change.toFixed(2)}`, 20, 76);
+
+    doc.line(20, 85, 190, 85);
+
+    doc.text("Produits :", 20, 95);
+
+    let y = 105;
+
+    invoice.items.forEach(item => {
+        const product = products.value.find(p => p.id === item.product) || {};
+
+        doc.text(`${product.name || 'Produit'}`, 20, y);
+        doc.text(`Qté : ${item.quantity}`, 100, y);
+        doc.text(`PU : ${item.price}`, 140, y);
+        doc.text(`Total : ${(item.quantity * item.price).toFixed(2)}`, 170, y);
+
+        y += 8;
+    });
+
+    doc.save(`facture_${Date.now()}.pdf`);
 }
+
 
       
 </script>
@@ -445,7 +552,7 @@ async function printInvoice(invoice) {
   </h3>
 
   <!-- Client -->
-   <Button label="Factures en attente" icon="pi pi-clock" @click="showPendingDialog = true" class="mb-2" />
+   <Button label="Factures en attente"  icon="pi pi-clock" @click="showPendingDialog = true" class="!big-orange-600 mb-2" />
   <div class="mb-2">
     <label class="block text-sm font-medium text-gray-600 mb-1">Client</label>
    
@@ -557,12 +664,26 @@ async function printInvoice(invoice) {
         :useGrouping="false"
         class="flex-1 text-xs sm:text-sm border-gray-300 rounded-md focus:border-green-500 focus:ring-green-500"
         inputClass="text-right"
+        @input="startRealtimeCalculation"
+        @update:modelValue="startRealtimeCalculation"
       />
+
+
+
     </div>
+
     </div>
 
     <!-- Bouton -->
-    <div class="mt-3 flex justify-end">
+    <div class="mt-3 flex justify-end gap-2">
+      <Button
+          label="Annuler"
+          icon="pi pi-times"
+          severity="danger"
+          class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md px-3 py-2 shadow-sm border-none transition"
+          @click="confirmCancelInvoice"
+      />
+
       <Button
         label="Mettre en attente"
         icon="pi pi-shopping-bag"
@@ -571,8 +692,8 @@ async function printInvoice(invoice) {
       />
 
       <Button
-        label="Payer & Imprimer"
-        icon="pi pi-print"
+        label="Payer & imprimer"
+        icon="pi pi-money-bill"
         @click="createInvoice"
         class="bg-green-900 hover:bg-green-600 text-white text-sm font-semibold rounded-md px-4 py-2 shadow-sm border-none transition-all"
       />
@@ -654,7 +775,43 @@ async function printInvoice(invoice) {
 
 
 
+<Dialog 
+    v-model:visible="showInvoiceDialog" 
+    header="Choisir une action" 
+    :modal="true" 
+    :closable="false"
+    style="width: 350px"
+>
+    <div class="flex flex-column gap-3">
 
+        <Button 
+            label="🖨️ Imprimer la facture" 
+            class="p-button-primary w-full"
+            @click="onPrintSelected"
+        />
+
+        <Button 
+            label="📄 Télécharger en PDF" 
+            class="p-button-secondary w-full"
+            @click="onPdfSelected"
+        />
+
+        <Button 
+            label="Fermer" 
+            class="p-button-danger w-full"
+            @click="showInvoiceDialog = false"
+        />
+    </div>
+</Dialog>
+
+<Dialog v-model:visible="showCancelConfirm" header="Annuler la facture" modal class="w-80">
+  <p class="text-center text-gray-700 mb-4">Voulez-vous vraiment annuler cette facture ?</p>
+
+  <div class="flex justify-center gap-3">
+    <Button label="Non" class="p-button-text" @click="showCancelConfirm=false" />
+    <Button label="Oui" severity="danger" @click="cancelInvoiceConfirmed" />
+  </div>
+</Dialog>
 
 
   </div>
