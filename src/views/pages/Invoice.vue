@@ -325,6 +325,9 @@ onMounted(async () => {
         <Column field="amount_paid" header="Montant Perçu" sortable>
           <template #body="slotProps">{{ formatPrice(slotProps.data.amount_paid) }}</template>
         </Column>
+        <Column field="tva" header="TVA 16 %">
+          <template #body="slotProps">{{formatPrice(slotProps?.data.tva || 'N/A') }} </template>
+        </Column>
         <Column field="cashier_currency" header="Devise" sortable />
         <Column field="created_at" header="Date" sortable>
           <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
@@ -418,6 +421,15 @@ onMounted(async () => {
             </span>
           </p>
         </div>
+         <div class="flex justify-end mt-4 border-t pt-4">
+          <p class="text-lg sm:text-xl font-bold text-right">
+            TVA : <span class="text-green-600">
+              {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
+              {{ invoices.find(c => c.id === selectedInvoices)?.tva || 'N/A' }}
+            </span>
+          </p>
+        </div>
+
       </div>
     </Dialog>
   </div>

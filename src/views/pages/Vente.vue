@@ -21,6 +21,7 @@ const invoiceItems = ref([]);
 
         const amountPaid = ref(null);
         const change = ref(0);
+        const tva = ref(0);
   
 
         const userProfile = ref(null);
@@ -71,9 +72,9 @@ watch(amountPaid, (newValue) => {
     const paid = parseFloat(newValue) || 0;
     change.value = paid - totalAmount.value;
 });
-
-function startRealtimeCalculation() {
-    const paid = parseFloat(amountPaid.value) || 0;
+function onInput(event) {
+    // PrimeVue fournit la valeur brute dans event.value
+    const paid = parseFloat(event.value) || 0;
     change.value = paid - totalAmount.value;
 }
 
@@ -165,7 +166,9 @@ function addToInvoice(product) {
         totalAmount.value = invoiceItems.value.reduce((sum, item) => {
             return sum + item.quantity * item.price;
         },0);
+        tva.value = totalAmount.value * 0.16;
     }
+  
     
 watch(amountPaid, () => {
   calculateChange();
@@ -267,6 +270,7 @@ function cancelInvoiceConfirmed(){
   amountPaid.value = null;
   totalAmount.value = 0;
   change.value = 0;
+  tva.value =0
   barcodeSearch.value = '';
 
   toast.add({
@@ -312,6 +316,7 @@ function savePendingInvoice(){
     totalAmount.value = 0;
     amountPaid.value = 0;
     change.value = 0;
+    tva.value = 0;
 
    toast.add({ severity: 'success', summary: 'Facture en attente', detail: 'La facture a été mise en attente.', life: 3000 });
 }
@@ -432,6 +437,7 @@ async function printInvoice(invoice) {
         data.push('-'.repeat(lineLength) + '\n');
         data.push(`Total         : ${totalInvoice.toFixed(2)} ${currency}\n`);
         data.push(`Montant percu : ${invoice.amount_paid.toFixed(2)} ${currency}\n`);
+        data.push(`TVA           : ${tva.value.toFixed(2)} ${currency}\n`);
         data.push(`Reste         : ${invoice.change.toFixed(2)} ${currency}\n`);
         data.push('-'.repeat(lineLength) + '\n');
 
@@ -460,9 +466,7 @@ async function generatePdfInvoice(invoice) {
     doc.text(`Client : ${invoice.client_name}`, 20, 40);
     doc.text(`Caissier : ${localStorage.getItem('username')}`, 20, 48);
 
-    doc.text(`Total : ${invoice.total_amount.toFixed(2)}`, 20, 60);
-    doc.text(`Payé : ${invoice.amount_paid.toFixed(2)}`, 20, 68);
-    doc.text(`Reste : ${invoice.change.toFixed(2)}`, 20, 76);
+
 
     doc.line(20, 85, 190, 85);
 
@@ -480,6 +484,11 @@ async function generatePdfInvoice(invoice) {
 
         y += 8;
     });
+
+    doc.text(`Total         : ${invoice.total_amount.toFixed(2)}`, 20, 60);
+    doc.text(`Montant perçu : ${invoice.amount_paid.toFixed(2)}`, 20, 68);
+    doc.text(`TVA          : ${tva.value.toFixed(2)}`, 20, 76);
+    doc.text(`Reste         : ${invoice.change.toFixed(2)}`, 20, 84);
 
     doc.save(`facture_${Date.now()}.pdf`);
 }
@@ -645,11 +654,19 @@ async function generatePdfInvoice(invoice) {
           </span>
         </div>
         <div class="flex justify-between sm:justify-start sm:gap-2">
+          <span>TVA:</span>
+          <span class="text-red-600">
+            {{ formatPrice(tva) }} {{ userProfile?.currency_preference || '' }}
+          </span>
+        </div>
+        <div class="flex justify-between sm:justify-start sm:gap-2">
           <span>Reste :</span>
           <span class="text-red-600">
             {{ formatPrice(change) }} {{ userProfile?.currency_preference || '' }}
           </span>
         </div>
+
+
       </div>
 
 <!-- Paiement -->
@@ -662,14 +679,10 @@ async function generatePdfInvoice(invoice) {
         :maxFractionDigits="2"
         locale="en-US"
         :useGrouping="false"
-        class="flex-1 text-xs sm:text-sm border-gray-300 rounded-md focus:border-green-500 focus:ring-green-500"
+        class="text-xs sm:text-sm border-gray-300 rounded-md"
         inputClass="text-right"
-        @input="startRealtimeCalculation"
-        @update:modelValue="startRealtimeCalculation"
+       @input="onInput"
       />
-
-
-
     </div>
 
     </div>
