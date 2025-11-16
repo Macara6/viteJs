@@ -3,28 +3,29 @@
 <script setup>
       import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
 
+import { clearCache, loadCache, saveCache } from '@/utils/cache';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
-   
-        const products = ref([]);
-        const selectedProducts = ref([]);
-        const filters = ref({
+const products = ref([]);
+const selectedProducts = ref([]);
+const filters = ref({
         global: { value: null, matchMode: 'contains' }
-        });
+   });
 
 const invoiceItems = ref([]);
-        const clientName = ref('');
+const clientName = ref('');
 
-        const totalAmount = computed(() => {
+const totalAmount = computed(() => {
           return invoiceItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
-        });
+});
 
-        const amountPaid = ref(null);
-        const change = ref(0);
-        const tva = ref(0);
-  
+ const amountPaid = ref(null);
 
-        const userProfile = ref(null);
+const change = ref(0)
+
+const tva = ref(0);
+
+  const userProfile = ref(null);
 const search = ref('');
 const toast = useToast();
 const barcodeSearch = ref('');
@@ -71,25 +72,35 @@ watch(barcodeSearch, (newValue) => {
 watch(amountPaid, (newValue) => {
     const paid = parseFloat(newValue) || 0;
     change.value = paid - totalAmount.value;
+    
 });
+
 function onInput(event) {
-    // PrimeVue fournit la valeur brute dans event.value
     const paid = parseFloat(event.value) || 0;
     change.value = paid - totalAmount.value;
 }
 
 
-    async function loadProduct() {
+async function loadProduct() {
         const userId = localStorage.getItem('id');
-        try {
+        const cachedProducts = loadCache('products');
+        if(cachedProducts && cachedProducts.length){
+          products.value = cachedProducts;
+          console.log('Produits charger depuis le cache')
+          return;
+        }
+
+         try {
             const fetchProduct = await fetchProduits(userId);
             products.value = fetchProduct;
+            saveCache('products', fetchProduct); 
+            console.log('Produits chargés depuis l’API et mis en cache');     
         } catch (error) {
             console.error('There was a problem with the fetch operation:', error);
         }
-    }
+}
 
-    async function fetchUserProfl(){
+async function fetchUserProfl(){
       const userId = localStorage.getItem('id');
       try{
         const result = await fetchUserProfilById(userId);
@@ -97,32 +108,54 @@ function onInput(event) {
       } catch(error){
         console.error('Erreur lors du chargement du profile utilisateur', error);
       }
-    }
+}
 
-    function refreshPage() {
+function refreshPage() {
         loadProduct();
     }
 
-    function formatPrice(value) {
+function formatPrice(value) {
         return Number(value).toLocaleString('fr-CD');
-     }
+}
 
 
-    function updateQuantity(item, quantity) {
+function updateQuantity(item, quantity) {
         if (quantity < 1){
           item.quantity = 1;
         }else{
            item.quantity = quantity;
         }
         updateTotal();
-    }
+}
+async function forceRefreshProducts() {
+  try {
+    clearCache('products');
 
+    const userId = localStorage.getItem('id');
+    const fetchedProducts = await fetchProduits(userId);
+    products.value = fetchedProducts;
+    saveCache('products', fetchedProducts);
+    toast.add({
+      severity: 'success',
+      summary: 'Produits mis à jour',
+      detail: 'Les produits ont été rechargés depuis l’API.',
+      life: 3000,
+    });
+  } catch (error) {
+    console.error('Erreur lors de l’actualisation :', error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Impossible de recharger les produits.',
+      life: 3000,
+    });
+  }
+}
 
-    function removeFromInvoice(productId){
+function removeFromInvoice(productId){
         invoiceItems.value = invoiceItems.value.filter(item => item.product.id !== productId);
         updateTotal();
-    }
-
+}
 // fajouter le produit a la facture 
 function addToInvoice(product) {
     // Vérifier le stock disponible
@@ -162,12 +195,12 @@ function addToInvoice(product) {
     updateTotal();
 }
 
-    function updateTotal(){
+function updateTotal(){
         totalAmount.value = invoiceItems.value.reduce((sum, item) => {
             return sum + item.quantity * item.price;
         },0);
-        tva.value = totalAmount.value * 0.16;
-    }
+        tva.value = totalAmount.value * 0.16;       
+}
   
     
 watch(amountPaid, () => {
@@ -201,9 +234,9 @@ function calculateChange() {
         }
 
         return true;
-    };
+};
 
-    async function createInvoice(){
+async function createInvoice(){
           if (amountPaid.value < totalAmount.value) {
             toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
             return;
@@ -236,16 +269,15 @@ function calculateChange() {
         };
         try{ 
             await createInvoiceAPI(invoiceData);
-            console.log('userProfile :', userProfile);
+            saveCache('Invoices',invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
-
             lastInvoice =invoiceData;
             showInvoiceDialog.value = true;
-
              invoiceItems.value = [];
              totalAmount.value = 0;
              amountPaid.value = 0;
             change.value = 0;
+            tva.value =0;
             clientName.value = '';
    
         }catch (error) {
@@ -254,7 +286,7 @@ function calculateChange() {
                     console.error('Détails de l’erreur :', error.response.data);
                 }
         }
-    }
+}
 
 
 // annuler la facture 
@@ -505,6 +537,14 @@ async function generatePdfInvoice(invoice) {
       <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
         <i class="pi pi-box text-indigo-500"></i> Produits disponibles
       </h3>
+      <div class="flex justify-end mb-3">
+      <Button
+        label="Actualiser les produits"
+        icon="pi pi-refresh"
+        class="p-button-sm p-button-info"
+        @click="forceRefreshProducts"
+      />
+    </div>
 
       <!-- 🔍 Recherche -->
       <div class="flex flex-col sm:flex-row gap-3 mb-4">
@@ -525,7 +565,7 @@ async function generatePdfInvoice(invoice) {
       <div class="flex-1 overflow-auto">
         <DataTable
           :value="filterProducts()"
-          :rows="6"
+          :rows="8"
           :paginator="true"
           :filters="filters"
           dataKey="id"
@@ -577,9 +617,8 @@ async function generatePdfInvoice(invoice) {
     <DataTable
       :value="invoiceItems"
       dataKey="product.id"
-      :rows="6"
-      :paginator="false"
-      responsiveLayout="scroll"
+      :virtualScroll="true"
+      scrollHeight="400px"
       class="text-xs"
     >
       <Column field="product.name" header="Produit" style="width: 40%" />

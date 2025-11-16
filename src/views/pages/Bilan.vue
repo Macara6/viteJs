@@ -1,6 +1,6 @@
 <script setup>
 import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
-import { cacheKey, loadCache, saveCache } from '@/utils/cache'
+import { loadCache, saveCache } from '@/utils/cache'
 import { formatPrice } from '@/utils/formatters'
 import { useToast } from 'primevue/usetoast'
 import { computed, onMounted, ref, watch } from 'vue'

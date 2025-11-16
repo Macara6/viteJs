@@ -14,10 +14,10 @@ import {
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
 
+import { loadCache, saveCache } from '@/utils/cache.js';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
-
 const toast = useToast();
 
 // --- state ---
@@ -50,20 +50,7 @@ const selectedCategoryFilter = ref(null);
 
 const dt = ref();
 
-// cache helpers
-const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
-const cacheKey = (name) => `cache_${name}`;
-const saveCache = (name, data) => localStorage.setItem(cacheKey(name), JSON.stringify({ data, timestamp: Date.now() }));
-const loadCache = (name) => {
-  const cached = localStorage.getItem(cacheKey(name));
-  if (!cached) return null;
-  try {
-    const payload = JSON.parse(cached);
-    if (Date.now() - payload.timestamp < CACHE_EXPIRATION_MS) return payload.data;
-    localStorage.removeItem(cacheKey(name));
-    return null;
-  } catch { return null; }
-};
+
 
 // dialog/category state
 const categoryDialog = ref(false);
@@ -123,7 +110,9 @@ async function loadProducts(userId) {
       ...p,
       category_name: categorys.value.find(c => c.id === p.category)?.name || 'Unknown'
     })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     saveCache('products', products.value);
+
   } catch (error) {
     console.error('Erreur récupération produits', error);
     products.value = [];
