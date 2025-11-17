@@ -524,7 +524,7 @@ onMounted(async () => {
 
   <Column field="tva" header="TVA" sortable style="max-width: 90px;">
     <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.tva) }}</span>
+      <span class="cell">{{ formatPrice(slotProps.data.tva) || 'N/A' }}</span>
     </template>
   </Column>
 
