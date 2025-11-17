@@ -1,6 +1,6 @@
 <script setup>
 import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
-import { loadCache, saveCache } from '@/utils/cache'
+import { clearAllCache, loadCache, saveCache } from '@/utils/cache'
 import { formatPrice } from '@/utils/formatters'
 import { useToast } from 'primevue/usetoast'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -30,6 +30,10 @@ const total_AmountUserConnect = ref(0)
 const total_ProfitAmountUserConnect = ref(0)
 const total_AmountCashOut = ref(0)
 const todaysCashoutCount = ref(0)
+
+
+const canceledInvoicesCount = ref(0);
+const canceledTotalAmount = ref(0);
 
 // Graphiques
 const pieData = ref(null)
@@ -62,7 +66,12 @@ async function initData() {
       childUsers.value[i].currency = childUsers.value[i].profile?.currency_preference || 'N/A'
     }
 
-    invoices.value = await fetchInvoicesAllUsers(activeUserId)
+    const allInvoices = await fetchInvoicesAllUsers(activeUserId)
+    // on garde le factures avec un status  Valide
+    invoices.value = allInvoices.filter(inv => inv.status ==="VALIDE");
+    canceledInvoicesCount.value = allInvoices.filter(inv => inv.status ==="ANNULER").length
+    canceledTotalAmount.value = allInvoices.filter(inv => inv.status ==="ANNULER").reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+
     cashouts.value = await fetchCashOut(activeUserId)
 
     console.log('cashout pour utilisateur selecte',cashouts.value)
@@ -82,12 +91,9 @@ async function initData() {
 
 // ================= Force refresh =================
 function forceRefresh() {
-  localStorage.removeItem(cacheKey('userConnected'))
-  localStorage.removeItem(cacheKey('userProfile'))
-  localStorage.removeItem(cacheKey('invoices'))
-  localStorage.removeItem(cacheKey('cashoutList'))
-  localStorage.removeItem(cacheKey('childUsers'))
-  initData()
+  clearAllCache();
+  initData();
+   toast.add({ severity: 'success', summary: 'Actualisé', detail: 'Les données ont étés rechargées', life: 2000 });
 }
 
 // ================= Dashboard Cards =================
@@ -131,16 +137,22 @@ async function updateDashboardCards() {
     inv => inv.cashier === userIdForCards &&
            new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
   )
+ 
+
 
   const filteredCashouts = cashouts.value.filter(
     c => c.user === userIdForCards &&
          new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
   )
+
+ 
+ 
   todaysInvoicesUserConnectCount.value = filteredInvoices.length
   total_AmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
   total_ProfitAmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.profit_amount || 0), 0)
   todaysCashoutCount.value = filteredCashouts.length
   total_AmountCashOut.value = filteredCashouts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0)
+ 
 }
 
 const displayUserProfile = computed(() => {
@@ -447,39 +459,67 @@ onMounted(() => {
     <!-- Dashboard Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
       <!-- Carte template -->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Nombres de factures</span>
-            <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl"> {{ todaysInvoicesUserConnectCount }}</div>
+      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full bg-white dark:bg-gray-800">
+
+        <!-- Titre -->
+        <div class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2 text-center">
+          Factures
+        </div>
+
+        <!-- Comptage des factures -->
+        <div class="flex justify-around items-center mb-4">
+          <!-- Factures valides -->
+          <div class="flex flex-col items-center">
+            <span class="text-green-500 text-3xl font-bold">{{ todaysInvoicesUserConnectCount }}</span>
+            <span class="text-green-700 text-sm font-medium">Valides</span>
           </div>
-          <div class="flex items-center justify-center bg-blue-100 dark:bg-blue-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-shopping-cart text-blue-500 text-lg"></i>
+
+          <!-- Factures annulées -->
+          <div class="flex flex-col items-center">
+            <span class="text-red-500 text-3xl font-bold">{{ canceledInvoicesCount}}</span>
+            <span class="text-red-700 text-sm font-medium">Annulées</span>
           </div>
         </div>
-        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto">
-          <span>{{ selectDate.global.value }} :</span>
-          <span>{{ userConnect }}</span>
+
+        <!-- Footer : date -->
+        <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
+          {{ selectDate.global.value || 'Toutes les dates' }}
         </div>
+
       </div>
 
       <!-- Total -->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Total</span>
-            <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
-              {{ formatPrice(total_AmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
-            </div>
-          </div>
-          <div class="flex items-center justify-center bg-green-100 dark:bg-green-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-arrow-down-left text-green-500 text-lg"></i>
+    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Factures</span>
+          <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
+            {{ formatPrice(total_AmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
           </div>
         </div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
-          Total pour aujourd'hui : {{ selectDate.global.value }}
+        <div class="flex flex-col items-center justify-center gap-2">
+          <!-- Valides -->
+          <div class="flex items-center gap-2 bg-green-100 dark:bg-green-400/10 rounded-full px-2 py-1">
+            <i class="pi pi-check text-green-500 text-sm"></i>
+            <span class="text-green-600 dark:text-green-400 text-sm font-medium">
+              {{ formatPrice(total_AmountUserConnect) }}
+            </span>
+          </div>
+          <!-- Annulées -->
+          <div class="flex items-center gap-2 bg-red-100 dark:bg-red-400/10 rounded-full px-2 py-1">
+            <i class="pi pi-ban text-red-500 text-sm"></i>
+            <span class="text-red-600 dark:text-red-400 text-sm font-medium">
+              {{ formatPrice(canceledTotalAmount) }}
+            </span>
+          </div>
         </div>
       </div>
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
+        Total pour aujourd'hui : {{ selectDate.global.value }}
+      </div>
+    </div>
+
+
 
      
     <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">

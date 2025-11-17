@@ -313,8 +313,23 @@ export async function deleteInvoiceAPI(invoiceId){
         console.log('error to deleteting invoice')
         throw error;
     }
-
 }
+
+export async function cancelInvoiceAPI(invoiceId){
+    const CANCEL_INVOICE = `${API_BASE}invoice/cancel/${invoiceId}/`;
+    try{
+        const response = await axios.post(CANCEL_INVOICE,{}, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data
+    }catch(error){
+        console.error('Error canceling invoice:', error.response ? error.response.data : error);
+        throw error;
+    }
+}
+
 
 export async function deleteProductAPI(productId){
     const DELETE_PRODUCT_URL = `${API_BASE}products/${productId}/`;

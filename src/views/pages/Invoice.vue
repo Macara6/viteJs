@@ -1,5 +1,6 @@
 <script setup>
 import {
+  cancelInvoiceAPI,
   deleteInvoiceAPI,
   fetchInvoiceDetail,
   fetchInvoicesAllUsers,
@@ -41,6 +42,8 @@ const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS
 const deleteMultipleDialog = ref(false);
 const isSecretValidatedForView = ref(false);
 
+const cancelDialog = ref(false); // cancel invoice 
+const invoiceToCancel = ref(null); // 
 // --- Helpers ---
 const formatPrice = price => price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
 const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -161,6 +164,7 @@ async function ViewDetailInvoice(invoiceId) {
     selectedInvoices.value = invoiceId;
     invoiceDetails.value = details;
     showModal.value = true;
+    
   } catch(err) {
     console.error(err);
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les détails', life:3000 });
@@ -176,10 +180,20 @@ function confirmDeleteInvoice(inv){
 
 function  confirmDeleteMultiple(){
   if(selectedInvoices.value.length === 0) return;
-
   secretDialog.value = true;
   deleteMode.value = "multiple";
 
+}
+
+function confirmCancelInvoice(invoice){
+  invoiceToCancel.value = invoice;
+  cancelDialog.value = true;
+}
+
+function askSecretForCancel(){
+  cancelDialog.value = false;
+  deleteMode.value ="ANNULER";
+  secretDialog.value = true;
 }
 
 
@@ -233,6 +247,43 @@ async function deleteMultipleInvoices() {
   } 
   
 }
+// function to cancel invoice
+
+async function cancelInvoice(){
+  try{
+    await cancelInvoiceAPI(invoiceToCancel.value.id);
+
+    invoiceToCancel.value.status ="ANNULER";
+
+    invoicesCache.value = invoicesCache.value.map(inv => 
+      inv.id === invoiceToCancel.value.id
+      ? { ...inv, status:"ANNULER"}
+      : inv
+    );
+    invoices.value = filteredInvoices.value;
+
+    toast.add({
+      severity: "success",
+      summary: "Annulée",
+      detail: "La facture a été annulée et le stock restauré",
+      life: 3000
+    });
+
+    invoiceToCancel.value = null;
+    secretDialog.value = false;
+    secretKey.value = "";
+
+  }catch(error){
+      console.log("error to cancel invoice", error);
+      toast.add({
+      severity: "error",
+      summary: "Erreur",
+      detail: "Impossible d'annuler la facture",
+      life: 3000
+    });
+
+  }
+}
 
 // --- Vérification code secret ---
 async function verifySecret() {
@@ -251,11 +302,14 @@ async function verifySecret() {
         deleteInvoice();
       } else if(deleteMode.value ==="multiple"){
         deleteMultipleInvoices();
+      } else if (deleteMode.value ==="ANNULER"){
+        cancelInvoice();
       }
 
       if(deleteMode.value === "viewSensitive") {
         isSecretValidatedForView.value = true;
       }
+   
 
      
     } else {
@@ -372,95 +426,143 @@ onMounted(async () => {
     <div class="card overflow-x-auto">
 
 
-      <DataTable
-        ref="dt"
-        :value="filteredInvoices"
-        v-model:selection="selectedInvoices"
-        dataKey="id"
-        :paginator="true"
-        :rows="10"
-        :filters="filters"
-        selectionMode="multiple"
-        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-        :rowsPerPageOptions="[5, 10, 25]"
-        currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
-        class="min-w-full"
-      
+     <DataTable
+  ref="dt"
+  :value="filteredInvoices"
+  v-model:selection="selectedInvoices"
+  dataKey="id"
+  :paginator="true"
+  :rows="10"
+  :filters="filters"
+  selectionMode="multiple"
+  paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+  :rowsPerPageOptions="[5, 10, 25]"
+  currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
+  class="min-w-full compact-table"
+>
 
+  <!-- HEADER -->
+  <template #header>
+    <div v-if="loading" class="text-center py-8 text-gray-500">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    </div>
+
+    <div v-else class="flex flex-col gap-3">
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <InputText 
+            v-model="filters['global'].value" 
+            type="text" 
+            placeholder="Rechercher..." 
+            class="flex-1"
+          />
+          <i class="pi pi-search text-gray-400"></i>
+        </div>
+      </div>
+
+      <div>
+        <Button 
+          label="Supprimer les factures sélectionnées"
+          icon="pi pi-trash"
+          severity="danger"
+          class="w-full sm:w-auto"
+          :disabled="selectedInvoices.length === 0"
+          @click="deleteMultipleDialog = true"
+        />
+      </div>
+
+    </div>
+  </template>
+
+  <!-- Colonnes -->
+  <Column selectionMode="multiple" headerStyle="width: 40px"></Column>
+
+  <Column field="id" header="ID" sortable style="max-width: 60px;">
+    <template #body="slotProps">
+      <span class="cell">{{ slotProps.data.id }}</span>
+    </template>
+  </Column>
+
+  <Column field="client_name" header="Client" sortable style="max-width: 130px;">
+    <template #body="slotProps">
+      <span class="cell">{{ slotProps.data.client_name }}</span>
+    </template>
+  </Column>
+
+  <Column field="cashier_name" header="Caissier" sortable style="max-width: 120px;">
+    <template #body="slotProps">
+      <span class="cell">{{ slotProps.data.cashier_name }}</span>
+    </template>
+  </Column>
+
+  <Column field="total_amount" header="Total" sortable style="max-width: 110px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatPrice(slotProps.data.total_amount) }}</span>
+    </template>
+  </Column>
+
+  <Column v-if="isSecretValidatedForView" field="profit_amount" header="Bénéfice" sortable style="max-width: 110px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatPrice(slotProps.data.profit_amount) }}</span>
+    </template>
+  </Column>
+
+  <Column field="change" header="Reste" sortable style="max-width: 110px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatPrice(slotProps.data.change) }}</span>
+    </template>
+  </Column>
+
+  <Column field="amount_paid" header="Payé" sortable style="max-width: 110px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatPrice(slotProps.data.amount_paid) }}</span>
+    </template>
+  </Column>
+
+  <Column field="tva" header="TVA" sortable style="max-width: 90px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatPrice(slotProps.data.tva) }}</span>
+    </template>
+  </Column>
+
+  <Column field="cashier_currency" header="Devise" sortable style="max-width: 70px;">
+    <template #body="slotProps">
+      <span class="cell">{{ slotProps.data.cashier_currency }}</span>
+    </template>
+  </Column>
+
+  <Column field="created_at" header="Date" sortable style="max-width: 150px;">
+    <template #body="slotProps">
+      <span class="cell">{{ formatDate(slotProps.data.created_at) }}</span>
+    </template>
+  </Column>
+
+  <Column header="Statut" field="status" sortable style="max-width: 95px;">
+    <template #body="slotProps">
+      <span 
+        class="px-2 py-1 rounded text-white text-xs whitespace-nowrap"
+        :class="slotProps.data.status === 'ANNULER' ? 'bg-red-500' : 'bg-green-500'"
       >
-        <template #header>
+        {{ slotProps.data.status }}
+      </span>
+    </template>
+  </Column>
 
-          <!-- Loading spinner -->
-          <div v-if="loading" class="text-center py-8 text-gray-500">
-            <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-          </div>
+  <Column header="Actions" style="max-width: 160px;">
+    <template #body="slotProps">
+      <div class="flex gap-1">
+        <Button icon="pi pi-trash" outlined rounded severity="danger" class="action-btn" @click="confirmDeleteInvoice(slotProps.data)" />
+        <Button icon="pi pi-eye" outlined rounded class="action-btn" @click="ViewDetailInvoice(slotProps.data.id)" />
+        <Button icon="pi pi-ban" outlined rounded severity="danger" class="action-btn" @click="confirmCancelInvoice(slotProps.data)" />
+      </div>
+    </template>
+  </Column>
 
-          <div v-else class="flex flex-col gap-3">
+</DataTable>
 
-            <!-- Titre + Recherche -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
-
-              <!-- Search Bar -->
-              <div class="flex items-center gap-2 w-full sm:w-auto">
-                <InputText 
-                  v-model="filters['global'].value" 
-                  type="text" 
-                  placeholder="Rechercher..." 
-                  class="flex-1 "
-                />
-                <i class="pi pi-search text-gray-400"></i>
-              </div>
-            </div>
-
-            <!-- Bouton supprimer sélection -->
-            <div>
-              <Button 
-                label="Supprimer les factures sélectionnées"
-                icon="pi pi-trash"
-                severity="danger"
-                class="w-full sm:w-auto"
-                :disabled="selectedInvoices.length === 0"
-                @click="deleteMultipleDialog = true"
-              />
-            </div>
-
-          </div>
-
-        </template>
-
-       <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-        <!-- Colonnes -->
-       
-        <Column field="id" header="ID" sortable />
-        <Column field="client_name" header="Nom Client(e)" sortable />
-        <Column field="cashier_name" header="Caissier(e)" sortable />
-        <Column field="total_amount" header="Total" sortable>
-          <template #body="slotProps">{{ formatPrice(slotProps.data.total_amount) }}</template>
-        </Column>
-        <Column v-if="isSecretValidatedForView" field="profit_amount" header="Bénéfice" sortable>
-          <template #body="slotProps">{{ formatPrice(slotProps.data.profit_amount) }}</template>
-        </Column>
-        <Column field="change" header="Reste" sortable>
-          <template #body="slotProps">{{ formatPrice(slotProps.data.change) }}</template>
-        </Column>
-        <Column field="amount_paid" header="Montant Perçu" sortable>
-          <template #body="slotProps">{{ formatPrice(slotProps.data.amount_paid) }}</template>
-        </Column>
-        <Column field="tva" header="TVA 16 %">
-          <template #body="slotProps">{{formatPrice(slotProps?.data.tva || 'N/A') }} </template>
-        </Column>
-        <Column field="cashier_currency" header="Devise" sortable />
-        <Column field="created_at" header="Date" sortable>
-          <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
-        </Column>
-        <Column header="Actions" style="min-width: 12rem">
-          <template #body="slotProps">
-            <Button icon="pi pi-eye" outlined rounded class="mr-2 mb-1 sm:mb-0" @click="ViewDetailInvoice(slotProps.data.id)" />
-            <Button icon="pi pi-trash" outlined rounded severity="danger" @click="confirmDeleteInvoice(slotProps.data)" />
-          </template>
-        </Column>
-      </DataTable>
 
     </div>
 
@@ -472,7 +574,7 @@ onMounted(async () => {
       </div>
       <template #footer>
         <Button label="Non" icon="pi pi-times" text @click="deleteInvoicesDialog = false" />
-        <Button label="Oui" icon="pi pi-check" text @click="deleteInvoice" />
+        <Button label="Oui" icon="pi pi-check" text @click="deleteInvoice"/>
       </template>
     </Dialog>
 
@@ -601,6 +703,14 @@ onMounted(async () => {
       </div>
   </Dialog>
 
+  <Dialog v-model:visible="cancelDialog" header="Annuler la facture" :modal="true">
+    <p class="mb-4">Voulez-vous vraiment annuler cette facture ?</p>
+
+    <div class="flex justify-end gap-2">
+      <Button label="Non" icon="pi pi-times" @click="cancelDialog = false" text />
+      <Button label="Oui" icon="pi pi-check" severity="warning" @click="askSecretForCancel" />
+    </div>
+  </Dialog>
 
 
   </div>
