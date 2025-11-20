@@ -235,7 +235,7 @@ export async function  createDepotProduit(productData) {
     }  
 }
 
-
+// api pour les produits 
 export async function fetchProduits(userId) {
     const PRODUITS_URL = `${API_BASE}products/?user_created=${userId}`;
     try{
@@ -262,6 +262,34 @@ export async function updateProductAPI(productId, productData){
     } catch (error){
         console.log('Error updating product', error.response ? error.response.data : error);
         throw error;
+    }
+}
+// function pour ajouter le stock du produit
+export async function addStockAPI(produitId, quantity){
+    const ADD_STOCK_URL = `${API_BASE}products/addStock/${produitId}/`;
+    try{
+        const response = await axios.post(ADD_STOCK_URL, {quantity} ,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.log("Ajout lors de l'ajout du stock",error.response ? error.response.data :error);
+    }
+}
+
+export async function fetchStockHistory(userId){
+    const STOCK_HISTORY_VIEW = `${API_BASE}stockHistoryViews/?added_by=${userId}`;
+    try{
+        const response = await axios.get(STOCK_HISTORY_VIEW, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.log("erreur lors de la recuperation de l'hisroeique",error)
     }
 }
 
@@ -392,7 +420,6 @@ export async function fetchUserById(userId){
 // fuonction pour ceer un utilisateur 
 export async function createUserAPI(userData){
     const CREATE_USER_URL = `${API_BASE}userCreate/`;
-
     try{
         const response = await axios.post(CREATE_USER_URL,userData,{
             headers:{
@@ -708,7 +735,6 @@ export async function deleteCashout(cashoutId){
 }
 
 // debut des fonctions sur le note d'entré
-
 export async function createEntryNote(entryNoteData){
     const CREATE_ENTRY_NOTE = `${API_BASE}entryNote/create/`;
 

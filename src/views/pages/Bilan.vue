@@ -1,5 +1,5 @@
 <script setup>
-import { fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
+import { fechEntryNote, fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache'
 import { formatPrice } from '@/utils/formatters'
 import { useToast } from 'primevue/usetoast'
@@ -14,6 +14,7 @@ const user = ref(null)
 const userProfile = ref(null)
 const invoices = ref([])
 const cashouts = ref([])
+const cashInts =ref([]);
 const childUsers = ref([])
 const allUsers = ref([])
 const isLoading = ref(false)
@@ -28,8 +29,11 @@ const selectedUserId = ref(null) // 'all' = par défaut, utilisateur connecté
 const todaysInvoicesUserConnectCount = ref(0)
 const total_AmountUserConnect = ref(0)
 const total_ProfitAmountUserConnect = ref(0)
-const total_AmountCashOut = ref(0)
-const todaysCashoutCount = ref(0)
+const total_tva_valid= ref(0);
+const total_AmountCashOut = ref(0);
+const todaysCashoutCount = ref(0);
+const total_AmountCashInt = ref(0);
+const total_CashIntCount = ref(0);
 
 
 const canceledInvoicesCount = ref(0);
@@ -67,12 +71,19 @@ async function initData() {
     }
 
     const allInvoices = await fetchInvoicesAllUsers(activeUserId)
+    
     // on garde le factures avec un status  Valide
     invoices.value = allInvoices.filter(inv => inv.status ==="VALIDE");
-    canceledInvoicesCount.value = allInvoices.filter(inv => inv.status ==="ANNULER").length
-    canceledTotalAmount.value = allInvoices.filter(inv => inv.status ==="ANNULER").reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
 
-    cashouts.value = await fetchCashOut(activeUserId)
+    canceledInvoicesCount.value = allInvoices.filter(inv =>
+     inv.status ==="ANNULER" && new Date(inv.created_at).toISOString().split('T')[0] ==selectDate.value.global.value ).length
+    canceledTotalAmount.value = allInvoices.filter(inv => 
+    
+    inv.status ==="ANNULER" && new Date(inv.created_at).toISOString().split('T')[0] == selectDate.value.global.value
+     ).reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+
+    cashouts.value = await fetchCashOut(activeUserId);
+    cashInts.value = await fechEntryNote(activeUserId);
 
     console.log('cashout pour utilisateur selecte',cashouts.value)
 
@@ -145,13 +156,22 @@ async function updateDashboardCards() {
          new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
   )
 
+  const filteredCashInt = cashInts.value.filter(
+      c => c.user === userIdForCards && 
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+    )
  
- 
+  
+
+
   todaysInvoicesUserConnectCount.value = filteredInvoices.length
   total_AmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
   total_ProfitAmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.profit_amount || 0), 0)
   todaysCashoutCount.value = filteredCashouts.length
-  total_AmountCashOut.value = filteredCashouts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0)
+  total_AmountCashOut.value = filteredCashouts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
+  
+  total_AmountCashInt.value = filteredCashInt.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
+  total_CashIntCount.value =filteredCashInt.length;
  
 }
 
@@ -463,21 +483,15 @@ onMounted(() => {
 
         <!-- Titre -->
         <div class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2 text-center">
-          Factures
+         Nombre Factures Valide
         </div>
 
         <!-- Comptage des factures -->
         <div class="flex justify-around items-center mb-4">
           <!-- Factures valides -->
           <div class="flex flex-col items-center">
-            <span class="text-green-500 text-3xl font-bold">{{ todaysInvoicesUserConnectCount }}</span>
+            <span class="text-green-500 text-3xl font-bold">{{ todaysInvoicesUserConnectCount }} </span>
             <span class="text-green-700 text-sm font-medium">Valides</span>
-          </div>
-
-          <!-- Factures annulées -->
-          <div class="flex flex-col items-center">
-            <span class="text-red-500 text-3xl font-bold">{{ canceledInvoicesCount}}</span>
-            <span class="text-red-700 text-sm font-medium">Annulées</span>
           </div>
         </div>
 
@@ -488,37 +502,23 @@ onMounted(() => {
 
       </div>
 
-      <!-- Total -->
+
+
+      <!-- Total valide -->
     <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
       <div class="flex justify-between items-center mb-2">
         <div>
-          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Factures</span>
+          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Total Factures Valide</span>
           <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
             {{ formatPrice(total_AmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
           </div>
         </div>
-        <div class="flex flex-col items-center justify-center gap-2">
-          <!-- Valides -->
-          <div class="flex items-center gap-2 bg-green-100 dark:bg-green-400/10 rounded-full px-2 py-1">
-            <i class="pi pi-check text-green-500 text-sm"></i>
-            <span class="text-green-600 dark:text-green-400 text-sm font-medium">
-              {{ formatPrice(total_AmountUserConnect) }}
-            </span>
-          </div>
-          <!-- Annulées -->
-          <div class="flex items-center gap-2 bg-red-100 dark:bg-red-400/10 rounded-full px-2 py-1">
-            <i class="pi pi-ban text-red-500 text-sm"></i>
-            <span class="text-red-600 dark:text-red-400 text-sm font-medium">
-              {{ formatPrice(canceledTotalAmount) }}
-            </span>
-          </div>
-        </div>
+
       </div>
       <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
         Total pour aujourd'hui : {{ selectDate.global.value }}
       </div>
     </div>
-
 
 
      
@@ -553,6 +553,85 @@ onMounted(() => {
     </div>
 
 
+     <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total Entrée</span>
+            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
+               {{ formatPrice(total_AmountCashInt) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+            </div>
+          </div>
+          <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
+            <i class="pi pi-arrow-down-left text-green-900 text-lg"></i>
+          </div>
+        </div>
+        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto">
+          <span>{{ total_CashIntCount }}</span>
+          <span>Nombres des dépasses</span>
+        </div>
+      </div>
+
+
+          <!-- Nombre des factre annuler--->
+      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full bg-white dark:bg-gray-800">
+
+        <!-- Titre -->
+        <div class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2 text-center">
+         Nombres Factures Annulées 
+        </div>
+
+        <!-- Comptage des factures -->
+        <div class="flex justify-around items-center mb-4">
+          <!-- Factures valides -->
+      
+          <!-- Factures annulées -->
+          <div class="flex flex-col items-center">
+            <span class="text-red-500 text-3xl font-bold">{{ canceledInvoicesCount}}</span>
+            <span class="text-red-700 text-sm font-medium">Annulées</span>
+          </div>
+        </div>
+
+        <!-- Footer : date -->
+        <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
+          {{ selectDate.global.value || 'Toutes les dates' }}
+        </div>
+
+      </div>
+
+          <!-- Total annuler -->
+    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <span class="block text-red-500 dark:text-gray-400 text-sm font-medium">Total Factures Annulées</span>
+          <div class="text-red-500 dark:text-gray-100 font-semibold text-xl">
+            {{ formatPrice(canceledTotalAmount) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+          </div>
+        </div>
+
+      </div>
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
+        Total pour aujourd'hui : {{ selectDate.global.value }}
+      </div>
+    </div>
+
+   <!-- total tva -->
+    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+        <div class="flex justify-between items-center mb-2">
+          <div>
+            <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total TVA valide</span>
+            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
+               {{ formatPrice(total_tva_valid) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+            </div>
+          </div>
+          <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
+            <i class="pi pi-arrow-down-left text-green-900 text-lg"></i>
+          </div>
+        </div>
+      </div>
+
+    
+
+
       <!-- Total dépassé -->
       <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
         <div class="flex justify-between items-center mb-2">
@@ -571,6 +650,8 @@ onMounted(() => {
           <span>Nombres des dépasses</span>
         </div>
       </div>
+    
+
     </div>
 
     <!-- Date Selector -->

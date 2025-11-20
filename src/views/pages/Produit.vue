@@ -1,21 +1,26 @@
 
 <script setup>
 import {
+  addStockAPI,
   createCategorie,
   createProductAPI,
   deleteCategorie,
   deleteProductAPI,
   fetchProduits,
+  fetchStockHistory,
   fetchUserProfilById,
   getCategoryByUser,
   getUsersCreatedByMe,
   updateProductAPI,
-  verifySecretKey
+  verifySecretKey,
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
 
-import { loadCache, saveCache } from '@/utils/cache.js';
+
+import { clearAllCache, loadCache, saveCache } from '@/utils/cache.js';
 import { FilterMatchMode } from '@primevue/core/api';
+import jsPDF from 'jspdf';
+import autoTable from "jspdf-autotable";
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 const toast = useToast();
@@ -31,6 +36,7 @@ const selectedProducts = ref([]);
 const userProfile = ref(null);
 
 const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
+const filetersHistoy = ref({global: {value: null, matchMode: FilterMatchMode.CONTAINS}});
 
 const submitted = ref(false);
 const showSensitiveInfo = ref(false);
@@ -46,10 +52,18 @@ const selectedUserFilter = ref(null); // null = par défaut -> utilisateur conne
 const selectedUserProfile = ref(null);
 
 const selectedCategoryFilter = ref(null);
+const ajoutStockDialog =ref(false);
+const stockQuantity = ref(0);
 
+
+const historyDialog = ref(false);
+const historyList = ref([]);
 
 const dt = ref();
 
+const startDate = ref(null);
+const endDate = ref(null);
+const loadingHistory = ref(true);
 
 
 // dialog/category state
@@ -106,12 +120,18 @@ async function loadCategories(userId) {
 async function loadProducts(userId) {
   try {
     const fetchedProducts = await fetchProduits(userId) || [];
+    const cachedProducts = loadCache('products');
+    if(cachedProducts && cachedProducts.length){
+      products.value = cachedProducts;
+      console.log('Produits charger depuis le cache');
+      return;
+    }
     products.value = (Array.isArray(fetchedProducts) ? fetchedProducts : []).map(p => ({
       ...p,
       category_name: categorys.value.find(c => c.id === p.category)?.name || 'Unknown'
-    })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
+    })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));  
     saveCache('products', products.value);
+    console.log('Produits chargés depuis l’API et mis en cache'); 
 
   } catch (error) {
     console.error('Erreur récupération produits', error);
@@ -143,7 +163,8 @@ onMounted(async () => {
 
     // load main profile & lists in parallel
     await loadUserProfile(userId);          // sets userProfile.value
-    selectedUserProfile.value = userProfile.value; // default shown profile
+    selectedUserProfile.value = userProfile.value; 
+    // default shown profile
 
     // load children/categories/products
     await getUserChildren();
@@ -161,6 +182,128 @@ onMounted(async () => {
 // ------------------
 // Watchers
 // ------------------
+
+const filtedHistory = computed(() => {
+  return historyList.value.filter(item => {
+    const created = new Date(item.created_at);
+    const start = startDate.value? new Date(startDate.value): null;
+    const end = endDate.value? new Date(endDate.value):null;
+
+    if(start && end) return created >= start && created <= end;
+    if(start) return created >= start;
+    if(end) return created >= end;
+    return true;
+  })
+})
+
+function resetDates(){
+  startDate.value = null;
+  endDate.value = null;
+}
+
+async function openHistoryDialog() {
+const userId = selectedUserFilter.value || localStorage.getItem('id');
+
+// Charger le cache existant
+let cacheHistory = loadCache('historyStock') || [];
+try{
+
+  if (cacheHistory && cacheHistory.length) {
+  historyList.value = cacheHistory;
+  console.log('Historique chargé depuis le cache');
+  } else {
+// Récupérer depuis l'API
+    const result = await fetchStockHistory(userId);
+    historyList.value = Array.isArray(result) ? result : [];
+    console.log('Historique chargé depuis l’API');
+    saveCache('historyStock',result);
+    }
+ 
+  historyDialog.value = true;
+}catch(error){
+  console.error('error lors du chargement', error);
+ } finally{
+  loadingHistory.value = false;
+ }
+}
+
+// histoy stock pdf
+function downloadPDFHistory(){
+  const doc = new jsPDF();
+  const columns = [
+      { header: 'Produit', dataKey: 'product_name' },
+      {header: 'Quantite ajoutée', dataKey:'quantity_added'},
+      { header: 'Stock après', dataKey: 'new_stock' },
+      { header: 'Ajouté par', dataKey: 'added_by_name' },
+      { header: 'Date', dataKey: 'created_at' }
+  ]
+  const rows = filtedHistory.value.map(item => ({
+    ...item,
+    created_at:formatDate(item.created_at)
+  }));
+ 
+  autoTable(doc, {
+    head: [columns.map(c => c.header)],
+    body: rows.map(row => columns.map(c => row[c.dataKey])),
+    startY: 20,
+    theme: 'striped'
+  });
+
+   doc.text('Historique des stocks', 14, 15);
+   doc.save('historique_stocks.pdf');
+}
+
+// pdf produits 
+function downloadPDFProduct(){
+  const doc = new jsPDF();
+
+    const pdfCurrency =
+    selectedUserProfile?.currency_preference ||
+    userProfile?.currency_preference ||
+    "N/D";
+
+  const columns = [
+     {header: 'Produit', dataKey: 'name'},
+     {header: 'Prix Vente', dataKey:'price'},
+     {header: "Prix d'achat", dataKey:'purchase_price'},
+     {header: "Devise", dataKey:'currency'},
+     {header:'Stock', dataKey:'stock'},
+     {header:'Date Ajout', dataKey:'created_at'},
+     {header:'Date Expi', dataKey:'expiration_date'},
+     {header:'TVA', dataKey:'tva'},
+     {header:'Categorie', dataKey:'category_name'},
+     {header:'Code Barre', dataKey:'barcode'},
+
+  ]
+  const rows = filteredProducts.value.map(item =>({
+    ...item,
+    created_at:formatDate(item.created_at),
+    expiration_date:formatDate(item.expiration_date),
+    tva: item.tva ? "Avec" : "Sans",
+    currency: pdfCurrency
+  
+  }));
+  
+  
+  autoTable(doc, {
+    head: [columns.map(c => c.header)],
+    body: rows.map(row => columns.map(c => row[c.dataKey])),
+    startY: 20,
+    theme: 'striped'
+  });
+
+  doc.text('liste des produits', 14, 15);
+  doc.save('liste_produits.pdf');
+
+}
+
+
+
+
+
+
+
+
 // 1 watcher unique pour selectedUserFilter
 watch(selectedUserFilter, async (newUserId) => {
   try {
@@ -248,9 +391,7 @@ async function forceRefresh(){
       });
       return;
     }
-    localStorage.removeItem(cacheKey('userProfile'));
-    localStorage.removeItem(cacheKey('products'));
-    localStorage.removeItem(cacheKey('categories'));
+   clearAllCache();
 
     products.value = [];
     categorys.value = [];
@@ -323,7 +464,12 @@ async function removeCategory() {
 
 function confirmDeleteCategory(cat) { categoryToDelete.value = cat; deleteCategoryDialog.value = true; }
 
-function openNew() { product.value = {}; submitted.value = false; productDialog.value = true; }
+function openNew() { 
+  product.value = { tva:true};
+  submitted.value = false; 
+  productDialog.value = true;
+
+   }
 function hideDialog() { productDialog.value = false; submitted.value = false; }
 
 async function saveProduct() {
@@ -375,7 +521,7 @@ function onExpirationChange(e) { product.value.expiration_date = e.value ? e.val
 
 async function editProduct(prod) {
   if (!categorys.value.length) await loadCategories(user.value?.id || localStorage.getItem('id'));
-  product.value = { ...prod };
+  product.value = { ...prod, tva: prod.tva ?? true };
   productDialog.value = true;
 }
 
@@ -410,11 +556,50 @@ async function deleteSelectedProducts() {
   }
 }
 
+
+function openAjoutStock(prod){
+  product.value = prod;
+  stockQuantity.value = 0;
+  ajoutStockDialog.value = true;
+}
+
+// function to add stock
+async function addStockToProduct(){
+  if(stockQuantity.value <= 0){
+      toast.add({ severity: 'warn', summary: 'Attention', detail: 'Quantité invalide', life: 3000 });
+      return;
+  }
+  try{
+    const result = await addStockAPI(product.value.id, stockQuantity.value);
+    let cachedProducts = loadCache('products');
+    if (!Array.isArray(cachedProducts)) {
+      cachedProducts = [];
+    }
+    const index = cachedProducts.findIndex(p => p.id === product.value.id);
+    if (index !== -1) {
+      cachedProducts[index].stock = result.stock_after;
+    }
+    saveCache('products', cachedProducts);
+    loadProducts(localStorage.getItem('id'));
+    
+    toast.add({
+      severity: 'success',
+      summary: 'Stock ajouté',
+      detail: `Avant : ${result.stock_before} | Après : ${result.stock_after}`,
+      life: 3000
+    });
+
+    ajoutStockDialog.value = false;
+
+  }catch(error){
+     console.error("Erreur ajout stock :", error);
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible d’ajouter du stock', life: 3000 });
+  }
+}
+
+
 // utilities
 function formatPrice(price) { return price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", "); }
-
-
-
 
 function calculateDenfice(prixVente, prixAchat) {
   if (!prixAchat) return 0;
@@ -458,7 +643,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
                 class="p-button-outlined p-button-secondary"
                 @click="forceRefresh"
               />
-            <Button label="Exporter" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
+           <Button label="Télécharger PDF" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
             <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true" />
           </div>
         </template>
@@ -489,6 +674,12 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Table des Produits</h4>
 
             <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
+              <Button 
+                label="historique de stock"
+                icon="pi pi-history"
+                severity="info"
+                @click="openHistoryDialog"
+              />
 
               <!-- Filtre utilisateur -->
               <Select
@@ -572,6 +763,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
         <Column field="stock" header="Stock" sortable style="min-width: 6rem" />
 
+
         <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
           <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
         </Column>
@@ -581,7 +773,18 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             {{ formatDate(slotProps.data.expiration_date ) }}
           </template>
         </Column>
-
+        <Column field="tva" header="TVA 16 %" sortable style="min-width: 10rem">
+          <template #body="slotProps">
+            <span
+              :class="[
+                'px-3 py-1 rounded-full text-white text-sm font-semibold',
+                slotProps.data.tva ? 'bg-green-500' : 'bg-yellow-500'
+              ]"
+            >
+              {{ slotProps.data.tva ? 'Avec' : 'Sans' }}
+            </span>
+          </template>
+        </Column>
         <Column field="category_name" header="Catégorie" sortable style="min-width: 10rem" />
 
         <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
@@ -600,6 +803,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
                 severity="danger"
                 @click="confirmDeleteProduct(slotProps.data)"
               />
+              <Button icon="pi pi-plus" severity="success" @click="openAjoutStock(slotProps.data)" />
             </div>
           </template>
         </Column>
@@ -633,6 +837,12 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             <label class="block font-bold mb-2">Prix Achat {{ userProfile ? userProfile.currency_preference : 'N/D' }}</label>
             <InputNumber v-model="product.purchase_price" mode="decimal" :maxFractionDigits="2" locale="en-US"  :useGrouping="false"  fluid />
           </div>
+
+          <div>
+            <label class="block font-bold mb-2">TVA (16%)</label>
+            <Checkbox v-model="product.tva" binary /> Avec TVA
+          </div>
+
           <div>
             <label class="block font-bold mb-2">Stock</label>
             <InputNumber v-model="product.stock" integeronly fluid />
@@ -642,6 +852,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
           <label class="block font-bold mb-2">Date d'expiration (optionnel)</label>
           <Calendar v-model="product.expiration_date" date-format="yy-mm-dd" :on-change="onExpirationChange" show-icon placeholder="Select a date" fluid />
         </div>
+
           <div>
             <label class="block font-bold mb-2">Category</label>
             <Select v-model="product.category" :options="categorys" optionLabel="name" optionValue="id" placeholder="Select a Category" fluid />
@@ -754,23 +965,123 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 </Dialog>
 
 
-<!-- Dialog confirmation suppression -->
-<Dialog
-  v-model:visible="deleteCategoryDialog"
-  header="Confirmer la suppression"
-  :modal="true"
-  :style="{ width: '90%', maxWidth: '350px' }"
->
-  <div class="flex items-center gap-3">
-    <i class="pi pi-exclamation-triangle text-yellow-500 text-3xl"></i>
-    <span>Supprimer la catégorie <b>{{ categoryToDelete?.name }}</b> ?</span>
-  </div>
-  <template #footer>
-    <Button label="Annuler" icon="pi pi-times" text @click="deleteCategoryDialog = false" />
-    <Button label="Supprimer" icon="pi pi-check" severity="danger" @click="removeCategory" />
-  </template>
+  <!-- Dialog confirmation suppression -->
+  <Dialog
+    v-model:visible="deleteCategoryDialog"
+    header="Confirmer la suppression"
+    :modal="true"a
+    :style="{ width: '90%', maxWidth: '350px' }"
+   >
+    <div class="flex items-center gap-3">
+      <i class="pi pi-exclamation-triangle text-yellow-500 text-3xl"></i>
+      <span>Supprimer la catégorie <b>{{ categoryToDelete?.name }}</b> ?</span>
+    </div>
+    <template #footer>
+      <Button label="Annuler" icon="pi pi-times" text @click="deleteCategoryDialog = false" />
+      <Button label="Supprimer" icon="pi pi-check" severity="danger" @click="removeCategory" />
+    </template>
+  </Dialog>
+
+
+ <!-- Dialog add stock -->
+ <Dialog v-model:visible="ajoutStockDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Ajouter du stock" modal>
+    <div class="flex flex-col gap-4">
+        <div>
+          <label class="block font-bold mb-2"> Code Barre:   {{ product.barcode || 'N/A'}} </label>
+        </div>
+        <div>
+          <label class="block font-bold mb-2"> Produit:   {{ product.name}} </label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+           <label class="block font-bold mb-2"> Stock</label>
+            <div>
+              {{ product.stock }}
+            </div>
+          </div>
+          <div>
+              <label class="block font-bold mb-2">Quantité à ajouter</label>
+             <InputNumber v-model="stockQuantity" placeholder="Quantité" />
+          </div>
+
+        </div>
+        
+    </div>
+
+    <template #footer>
+        <Button label="Annuler" class="p-button-text" @click="ajoutStockDialog = false" />
+        <Button label="Ajouter" @click="addStockToProduct" />
+    </template>
 </Dialog>
 
+
+<Dialog
+  v-model:visible="historyDialog"
+  header="Historique des stocks"
+  :modal="true"
+  :style="{ width: '90%', maxWidth: '700px' }"
+  :closable="true"
+>
+
+
+
+
+  <DataTable 
+    :value="filtedHistory" 
+    stripedRows 
+    scrollable 
+    :scrollHeight="'400px'"
+    tableStyle="min-width: 50rem; text-align: center;"
+    class="history-table"
+    :loading="loadingHistory"
+    :filters="filetersHistoy"
+  >
+  <template #header>
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
+      
+      <!-- Barre de recherche -->
+      <div class="relative flex items-center w-full sm:w-64">
+
+        <InputText
+          v-model="filetersHistoy['global'].value"
+          placeholder="Rechercher..."
+          class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
+        />
+      </div>
+
+      <!-- Filtres de date -->
+      <div class="flex gap-3 items-center">
+        <Calendar v-model="startDate" placeholder="Date début" date-format="yy-mm-dd" show-icon />
+        <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
+        <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
+      </div>
+    </div>
+  </template>
+
+  <template #loading>
+    <div class="flex justify-center items-center p-4">
+      <ProgressSpinner />
+      <span class="ml-2">Chargement...</span>
+    </div>
+  </template>
+
+    <Column field="product_name" header="Produit" sortable style="text-align: center;"></Column>
+    <Column field="previous_stock" header="Stock avant" sortable style="text-align: center;"></Column>
+    <Column field="quantity_added" header="Quantité ajoutée" sortable style="text-align: center;"></Column>
+    <Column field="new_stock" header="Stock après" sortable style="text-align: center;"></Column>
+    <Column field="added_by_name" header="Ajouté par" style="text-align: center;"></Column>
+    <Column field="created_at" header="Date" sortable style="text-align: center;">
+      <template #body="slotProps">
+        {{ formatDate(slotProps.data.created_at) }}
+      </template>
+    </Column>
+  </DataTable>
+
+<template #footer>
+<Button label="Télécharger PDF" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFHistory" />
+<Button label="Fermer" icon="pi pi-times" text @click="historyDialog = false" /> </template>
+
+</Dialog>
 
 
   </div>
@@ -787,5 +1098,15 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
     font-size: 0.85rem;
     padding: 0.4rem 0.5rem;
   }
+}
+
+/* Réduction de la hauteur des lignes */
+.history-table .p-datatable-tbody > tr > td {
+  padding: 0.25rem 0.5rem; /* réduit la hauteur des lignes */
+  vertical-align: middle;  /* centre verticalement le contenu */
+}
+
+.history-table .p-datatable-thead > tr > th {
+  text-align: center;       /* centre les en-têtes */
 }
 </style>
