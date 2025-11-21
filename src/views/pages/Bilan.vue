@@ -409,14 +409,14 @@ async function generatePDF() {
       totalCashInt: userCashInt.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
       totalCashOut: userCashOuts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
 
-      // 🔥 Ajout des factures annulées
+      //  Ajout des factures annulées
       nbFacturesAnnulees: cancelledInvoices.length,
       totalFacturesAnnulees: cancelledInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
     }
   })
 
   // === TABLEAU ===
-  const startX = 12
+  const startX = 8
   const rowHeight = 8
   const rowColors = [[245, 245, 245], [255, 255, 255]]
   const highlightColor = [255, 165, 0]
@@ -428,15 +428,15 @@ async function generatePDF() {
   pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
 
   pdf.text('Nom', startX + 1, currentY)
-  pdf.text('Total Fact.', startX + 32, currentY)
-  pdf.text('Nb', startX + 63, currentY)
+  pdf.text('Total FV', startX + 32, currentY)
+  pdf.text('Nb.FV', startX + 63, currentY)
   pdf.text('TVA', startX + 80, currentY)
   pdf.text('Entrées', startX + 105, currentY)
   pdf.text('Sorties', startX + 130, currentY)
 
   // 🔥 colonnes pour factures annulées
-  pdf.text('Annulées', startX + 155, currentY)
-  pdf.text('Total Ann.', startX + 178, currentY)
+  pdf.text('Nb.FA', startX + 148, currentY)
+  pdf.text('Total FA', startX + 168, currentY)
 
   currentY += rowHeight
   pdf.setFont(undefined, 'normal')
