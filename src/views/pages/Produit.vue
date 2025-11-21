@@ -6,6 +6,7 @@ import {
   createProductAPI,
   deleteCategorie,
   deleteProductAPI,
+  deleteStockHistory,
   fetchProduits,
   fetchStockHistory,
   fetchUserProfilById,
@@ -72,7 +73,12 @@ const category = ref({ name: '' });
 const submittedCategory = ref(false);
 const deleteCategoryDialog = ref(false);
 const categoryToDelete = ref(null);
+const histoToDelete = ref(null);
 
+
+const isSecretValidatedForView = ref(false);
+const deleteMode = ref(null);
+const histoDeleteDialog = ref(false);
 // ------------------
 // Utilities / loaders
 // ------------------
@@ -230,6 +236,12 @@ try{
 // histoy stock pdf
 function downloadPDFHistory(){
   const doc = new jsPDF();
+
+  const pdfUserName =
+    selectedUserProfile.value?.user_name ||
+    userProfile.value?.user_name ||
+    "Utilisateur inconnu";
+
   const columns = [
       { header: 'Produit', dataKey: 'product_name' },
       {header: 'Quantite ajoutée', dataKey:'quantity_added'},
@@ -245,11 +257,12 @@ function downloadPDFHistory(){
   autoTable(doc, {
     head: [columns.map(c => c.header)],
     body: rows.map(row => columns.map(c => row[c.dataKey])),
-    startY: 20,
+    startY: 30,
     theme: 'striped'
   });
 
    doc.text('Historique des stocks', 14, 15);
+     doc.text(`Utilisateur : ${pdfUserName}`, 14, 22);
    doc.save('historique_stocks.pdf');
 }
 
@@ -257,10 +270,15 @@ function downloadPDFHistory(){
 function downloadPDFProduct(){
   const doc = new jsPDF();
 
-    const pdfCurrency =
-    selectedUserProfile?.currency_preference ||
-    userProfile?.currency_preference ||
+const pdfCurrency =
+    selectedUserProfile.value?.currency_preference ||
+    userProfile.value?.currency_preference ||
     "N/D";
+
+const pdfUserName =
+    selectedUserProfile.value?.user_name ||
+    userProfile.value?.user_name ||
+    "Utilisateur inconnu";
 
   const columns = [
      {header: 'Produit', dataKey: 'name'},
@@ -285,14 +303,16 @@ function downloadPDFProduct(){
   }));
   
   
+  
   autoTable(doc, {
     head: [columns.map(c => c.header)],
     body: rows.map(row => columns.map(c => row[c.dataKey])),
-    startY: 20,
+    startY: 30,
     theme: 'striped'
   });
 
-  doc.text('liste des produits', 14, 15);
+  doc.text('liste des produits ', 14, 15);
+  doc.text(`Utilisateur : ${pdfUserName}`, 14, 22);
   doc.save('liste_produits.pdf');
 
 }
@@ -335,6 +355,7 @@ watch(selectedUserFilter, async (newUserId) => {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données de l’utilisateur', life: 3000 });
   }
 });
+
 // verifier le code secret
 async function verifySecret() {
   submittedSecret.value = true
@@ -345,6 +366,22 @@ async function verifySecret() {
       showSensitiveInfo.value = true
       secretDialog.value = false
       toast.add({ severity: 'success', summary: 'Succès', detail: 'Code secret validé', life: 3000 })
+      
+      if(deleteMode.value ==="edite"){
+         productDialog.value = true;
+      }else if (deleteMode.value==='delete'){
+         deleteProductDialog.value = true;
+      }else if(deleteMode.value==='ajoutStock'){
+        ajoutStockDialog.value = true;
+      }else if (deleteMode.value ==='deleteHisto'){
+        histoDeleteDialog.value=true;
+      }
+
+      if(deleteMode.value ==="viewSensitive"){
+        isSecretValidatedForView.value = true;
+      }
+      secretKey.value =''
+
     } else {
       toast.add({ severity: 'error', summary: 'Erreur', detail: 'Code secret invalide', life: 3000 })
     }
@@ -462,7 +499,11 @@ async function removeCategory() {
   }
 }
 
-function confirmDeleteCategory(cat) { categoryToDelete.value = cat; deleteCategoryDialog.value = true; }
+function confirmDeleteCategory(cat) { 
+  categoryToDelete.value = cat;
+   deleteCategoryDialog.value = true;
+  
+  }
 
 function openNew() { 
   product.value = { tva:true};
@@ -522,7 +563,8 @@ function onExpirationChange(e) { product.value.expiration_date = e.value ? e.val
 async function editProduct(prod) {
   if (!categorys.value.length) await loadCategories(user.value?.id || localStorage.getItem('id'));
   product.value = { ...prod, tva: prod.tva ?? true };
-  productDialog.value = true;
+  secretDialog.value = true;
+  deleteMode.value ='edite'
 }
 
 async function deleteProduct() {
@@ -537,8 +579,30 @@ async function deleteProduct() {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete product', life: 3000 });
   }
 }
+async function deleteHisto(){
+  try{
+    await deleteStockHistory(histoToDelete.value.id);
+    historyList.value = historyList.value.filter(val => val.id !== histoToDelete.value.id);
+     toast.add({ severity: 'success', summary: 'Successful', detail: 'historique supprimée', life: 3000 });
+    histoDeleteDialog.value = false;
+  }catch(error){
+    console.error('erreur lors de la suppression')
+  }
+}
+ function confirmDeleteHisto(histo){
+  histoToDelete.value = histo;
+  secretDialog.value = true;
+  deleteMode.value ='deleteHisto';
+ }
 
-function confirmDeleteProduct(prod) { product.value = prod; deleteProductDialog.value = true; }
+
+function confirmDeleteProduct(prod) {
+   product.value = prod;
+   secretDialog.value =true;
+   deleteMode.value = 'delete';
+   }
+
+
 function confirmDeleteSelected() { deleteProductsDialog.value = true; }
 
 async function deleteSelectedProducts() {
@@ -560,7 +624,8 @@ async function deleteSelectedProducts() {
 function openAjoutStock(prod){
   product.value = prod;
   stockQuantity.value = 0;
-  ajoutStockDialog.value = true;
+  secretDialog.value = true;
+  deleteMode.value ='ajoutStock'
 }
 
 // function to add stock
@@ -643,8 +708,8 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
                 class="p-button-outlined p-button-secondary"
                 @click="forceRefresh"
               />
-           <Button label="Télécharger PDF" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
-            <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true" />
+           <Button label="Télécharger PDF"  severity="info" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
+            <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true; deleteMode='viewSensitive'" />
           </div>
         </template>
 
@@ -734,7 +799,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         </Column>
 
         <Column
-          v-if="showSensitiveInfo"
+          v-if="isSecretValidatedForView"
           field="purchase_price"
           header="Prix achat"
           sortable
@@ -751,7 +816,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
 
         <Column
-          v-if="showSensitiveInfo"
+          v-if="isSecretValidatedForView"
           field=""
           header="Bénéfice"
           style="min-width: 6rem"
@@ -1075,14 +1140,40 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         {{ formatDate(slotProps.data.created_at) }}
       </template>
     </Column>
+    <Column header="Action">
+    <template #body="slotProps">
+        <Button
+          icon="pi pi-trash"
+          rounded
+          outlined
+          severity="danger"
+           @click="confirmDeleteHisto(slotProps.data)"
+        />
+    </template>
+    </Column>
   </DataTable>
 
 <template #footer>
-<Button label="Télécharger PDF" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFHistory" />
+<Button label="Télécharger PDF"  severity="info" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFHistory" />
 <Button label="Fermer" icon="pi pi-times" text @click="historyDialog = false" /> </template>
 
 </Dialog>
 
+  <Dialog
+    v-model:visible="histoDeleteDialog"
+    header="Confirmer la suppression"
+    :modal="true"a
+    :style="{ width: '90%', maxWidth: '350px' }"
+   >
+    <div class="flex items-center gap-3">
+      <i class="pi pi-exclamation-triangle text-yellow-500 text-3xl"></i>
+      <span>Supprimer l'historique <b>{{ categoryToDelete?.name }}</b> ?</span>
+    </div>
+    <template #footer>
+      <Button label="Annuler" icon="pi pi-times" text @click="histoDeleteDialog = false" />
+      <Button label="Supprimer" icon="pi pi-check" severity="danger" @click="deleteHisto" />
+    </template>
+  </Dialog>
 
   </div>
 

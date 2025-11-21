@@ -23,7 +23,7 @@ const totalAmount = computed(() => {
 
 const change = ref(0)
 
-const tva = ref(0);
+const tva_pro = ref(0);
 
   const userProfile = ref(null);
 const search = ref('');
@@ -86,7 +86,7 @@ async function loadProduct() {
         const cachedProducts = loadCache('products');
         if(cachedProducts && cachedProducts.length){
           products.value = cachedProducts;
-          console.log('Produits charger depuis le cache')
+         
           return;
         }
 
@@ -94,7 +94,7 @@ async function loadProduct() {
             const fetchProduct = await fetchProduits(userId);
             products.value = fetchProduct;
             saveCache('products', fetchProduct); 
-            console.log('Produits chargés depuis l’API et mis en cache');     
+               
         } catch (error) {
             console.error('There was a problem with the fetch operation:', error);
         }
@@ -188,7 +188,9 @@ function addToInvoice(product) {
             product: product,
             quantity: 1,
             price: product.price,
-            purchase_price: product.purchase_price
+            purchase_price: product.purchase_price,
+            tva:product.tva
+            
         });
     }
 
@@ -199,7 +201,11 @@ function updateTotal(){
         totalAmount.value = invoiceItems.value.reduce((sum, item) => {
             return sum + item.quantity * item.price;
         },0);
-        tva.value = totalAmount.value * 0.16;       
+        const totalWithTva = invoiceItems.value
+          .filter(item => item.tva ===true)
+          .reduce((sum, item) => sum + item.quantity * item.price, 0)
+        console.log('poduct avec tva ',totalWithTva.value)
+        tva_pro.value = totalWithTva * 0.16;       
 }
   
     
@@ -469,7 +475,7 @@ async function printInvoice(invoice) {
         data.push('-'.repeat(lineLength) + '\n');
         data.push(`Total         : ${totalInvoice.toFixed(2)} ${currency}\n`);
         data.push(`Montant percu : ${invoice.amount_paid.toFixed(2)} ${currency}\n`);
-        data.push(`TVA           : ${tva.value.toFixed(2)} ${currency}\n`);
+        data.push(`TVA           : ${tva_pro.value.toFixed(2)} ${currency}\n`);
         data.push(`Reste         : ${invoice.change.toFixed(2)} ${currency}\n`);
         data.push('-'.repeat(lineLength) + '\n');
 
@@ -519,7 +525,7 @@ async function generatePdfInvoice(invoice) {
 
     doc.text(`Total         : ${invoice.total_amount.toFixed(2)}`, 20, 60);
     doc.text(`Montant perçu : ${invoice.amount_paid.toFixed(2)}`, 20, 68);
-    doc.text(`TVA          : ${tva.value.toFixed(2)}`, 20, 76);
+    doc.text(`TVA          : ${tva_pro.value.toFixed(2)}`, 20, 76);
     doc.text(`Reste         : ${invoice.change.toFixed(2)}`, 20, 84);
 
     doc.save(`facture_${Date.now()}.pdf`);
@@ -695,7 +701,7 @@ async function generatePdfInvoice(invoice) {
         <div class="flex justify-between sm:justify-start sm:gap-2">
           <span>TVA:</span>
           <span class="text-red-600">
-            {{ formatPrice(tva) }} {{ userProfile?.currency_preference || '' }}
+            {{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference || '' }}
           </span>
         </div>
         <div class="flex justify-between sm:justify-start sm:gap-2">

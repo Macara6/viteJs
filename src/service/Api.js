@@ -278,7 +278,7 @@ export async function addStockAPI(produitId, quantity){
         console.log("Ajout lors de l'ajout du stock",error.response ? error.response.data :error);
     }
 }
-
+// fetche history stock
 export async function fetchStockHistory(userId){
     const STOCK_HISTORY_VIEW = `${API_BASE}stockHistoryViews/?added_by=${userId}`;
     try{
@@ -292,6 +292,21 @@ export async function fetchStockHistory(userId){
         console.log("erreur lors de la recuperation de l'hisroeique",error)
     }
 }
+
+export async function deleteStockHistory(histoId){
+    const DELETE_HISTO_STOCK = `${API_BASE}stockHistory/delete/${histoId}/`;
+    try{
+        const response = await axios.delete(DELETE_HISTO_STOCK, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.log('erreur lors de la suppression', error);
+    }
+}
+
 
 // afficher toutes les factures du parent et ses enfant 
 export async function fetchInvoicesAllUsers() {

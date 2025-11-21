@@ -163,7 +163,7 @@ async function updateDashboardCards() {
  
   
 
-
+  total_tva_valid.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.tva || 0), 0)
   todaysInvoicesUserConnectCount.value = filteredInvoices.length
   total_AmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
   total_ProfitAmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.profit_amount || 0), 0)
@@ -331,14 +331,13 @@ async function verifySecret() {
   }
 }
 
-
 async function generatePDF() {
   const pdf = new jsPDF('p', 'mm', 'a4')
   const selectedDateVal = selectDate.value.global.value
   const connectedUserProfile = userProfile.value
 
-  // === Entête principal avec fond vert profond ===
-  pdf.setFillColor(0, 77, 74) // 0xFF004D4A
+  // === HEADER PRINCIPAL ===
+  pdf.setFillColor(0, 77, 74)
   pdf.rect(0, 0, 210, 30, 'F')
 
   pdf.setFontSize(20)
@@ -350,102 +349,130 @@ async function generatePDF() {
   pdf.setFont(undefined, 'normal')
   pdf.text(`Date : ${selectedDateVal}`, 105, 23, { align: 'center' })
 
-  // Ligne de séparation sous le header
   pdf.setDrawColor(255)
   pdf.setLineWidth(1)
   pdf.line(12, 30, 198, 30)
 
-  // === Profil utilisateur connecté ===
+  // === PROFIL ENTREPRISE ===
   let currentY = 38
   const infoLines = [
     `Entreprise : ${connectedUserProfile.entrep_name || 'N/A'}`,
     `Téléphone : ${connectedUserProfile.phone_number || 'N/A'}`,
     `Adresse : ${connectedUserProfile.adress || 'N/A'}`,
     `RCCM : ${connectedUserProfile.rccm_number || 'N/A'}`,
-    `Numéro d’impôt : ${connectedUserProfile.impot_number || 'N/A'}`,
+    `Numéro d’impôt : ${connectedUserProfile.impot_number || 'N/A'}`
   ]
+
   pdf.setFont(undefined, 'normal')
   pdf.setTextColor(33, 33, 33)
+
   infoLines.forEach(line => {
     currentY += 7
     pdf.text(line, 105, currentY, { align: 'center' })
   })
 
-  // Ligne de séparation sous le profil
-  currentY += 6
+  currentY += 8
   pdf.setDrawColor(0, 77, 74)
   pdf.setLineWidth(0.8)
   pdf.line(12, currentY, 198, currentY)
-  currentY += 6
+  currentY += 10
 
-  // === Préparer les données utilisateurs ===
+  // === PRÉPARATION DES DONNÉES PAR UTILISATEUR ===
   const tableData = allUsers.value.map(u => {
     const userInvoices = invoices.value.filter(inv =>
       inv.cashier === u.id &&
       new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
     )
+
     const userCashOuts = cashouts.value.filter(c =>
       c.user === u.id &&
       new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
     )
+
+    const userCashInt = cashInts.value.filter(c =>
+      c.user === u.id &&
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+    )
+
+    // Factures annulées
+    const cancelledInvoices = userInvoices.filter(inv => inv.is_canceled === true)
+
     return {
       name: u.username,
+      currency: u.currency || 'N/A',
+
       totalFacture: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0),
       nbFactures: userInvoices.length,
+
+      totalTVA: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.tva || 0), 0),
+
+      totalCashInt: userCashInt.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
       totalCashOut: userCashOuts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
-      currency: u.currency || 'N/A'
+
+      // 🔥 Ajout des factures annulées
+      nbFacturesAnnulees: cancelledInvoices.length,
+      totalFacturesAnnulees: cancelledInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
     }
   })
 
+  // === TABLEAU ===
   const startX = 12
   const rowHeight = 8
   const rowColors = [[245, 245, 245], [255, 255, 255]]
-  const totalColumnColor = [255, 165, 0] // orange
+  const highlightColor = [255, 165, 0]
 
-  // === Entête du tableau ===
+  // HEADER TABLEAU
   pdf.setFont(undefined, 'bold')
   pdf.setTextColor(255)
   pdf.setFillColor(0, 77, 74)
   pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
-  pdf.text('Nom', startX + 2, currentY)
-  pdf.text('Total Factures', 60, currentY)
-  pdf.text('Nb Factures', 110, currentY)
-  pdf.text('Total Sorties', 150, currentY)
-  pdf.setFont(undefined, 'normal')
-  pdf.setTextColor(0)
-  currentY += rowHeight
 
-  // === Lignes du tableau ===
+  pdf.text('Nom', startX + 1, currentY)
+  pdf.text('Total Fact.', startX + 32, currentY)
+  pdf.text('Nb', startX + 63, currentY)
+  pdf.text('TVA', startX + 80, currentY)
+  pdf.text('Entrées', startX + 105, currentY)
+  pdf.text('Sorties', startX + 130, currentY)
+
+  // 🔥 colonnes pour factures annulées
+  pdf.text('Annulées', startX + 155, currentY)
+  pdf.text('Total Ann.', startX + 178, currentY)
+
+  currentY += rowHeight
+  pdf.setFont(undefined, 'normal')
+
+  // ROWS
   tableData.forEach((d, index) => {
     const bgColor = rowColors[index % 2]
     pdf.setFillColor(...bgColor)
     pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
 
     pdf.setTextColor(0)
-    pdf.text(d.name, startX + 2, currentY)
+    pdf.text(d.name, startX + 1, currentY)
 
-    // Total Factures en orange
-    pdf.setTextColor(...totalColumnColor)
-    pdf.text(`${formatPrice(d.totalFacture)} ${d.currency}`, 60, currentY)
+    pdf.setTextColor(...highlightColor)
+    pdf.text(`${formatPrice(d.totalFacture)} ${d.currency}`, startX + 32, currentY)
 
     pdf.setTextColor(0)
-    pdf.text(d.nbFactures.toString(), 110, currentY)
-    pdf.text(`${formatPrice(d.totalCashOut)} ${d.currency}`, 150, currentY)
+    pdf.text(d.nbFactures.toString(), startX + 63, currentY)
+
+    pdf.setTextColor(...highlightColor)
+    pdf.text(formatPrice(d.totalTVA), startX + 80, currentY)
+
+    pdf.setTextColor(0)
+    pdf.text(`${formatPrice(d.totalCashInt)} ${d.currency}`, startX + 105, currentY)
+    pdf.text(`${formatPrice(d.totalCashOut)} ${d.currency}`, startX + 130, currentY)
+
+    //  Factures annulées
+    pdf.setTextColor(255, 0, 0)
+    pdf.text(d.nbFacturesAnnulees.toString(), startX + 155, currentY)
+
+    pdf.text(`${formatPrice(d.totalFacturesAnnulees)} ${d.currency}`, startX + 178, currentY)
 
     currentY += rowHeight
   })
 
-  // === Totaux par devise (orange) ===
-  const totalsByCurrency = tableData.reduce((acc, u) => {
-    if (!acc[u.currency]) acc[u.currency] = { totalFactures: 0, nbFactures: 0, totalCashOut: 0 }
-    acc[u.currency].totalFactures += u.totalFacture
-    acc[u.currency].nbFactures += u.nbFactures
-    acc[u.currency].totalCashOut += u.totalCashOut
-    return acc
-  }, {})
-
-
-  // === Logo centré en bas ===
+  // === LOGO EN BAS ===
   const img = new Image()
   img.src = '/demo/bilatechslogan.png'
   img.onload = () => {
@@ -456,9 +483,6 @@ async function generatePDF() {
     pdf.save(`rapport_ventes_${selectedDateVal}.pdf`)
   }
 }
-
-
-
 
 
 onMounted(() => {

@@ -2,10 +2,12 @@
 
 <script setup>
 import { deleteEntryNote, fechEntryNote, fetchEntryNoteDetail, fetchUserProfilById, fetchUsers, getUsersCreatedByMe } from '@/service/Api';
+import { formatDate } from '@/utils/formatters';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+
    
 
    const userId = localStorage.getItem('id');
@@ -24,7 +26,9 @@ import { onMounted, ref, watch } from 'vue';
    const selectedUserFilter = ref(null);
    const childUsers = ref([]);
    const isSuperUser = localStorage.getItem('is_superuser') === 'true';
-
+  
+  const startDate = ref(null);
+  const endDate= ref(null);
   
    const signatureUrl = '/demo/SignatureDe.png'
 
@@ -36,7 +40,23 @@ import { onMounted, ref, watch } from 'vue';
 
    })
 
+   const filterdEntryNote = computed(() => {
 
+    return EntryNoteList.value.filter(item => {
+      const created = new Date(item.created_at);
+      const start = startDate.value? new Date(startDate.value): null;
+      const end = endDate.value? new Date(endDate.value):null;
+      if(start && end ) return created >= start && created <= end;
+      if(start) return created >= start;
+      if(end) return created >= end;
+      return true;
+     })
+   })
+
+function resetDates(){
+  startDate.value =null;
+  endDate.value = null;
+}
    watch(selectedUserFilter, async () =>{
     await refreshUserData();
    })
@@ -104,18 +124,7 @@ import { onMounted, ref, watch } from 'vue';
       }
    }
 
-  function formate(value){
-    const options = {
-        year:'numeric',
-        month:'2-digit',
-        day:'2-digit',
-        hour:'2-digit',
-        minute:'2-digit',
-        hour12:false,
-    };
-    const date = new Date(value);
-    return date.toLocaleDateString('sv-SE', options).replace(' ',' |  ');
-  }
+
   function calculateTotal(){
     return entryNoteDetails.value.reduce((sum, item) => sum + parseFloat(item.amount),0).toFixed(2);
   }
@@ -153,7 +162,7 @@ async function downloadPDF() {
     const imgWidth = pdfWidth - 20; // 10 mm à gauche et à droite
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // ✅ Marge haute réduite
+    //  Marge haute réduite
     let yOffset = 5; // marge haute = 5 mm
 
     // Centrage vertical si le contenu est plus petit que la page
@@ -218,7 +227,7 @@ async function downloadPDF() {
             <div class="font-semibold text-xl mb-4">Lieste des entrées </div>
           
               <DataTable 
-              :value="EntryNoteList" 
+              :value="filterdEntryNote" 
               scrollable 
               scrollHeight="400px"
                class="mt-6">
@@ -226,7 +235,20 @@ async function downloadPDF() {
             <template #header>
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
 
-                  <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Mes dépasses</h4>
+                   <div class="flex gap-3 items-center">
+                      <RouterLink to="/pages/CreateEntryNote">
+                            <Button
+                                label="Nouvelle entrée"
+                                icon="pi pi-plus"
+                                class="p-button-outlined"
+                            />
+                      </RouterLink>
+                       <Calendar v-model="startDate" placeholder="Date début" date-format="yy-mm-dd" show-icon />
+                       <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
+                       <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
+
+
+                   </div>
 
                   <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
 
@@ -259,7 +281,7 @@ async function downloadPDF() {
                 <Column field="supplier_name" header="CLIENT(E)" style="min-width: 200px"></Column>
                 <Column field="created_at" header="DATE" style="min-width: 200px">
                     <template #body="slotProps">
-                       {{ formate(slotProps.data.created_at) }}
+                       {{ formatDate(slotProps.data.created_at) }}
                     </template>
                 </Column>
                 <Column field="user_name" header="DONATEUR" style="min-width: 200px"></Column>

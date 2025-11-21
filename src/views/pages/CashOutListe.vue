@@ -11,6 +11,7 @@ import {
   getUsersCreatedByMe,
 } from '@/service/Api';
 
+import { formatDate } from '@/utils/formatters';
 import { FilterMatchMode } from '@primevue/core/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -41,15 +42,33 @@ const toast = useToast();
 const userProfile = ref(null);
 const selectedUserFilter = ref(null);
 const childUsers = ref([]);
+const startDate = ref(null);
+const endDate = ref(null);
 
-/* ===================== ⚙️ Initialisation ===================== */
+
 onMounted(async () => {
   await getUserChildren();
   selectedUserFilter.value = userId; // par défaut, utilisateur connecté
   await refreshUserData(); // charge profil + cashouts
 });
 
-/* ===================== 🔁 Rafraîchir toutes les données liées ===================== */
+
+const filterdCashOut = computed(() => {
+  return cashoutList.value.filter(item => {
+    const created = new Date(item.created_at);
+    const start = startDate.value? new Date(startDate.value): null;
+    const end = endDate.value? new Date(endDate.value): null;
+    if(start && end) return created >= start && created <= end;
+    if(start) return created >= start;
+    if(end) return created >= end;
+    return true;
+  })
+})
+function resetDates(){
+  startDate.value =null;
+  endDate.value = null;
+}
+
 async function refreshUserData() {
   await Promise.all([fetchUserProfil(), loadCashOutAndUser()]);
 }
@@ -151,18 +170,7 @@ async function confirmDeleteCashout() {
 }
 
 /* =====================  Fonctions utilitaires ===================== */
-function formatDate(value) {
-  const options = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  };
-  const date = new Date(value);
-  return date.toLocaleDateString('sv-SE', options).replace(' ', ' | ');
-}
+
 
 function calculateTotal() {
   return cashoutDetails.value.reduce((sum, item) => sum + parseFloat(item.amount), 0).toFixed(2);
@@ -183,7 +191,7 @@ watch(selectedUserFilter, async () => {
       <div class="font-semibold text-xl mb-4">Liste des Dépasses</div>
 
       <DataTable
-        :value="cashoutList"
+        :value="filterdCashOut"
         scrollable
         scrollHeight="400px"
         class="mt-6"
@@ -191,13 +199,22 @@ watch(selectedUserFilter, async () => {
       >
 
       <template #header>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
 
-            <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Mes dépasses</h4>
+              <div class="flex gap-3 items-center">
+             <RouterLink to="/pages/CreateCashout">
+                <Button
+                    label="Nouveau Dépasse"
+                    icon="pi pi-plus"
+                    class="p-button-outlined"
+                />
+            </RouterLink>
 
-            <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
-
-
+              <Calendar v-model="startDate" placeholder="Date début" date-format="yy-mm-dd" show-icon />
+              <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
+              <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
+            </div>
+          <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
             <Dropdown
                   v-model="selectedUserFilter"
                   :options="childUsers"

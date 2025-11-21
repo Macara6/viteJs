@@ -68,14 +68,11 @@ const model = computed(() => {
           { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
           { label: 'Bilan/Jour', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
           { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
-          { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
-          
           { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
-          { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
-          { label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
+    
           { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
           {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
-
+           { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
          // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
           {
             label: 'Notification',

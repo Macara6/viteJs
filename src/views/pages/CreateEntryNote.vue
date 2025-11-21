@@ -4,9 +4,9 @@
 
 
 <script setup>
-import { createEntryNote } from '@/service/Api';
+import { createEntryNote, fetchUserProfilById } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 
 
@@ -15,7 +15,7 @@ import { ref } from 'vue';
  const details = ref([
     {reason:'', amount:null}
  ]);
-
+const userProfile = ref(null);
 const addDetail =()=>{
     details.value.push({reason:'',amount:null});
 };
@@ -23,7 +23,7 @@ const addDetail =()=>{
 const removeDetail =(index) =>{
     details.value.splice(index, 1);
 }
-
+ const isSuperUser = localStorage.getItem('is_superuser') === 'true';
 
 const handleCreateEntryNote = async ()=>{
     const userId = parseInt(localStorage.getItem('id'));
@@ -52,8 +52,20 @@ const handleCreateEntryNote = async ()=>{
         console.log('Erreur de creation du bon ',eroor);
     }
 }
+async function fetchedUserProfil(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserProfilById(userId);
+        userProfile.value = Array.isArray(result) ? result[0] : result;
+        console.log('profile utilisateur :', userProfile.value)
+    }catch(error){
+        console.error('errur lors de la recuperation du profiles', error);
+    }
+}
 
-
+onMounted(async () => {
+    await fetchedUserProfil();
+})
 
 </script>
 
@@ -76,8 +88,9 @@ const handleCreateEntryNote = async ()=>{
              <InputText v-model="detail.reason" placeholder="Ex: abonnement" />
          </div>
          <div class="flex flex-col w-full">
-             <label>Montant USD</label>
-             <InputText v-model="detail.amount" type="number" placeholder="Montant USD" />
+             <label v-if="isSuperUser">Montant USD</label>
+             <label v-else>Montant {{ userProfile ? userProfile.currency_preference : 'N/A' }} </label>
+             <InputText v-model="detail.amount" type="number" placeholder="Montant " />
          </div>
          <div class="flex items-end">
              <Button icon="pi pi-trash" severity="danger" @click="removeDetail(index)" />

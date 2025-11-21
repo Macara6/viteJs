@@ -10,6 +10,8 @@ import {
 } from '@/service/Api';
 import { clearCache, loadCache, saveCache } from '@/utils/cache';
 import { FilterMatchMode } from '@primevue/core/api';
+import jsPDF from 'jspdf';
+import autoTable from "jspdf-autotable";
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -40,6 +42,7 @@ const submittedSecret = ref(false);
 const secretKey = ref('');
 const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 const deleteMultipleDialog = ref(false);
+
 const isSecretValidatedForView = ref(false);
 
 const cancelDialog = ref(false); // cancel invoice 
@@ -251,7 +254,7 @@ async function deleteMultipleInvoices() {
 
 async function cancelInvoice(){
   try{
-    await cancelInvoiceAPI(invoiceToCancel.value.id);
+   const result = await cancelInvoiceAPI(invoiceToCancel.value.id);
 
     invoiceToCancel.value.status ="ANNULER";
 
@@ -265,7 +268,7 @@ async function cancelInvoice(){
     toast.add({
       severity: "success",
       summary: "Annulée",
-      detail: "La facture a été annulée et le stock restauré",
+      detail: result.message,
       life: 3000
     });
 
@@ -335,10 +338,81 @@ async function refreshInvoices() {
   }
 }
 
+function downloadPDFInvoices() {
+
+  // Création du PDF en A4 vertical
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4"
+  });
+
+  const columns = [
+    {header:'Client', dataKey:'client_name'},
+    {header:'Caissier(e)', dataKey:'cashier_name'},
+    {header:'Total', dataKey:'total_amount'},
+    {header:'Bénéfice', dataKey:'profit_amount'},
+    {header:'Reste', dataKey:'change'},
+    {header:'Montant dû', dataKey:'amount_paid'},
+    {header:'TVA', dataKey:'tva'},
+    {header:'Devise', dataKey:'cashier_currency'},
+    {header:'Date', dataKey:'created_at'},
+    {header:'Status', dataKey:'status'},
+  ];
+
+  const rows = filteredInvoices.value.map(item => ({
+    ...item,
+    created_at: formatDate(item.created_at),
+    total_amount: formatPrice(item.total_amount),
+    profit_amount: formatPrice(item.profit_amount),
+    change: formatPrice(item.change),
+    amount_paid: formatPrice(item.amount_paid),
+    tva: formatPrice(item.tva),
+    cashier_name:item.cashier_name
+  }));
+
+  const cashiers = [...new Set(rows.map(r => r.cashier_name))];
+
+  let pdfUserName = "Multiple utilisateurs";
+
+  if (cashiers.length === 1) {
+    pdfUserName = cashiers[0]; // Un seul caissier dans les données
+  }
+
+  autoTable(doc, {
+    head: [columns.map(c => c.header)],
+    body: rows.map(row => columns.map(c => row[c.dataKey])),
+    startY: 25,
+    theme: 'striped',
+    styles: {
+      fontSize: 8,          // pour que tout rentre dans l’A4
+      cellPadding: 2
+    },
+    headStyles: {
+      fillColor: [0, 0, 0],
+      textColor: 255,
+    },
+    columnStyles: {
+      total_amount: { cellWidth: 20 },
+      profit_amount: { cellWidth: 20 },
+      amount_paid: { cellWidth: 20 },
+      tva: { cellWidth: 18 },
+      change: { cellWidth: 18 },
+    }
+  });
+
+  doc.text('Liste des factures', 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Utilisateur : ${pdfUserName}`, 14, 22);
+  doc.save('liste_factures.pdf');
+}
+
+
 // --- Mounted ---
 onMounted(async () => {
   await loadUserProfileAndChildren();
 });
+
 </script>
 
 
@@ -443,39 +517,50 @@ onMounted(async () => {
 
   <!-- HEADER -->
   <template #header>
-    <div v-if="loading" class="text-center py-8 text-gray-500">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-    </div>
+  <div v-if="loading" class="text-center py-8 text-gray-500">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+  </div>
 
-    <div v-else class="flex flex-col gap-3">
+  <div v-else class="flex flex-col gap-4">
 
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
+    <!-- Ligne du haut : Titre + boutons -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <InputText 
-            v-model="filters['global'].value" 
-            type="text" 
-            placeholder="Rechercher..." 
-            class="flex-1"
-          />
-          <i class="pi pi-search text-gray-400"></i>
-        </div>
-      </div>
+      <div class="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
 
-      <div>
         <Button 
-          label="Supprimer les factures sélectionnées"
+          label="Télécharger PDF"
+          icon="pi pi-file-pdf"
+           severity="info"
+          class="p-button-success"
+          @click="downloadPDFInvoices"
+        />
+
+        <Button 
+          label="Supprimer sélection"
           icon="pi pi-trash"
           severity="danger"
-          class="w-full sm:w-auto"
           :disabled="selectedInvoices.length === 0"
           @click="deleteMultipleDialog = true"
         />
       </div>
-
     </div>
-  </template>
+
+    <!-- Barre de recherche -->
+    <div class="relative flex items-center w-full sm:w-72">
+      <i class="pi pi-search absolute left-3 text-gray-400"></i>
+      <InputText 
+        v-model="filters['global'].value"
+        placeholder="      Rechercher..."
+        class="w-full pl-10 py-2"
+      />
+      
+    </div>
+
+  </div>
+</template>
+
 
   <!-- Colonnes -->
   <Column selectionMode="multiple" headerStyle="width: 40px"></Column>
@@ -540,7 +625,7 @@ onMounted(async () => {
     </template>
   </Column>
 
-  <Column header="Statut" field="status" sortable style="max-width: 95px;">
+  <Column header="Status" field="status" sortable style="max-width: 95px;">
     <template #body="slotProps">
       <span 
         class="px-2 py-1 rounded text-white text-xs whitespace-nowrap"
