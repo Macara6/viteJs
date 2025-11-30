@@ -171,7 +171,10 @@ function clearFilter() {
                       {
                         'bg-green-500': slotProps.data.subscription_type === 'BASIC',
                         'bg-orange-500': slotProps.data.subscription_type === 'MEDIUM',
-                        'bg-purple-600': slotProps.data.subscription_type === 'PREMIUM'
+                        'bg-blue-600': slotProps.data.subscription_type === 'PREMIUM',
+                        'bg-yellow-500': slotProps.data.subscription_type ===  'PLATINUM',
+                        'bg-gray-500': slotProps.data.subscription_type === 'DIAMOND'
+                        
                       }
                     ]"
                 >

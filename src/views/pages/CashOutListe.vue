@@ -42,6 +42,7 @@ const toast = useToast();
 const userProfile = ref(null);
 const selectedUserFilter = ref(null);
 const childUsers = ref([]);
+
 const startDate = ref(null);
 const endDate = ref(null);
 
@@ -64,6 +65,7 @@ const filterdCashOut = computed(() => {
     return true;
   })
 })
+
 function resetDates(){
   startDate.value =null;
   endDate.value = null;
@@ -201,7 +203,7 @@ watch(selectedUserFilter, async () => {
       <template #header>
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
 
-              <div class="flex gap-3 items-center">
+          <div class="flex gap-3 items-center">
              <RouterLink to="/pages/CreateCashout">
                 <Button
                     label="Nouveau Dépasse"
@@ -213,7 +215,8 @@ watch(selectedUserFilter, async () => {
               <Calendar v-model="startDate" placeholder="Date début" date-format="yy-mm-dd" show-icon />
               <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
               <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
-            </div>
+
+          </div>
           <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
             <Dropdown
                   v-model="selectedUserFilter"

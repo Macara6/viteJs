@@ -10,13 +10,15 @@ export async function login(usernam, password) {
             username: usernam,
             password: password
         });
-        const { id, username, email, token, refresh , is_superuser} = response.data;
+        const { id, username, email, token, refresh , is_superuser,status} = response.data;
         localStorage.setItem('token',token);
         localStorage.setItem('refresh_token',refresh);
         localStorage.setItem('id',id);
         localStorage.setItem('username',usernam);
         localStorage.setItem('email',email);
+        
         localStorage.setItem('is_superuser', is_superuser);
+        localStorage.setItem('status', status)
 
         return { id, username, email, token ,is_superuser};
     } catch (error) {
@@ -148,27 +150,42 @@ export async function fetchCategorys(){
 
     try{
         const response =  await axios.get(CATEGORY_URL);
-        return await response.data;
+        return await response.data.results;
     }catch(error){
         console.error('errer fetching produits:',error);
         throw error; 
     }
 }
-export async function getCategoryByUser(userID) {
-      const CATEGORY_URL_USER = `${API_BASE}category/by-user/${userID}/`;
 
-    try{
-        const response =  await axios.get(CATEGORY_URL_USER,{
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        return await response.data;
-    }catch(error){
-        console.error('errer fetching produits:',error);
-        throw error; 
-    }   
+export async function getCategoryByUser(userID) {
+    const LIMIT = 200;  // charge plus vite
+    let nextUrl = `${API_BASE}category/by-user/${userID}/?limit=${LIMIT}`;
+    let allCategories = [];
+
+    try {
+        while (nextUrl) {
+            const response = await axios.get(nextUrl, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            const data = response.data;
+
+            // Ajoute les résultats obtenus
+            allCategories.push(...data.results);
+
+            // Passage à la page suivante
+            nextUrl = data.next;
+        }
+
+        return allCategories; // liste complète
+    } catch (error) {
+        console.error("Erreur fetching categories :", error);
+        throw error;
+    }
 }
+
 
 
 export async function createCategorie(categoryData) {
@@ -237,17 +254,28 @@ export async function  createDepotProduit(productData) {
 
 // api pour les produits 
 export async function fetchProduits(userId) {
-    const PRODUITS_URL = `${API_BASE}products/?user_created=${userId}`;
-    try{
-        const response =  await axios.get(PRODUITS_URL);
-        
-        return await response.data;
-    }catch(error){
-        console.error('errer fetching produits:',error);
-        throw error;
+    const LIMIT = 200;  // mettre 200 → 5× plus rapide
+    let offset = 0;
+
+    let allProducts = [];
+    let nextUrl = `${API_BASE}products/?user_created=${userId}&limit=${LIMIT}&offset=${offset}`;
+
+    while (nextUrl) {
+        const response = await axios.get(nextUrl, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+            }
+        });
+
+        const data = response.data;
+        allProducts.push(...data.results);
+
+        nextUrl = data.next;  // API renvoie directement l’URL page suivante
     }
 
+    return allProducts;
 }
+
 
 export async function updateProductAPI(productId, productData){
     const UPDATE_PRODUCT_URL = `${API_BASE}products/${productId}/`;
@@ -265,19 +293,34 @@ export async function updateProductAPI(productId, productData){
     }
 }
 // function pour ajouter le stock du produit
-export async function addStockAPI(produitId, quantity){
+export async function addStockAPI(produitId, quantity, motif){
     const ADD_STOCK_URL = `${API_BASE}products/addStock/${produitId}/`;
     try{
-        const response = await axios.post(ADD_STOCK_URL, {quantity} ,{
+        const response = await axios.post(ADD_STOCK_URL, {quantity,motif} ,{
             headers:{
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
         });
         return response.data;
     }catch(error){
-        console.log("Ajout lors de l'ajout du stock",error.response ? error.response.data :error);
+        console.error("error lors de l'ajout du stock",error.response ? error.response.data :error);
     }
 }
+
+export async function subtrackStock(productId, quantity, motif){
+    const SUBTRACK_URL = `${API_BASE}products/subtractStock/${productId}/`;
+    try{
+        const response = await axios.post(SUBTRACK_URL, {quantity, motif}, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("error lors de la soutrie de produit dans le stock", error.response? error.response.data :error);
+    }
+}
+
 // fetche history stock
 export async function fetchStockHistory(userId){
     const STOCK_HISTORY_VIEW = `${API_BASE}stockHistoryViews/?added_by=${userId}`;
@@ -287,7 +330,7 @@ export async function fetchStockHistory(userId){
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data;
+        return response.data.results;
     }catch(error){
         console.log("erreur lors de la recuperation de l'hisroeique",error)
     }
@@ -310,19 +353,33 @@ export async function deleteStockHistory(histoId){
 
 // afficher toutes les factures du parent et ses enfant 
 export async function fetchInvoicesAllUsers() {
-    let INVOICE_URL = `${API_BASE}invoicesView/`;
+    const LIMIT = 200; 
+
+    let nextUrl = `${API_BASE}invoicesView/?limit=${LIMIT}`;
+    let allInvoices = [];
+
     try {
-        const response = await axios.get(INVOICE_URL, {
-            headers:{
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        return response.data;
+        while (nextUrl) {
+            const response = await axios.get(nextUrl, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            const data = response.data;
+            allInvoices.push(...data.results);
+            nextUrl = data.next;
+        }
+        return allInvoices;
     } catch (error) {
         console.error('Error fetching invoices', error);
         throw error;
     }
 }
+// afficher les utilisateur qui sont de la corbeille 
+
+
+
 
 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
@@ -337,7 +394,7 @@ export async function fetchInvoicesAllChildrent(onlyChildren = true) {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data;
+        return response.data.results;
     } catch (error) {
         console.error('Error fetching invoices', error);
         throw error;
@@ -396,7 +453,7 @@ export async function fetchUsers(){
     try{
         const response = await axios.get(USER_URL);
        
-        return await response.data;
+        return await response.data.results;
     }catch (error){
         console.error('error fetching invoices',error);
         throw error;
@@ -411,9 +468,60 @@ export async function getUsersCreatedByMe() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data
+        return response.data.results;
     }catch(error){
         throw error.response?.data || { detail: "Erreur inattendue lors du chargement des utilisateurs." };
+    }
+}
+// afficher les utilisateur qui sont de la corbeille 
+export async function fetchTrashedUser(){
+    const LIMIT =200;
+    let nextUrl = `${API_BASE}users/trashed/?limit=${LIMIT}`;
+    let allUsers = [];
+
+    try{
+        while (nextUrl){
+         const response = await axios.get(nextUrl, {
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+         });
+         const data = response.data;
+         allUsers.push(...data.results);
+         nextUrl = data.next;
+        }
+        return allUsers;
+    }catch(error){
+        console.log('error lors de la recuperations des utilisateur dans le corbeille', error);
+    }
+}
+// function pour restaure l'utilisateur 
+
+export async function restoreUser(userId){
+    const url_restore = `${API_BASE}users/restore/${userId}/`;
+    try{
+        const response = await axios.post(url_restore,{},{
+            headers: {
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("erreur lors de la restauration de l'utilisateur", error.value);
+    }
+}
+// suprression dans la corbeille
+export async function deleteUserForCorb(userId){
+    const url_delete = `${API_BASE}users/delete-permanent/${userId}/`;
+    try{
+        const response = await axios.delete(url_delete,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("error lors de la suppression de l'utilisateur", error);
     }
 }
 
@@ -432,6 +540,7 @@ export async function fetchUserById(userId){
         throw error
     }
 }
+
 // fuonction pour ceer un utilisateur 
 export async function createUserAPI(userData){
     const CREATE_USER_URL = `${API_BASE}userCreate/`;
@@ -517,7 +626,7 @@ export async function fetchInvoiceDetail(invoiceId){
                  'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data;
+        return response.data.results;
     } catch(error){
         console.error['Error to fetching invoice detail', error]
         throw error;
@@ -525,26 +634,42 @@ export async function fetchInvoiceDetail(invoiceId){
 }
 
 // function pour afficher le profil de l'utilisateur
-export async function fetchUserProfilById(userId){
-    const PROFIL_URL =`${API_BASE}userProfil/?user=${userId}`;
-    
-    try{
-        const response = await axios.get(PROFIL_URL, {
-            headers :{
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        return response.data;
-    }catch(error){
-        console.error('Error fetching user profile:', error.response?.data || error);
-        throw error;
-    }
+const profileCache = new Map(); // cache en mémoire
 
+export async function fetchUserProfilById(userId) {
+  // ⚡ Retourne depuis le cache si existe
+  if (profileCache.has(userId)) {
+    return profileCache.get(userId);
+  }
+
+  try {
+    const { data } = await axios.get(
+      `${API_BASE}userProfil/?user=${userId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      }
+    );
+
+    const results = Array.isArray(data.results) ? data.results : [];
+
+    profileCache.set(userId, results);
+
+    return results;
+  } catch (error) {
+    console.error('Error fetching user profile:', error?.response?.data || error);
+    throw error;
+  }
 }
+
+
+
+
 export async function updateUserAPI(userData){
     const UPDATE_USER_API = `${API_BASE}user/update/`;
     try{
-        const response = await axios.put(UPDATE_USER_API, userData, {
+        const response = await axios.patch(UPDATE_USER_API, userData, {
             headers:{
                 'Authorization': `Bearer ${localStorage.getItem('token')}`,
                 'Content-Type': 'application/json',
@@ -593,7 +718,7 @@ export async function fetchSubscription(){
     const SUBSRIPTION_URL =`${API_BASE}listSubsription/`;
     try{
         const response = await axios.get(SUBSRIPTION_URL);
-        return await response.data;
+        return  response.data.results;
     }catch(error){
         console.error('errer tetching subscriptions');
         throw error;
@@ -615,6 +740,7 @@ export async function fetchSubscriptionByUser(subscriptionUser){
         throw error; 
     }
 }
+
 // fonction pour creer l'abonnment
 export async function createdSubscription(subscriptionData){
     const CREATE_SUBSCRIPTION_URL =  `${API_BASE}createSubscription/`;
@@ -658,7 +784,7 @@ export async function fecthSubscriptionByUserId(userId){
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data
+        return response.data;
      }catch(error){
         console.log('Error fetching subscription by user', error.response?.data ||error);
         throw error;
@@ -692,7 +818,7 @@ export async function fetchCashOut(userId){
             }
         });
         console.log('Caoush Lis', response.data);
-        return response.data;
+        return response.data.results;
     } catch(error){
         console.error('error fecthing user:', error)
         throw error;
@@ -708,7 +834,7 @@ export async function fetchCashOutDetail(cashoutId){
             }
         });
         console.log('Cashout Detail', response.data);
-        return response.data;
+        return response.data.results;
 
     }catch(error){
         console.error('Error fetching cashout detail', error.response?.data || error);
@@ -776,7 +902,7 @@ export async function fechEntryNote(userId){
             }
         });
         console.log('EntryNote liste', response.data);
-        return response.data;
+        return response.data.results;
     }catch(error){
         console.error('error feching user', error)
         throw error;
@@ -793,7 +919,7 @@ export async function fetchEntryNoteDetail(entryNoteId){
             }
         });
         console.log('Entry note detail', response.data);
-        return response.data;
+        return response.data.results;
     }catch(error){
         console.error('Error feching EntryNoteDetail',error.response?.data || error);
         

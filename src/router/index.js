@@ -186,7 +186,14 @@ const router = createRouter({
                    name:'printerCongig',
                    component:() => import('@/views/pages/printerConfig.vue'),
                    meta: { requiresAuth: true }
+                },
+                {
+                    path:'/pages/Corbeille',
+                    name:'Corbeille',
+                    component:() => import('@/views/pages/Corbeille.vue'),
+                    meta: {requiresAuth: true}
                 }
+
               
                 
             ]

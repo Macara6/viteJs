@@ -7,6 +7,7 @@ import {
   checkSecretKeyStatus, createOrUpdateSecretKey,
   createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
 } from '@/service/Api';
+import { formatDate } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
 
@@ -163,20 +164,47 @@ function openEditUserDialog(){
     showDialogUpdateUser.value = true;
 }
 
-async function updateUser(){
-    try {
-        const payload = { ...form.value };
-        delete payload.username; // Supprime le username du corps de la requête
+async function updateUser() {
+  try {
+    // On crée un payload propre
+    const payload = {};
 
-        await updateUserAPI(payload);
-        toast.add({ severity: 'success', summary: 'Succès', detail: 'Informations utilisateur mises à jour', life: 3000 });
-        await fetchUser();
-        showDialogUpdateUser.value = false;
-    } catch(error) {
-        console.error("Erreur lors de la mise à jour du compte :", error);
-        toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
+    for (const key in form.value) {
+      const value = form.value[key];
+
+      // On ne garde que les valeurs remplies
+      if (value !== "" && value !== null && value !== undefined) {
+        payload[key] = value;
+      }
     }
+
+    console.log("Payload envoyé :", payload);
+
+    await updateUserAPI(payload);
+
+    toast.add({
+      severity: 'success',
+      summary: 'Succès',
+      detail: 'Utilisateur mis à jour',
+      life: 3000
+    });
+
+    await fetchUser(); // recharge les données
+    showDialogUpdateUser.value = false;
+
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du compte :", error);
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Impossible de mettre à jour l’utilisateur',
+      life: 3000
+    });
+  }
 }
+
+
+
 // fonction pour modier le profile
 function openEditDialog(){
 
@@ -297,16 +325,42 @@ const progressPercent = computed(()=> {
       <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
         <h2 class="text-2xl font-bold text-blue-600 mb-4">Abonnement</h2>
         <div class="text-gray-700 space-y-2">
-          <div>
-            <strong>Type :</strong> {{ subscription?.subscription_type || 'Non défini' }}
-            <i v-if="subscription && (subscription.subscription_type === 'MEDIUM' || subscription.subscription_type === 'PREMIUM')" 
-               class="pi pi-verified ml-2"
-               :style="{ color: subscription.subscription_type === 'MEDIUM' ? 'green' : 'blue' }" 
-               title="Abonnement vérifié">
-            </i>
+          <div class="flex items-center gap-2">
+            <strong>Type :</strong>
+
+            <!-- Badge dynamique -->
+            <span 
+              v-if="subscription?.subscription_type"
+              class="px-3 py-1 rounded-full text-white text-sm flex items-center gap-1"
+              :class="{
+                'bg-red-800': subscription.subscription_type === 'BASIC',
+                'bg-green-600': subscription.subscription_type === 'MEDIUM',
+                'bg-blue-600': subscription.subscription_type === 'PREMIUM',
+                'bg-yellow-500': subscription.subscription_type === 'PLATINUM',
+                'bg-gray-700': subscription.subscription_type === 'DIAMOND'
+              }"
+            >
+              <!-- Icônes par type -->
+              <i 
+                v-if="['MEDIUM','PREMIUM'].includes(subscription.subscription_type)"
+                class="pi pi-verified"
+              ></i>
+
+              <i 
+                v-if="['PLATINUM','DIAMOND'].includes(subscription.subscription_type)"
+                class="pi pi-shield"
+              ></i>
+
+              {{ subscription.subscription_type }}
+            </span>
+
+            <!-- Si pas d'abonnement -->
+            <span v-else class="text-gray-500"> </span>
           </div>
-          <div><strong>Début :</strong> {{ subscription?.start_date || 'Non défini' }}</div>
-          <div><strong>Fin :</strong> {{ subscription?.end_date || 'Non défini' }}</div>
+
+          
+          <div><strong>Début :</strong> {{ formatDate(subscription?.start_date )}}</div>
+          <div><strong>Fin :</strong> {{ formatDate(subscription?.end_date) }}</div>
           <div>
             <strong>Statut :</strong>
             <span :class="status(subscription?.is_active) === 'Actif' ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'">

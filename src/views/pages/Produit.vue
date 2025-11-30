@@ -12,8 +12,9 @@ import {
   fetchUserProfilById,
   getCategoryByUser,
   getUsersCreatedByMe,
+  subtrackStock,
   updateProductAPI,
-  verifySecretKey,
+  verifySecretKey
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
 
@@ -54,7 +55,12 @@ const selectedUserProfile = ref(null);
 
 const selectedCategoryFilter = ref(null);
 const ajoutStockDialog =ref(false);
+const sortieStockDialog = ref(false);
 const stockQuantity = ref(0);
+
+const motif = ref(null);
+
+
 
 
 const historyDialog = ref(false);
@@ -79,6 +85,7 @@ const histoToDelete = ref(null);
 const isSecretValidatedForView = ref(false);
 const deleteMode = ref(null);
 const histoDeleteDialog = ref(false);
+const isLoading = ref(false);
 // ------------------
 // Utilities / loaders
 // ------------------
@@ -124,32 +131,51 @@ async function loadCategories(userId) {
 }
 
 async function loadProducts(userId) {
+
+   isLoading.value = true
   try {
+    // Récupérer les produits depuis l'API
     const fetchedProducts = await fetchProduits(userId) || [];
-    const cachedProducts = loadCache('products');
-    if(cachedProducts && cachedProducts.length){
-      products.value = cachedProducts;
-      console.log('Produits charger depuis le cache');
+
+    // Charger le cache
+    let cachedProducts = loadCache('products') || [];
+
+    // Enrichir les produits avec category_name
+    const enrichProducts = (productsArray) => 
+      productsArray.map(p => ({
+        ...p,
+        category_name: categorys.value.find(c => c.id === p.category)?.name || 'Unknown'
+      }));
+
+    if(cachedProducts.length){
+      // Recalcule category_name même pour le cache
+      products.value = enrichProducts(cachedProducts);
+      console.log('Produits chargés depuis le cache et enrichis');
+      isLoading.value = false;
       return;
+    } else {
+      products.value = enrichProducts(Array.isArray(fetchedProducts) ? fetchedProducts : [])
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      saveCache('products', products.value);
+      console.log('Produits chargés depuis l’API et mis en cache'); 
     }
-    products.value = (Array.isArray(fetchedProducts) ? fetchedProducts : []).map(p => ({
-      ...p,
-      category_name: categorys.value.find(c => c.id === p.category)?.name || 'Unknown'
-    })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));  
-    saveCache('products', products.value);
-    console.log('Produits chargés depuis l’API et mis en cache'); 
 
   } catch (error) {
     console.error('Erreur récupération produits', error);
     products.value = [];
+  }finally{
+    isLoading.value= false;
   }
+
 }
+
 
 // helper: charger categories + produits pour un utilisateur donné
 async function loadCategoriesAndProductsForUser(userId) {
+
   // load categories first so category_name mapping works
-  await loadCategories(userId);
-  await loadProducts(userId);
+  await Promise.all([loadCategories(userId),loadProducts(userId)])
+  
 }
 
 // ------------------
@@ -157,6 +183,7 @@ async function loadCategoriesAndProductsForUser(userId) {
 // ------------------
 onMounted(async () => {
   const userId = localStorage.getItem('id');
+  
   if (!userId) {
     toast.add({ severity: 'warn', summary: 'Utilisateur non identifié', detail: 'Veuillez vous reconnecter.', life: 3000 });
     return;
@@ -167,14 +194,19 @@ onMounted(async () => {
     const minimalUser = await fetchUserProfilById(userId);
     user.value = await normalizeProfileResponse(minimalUser);
 
+  await Promise.all([
+      loadUserProfile(userId),
+      getUserChildren(),
+      loadCategoriesAndProductsForUser(userId)
+    ]);
+
     // load main profile & lists in parallel
-    await loadUserProfile(userId);          // sets userProfile.value
+           // sets userProfile.value
     selectedUserProfile.value = userProfile.value; 
     // default shown profile
 
     // load children/categories/products
-    await getUserChildren();
-    await loadCategoriesAndProductsForUser(userId);
+   
 
     // leave selectedUserFilter null => default to connected user
     selectedUserFilter.value = null;
@@ -628,6 +660,12 @@ function openAjoutStock(prod){
   deleteMode.value ='ajoutStock'
 }
 
+function openSortieStock(prod){
+  product.value =prod;
+  stockQuantity.value =0;
+  sortieStockDialog.value = true;
+}
+
 // function to add stock
 async function addStockToProduct(){
   if(stockQuantity.value <= 0){
@@ -635,7 +673,7 @@ async function addStockToProduct(){
       return;
   }
   try{
-    const result = await addStockAPI(product.value.id, stockQuantity.value);
+    const result = await addStockAPI(product.value.id, stockQuantity.value, motif.value);
     let cachedProducts = loadCache('products');
     if (!Array.isArray(cachedProducts)) {
       cachedProducts = [];
@@ -653,7 +691,7 @@ async function addStockToProduct(){
       detail: `Avant : ${result.stock_before} | Après : ${result.stock_after}`,
       life: 3000
     });
-
+    motif.value=null
     ajoutStockDialog.value = false;
 
   }catch(error){
@@ -662,6 +700,64 @@ async function addStockToProduct(){
   }
 }
 
+// sortie stock
+
+async function subtraStock() {
+
+  if (stockQuantity.value <= 0) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Attention',
+      detail: 'Quantité invalide',
+      life: 3000
+    });
+    return;
+  }
+
+  try {
+    //  il manquait un await ici
+    const result = await subtrackStock(
+      product.value.id,
+      stockQuantity.value,
+      motif.value
+    );
+
+    // Charger le cache actuel
+    let cachedProducts = loadCache('products') || [];
+
+    // Trouver le produit
+    const index = cachedProducts.findIndex(p => p.id === product.value.id);
+
+    if (index !== -1) {
+      cachedProducts[index].stock = result.stock_after; // mise à jour du stock
+    }
+
+    // Sauvegarder le cache mis à jour
+    saveCache('products', cachedProducts);
+
+    // mettre aussi à jour l'affichage local
+    product.value.stock = result.stock_after;
+
+    toast.add({
+      severity: 'success',
+      summary: 'Stock retiré',
+      detail: `Avant : ${result.stock_before} | Après : ${result.stock_after}`,
+      life: 3000
+    });
+
+    sortieStockDialog.value = false;
+
+  } catch (error) {
+    console.error("Erreur sortie stock :", error);
+
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: error.response?.data?.error || 'Erreur inconnue',
+      life: 3000
+    });
+  }
+}
 
 // utilities
 function formatPrice(price) { return price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", "); }
@@ -716,8 +812,12 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
       </Toolbar>
     </div>
 
+    <div v-if="isLoading" class="text-center py-8 text-gray-500">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+    </div>
+
     <!-- === DATATABLE === -->
-    <div class="card shadow-md rounded-xl overflow-x-auto bg-white dark:bg-gray-800 p-4">
+    <div v-else class="card shadow-md rounded-xl overflow-x-auto bg-white dark:bg-gray-800 p-4">
       <DataTable
         ref="dt"
         v-model:selection="selectedProducts"
@@ -747,15 +847,52 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
               />
 
               <!-- Filtre utilisateur -->
-              <Select
-                v-model="selectedUserFilter"
-                :options="allUsers.map(u => ({ id: u.id, username: u.username }))"
-                optionLabel="username"
-                optionValue="id"
-                placeholder="Filtrer par utilisateur"
-                class="w-full sm:w-56"
-                showClear
-              />
+        <Select
+          v-model="selectedUserFilter"
+          :options="allUsers"
+          optionValue="id"
+          placeholder="Filtrer par utilisateur"
+          class="w-full sm:w-56"
+          showClear
+        >
+          <template #option="slotProps">
+            <div class="flex items-center justify-between w-full">
+              <span>{{ slotProps.option.username }}</span>
+
+              <span
+                class="px-2 py-1 rounded text-xs"
+                :class="{
+                  'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
+                  'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+                  'bg-gray-200 text-gray-700': slotProps.option.status == 'GESTIONNAIRE_STOCK'
+                }"
+              >
+                {{ slotProps.option.status }}
+              </span>
+            </div>
+
+          </template>
+
+          <template #value="slotProps">
+            <div v-if="slotProps.value" class="flex items-center gap-2">
+              
+              <span>   {{ slotProps.value.username }}</span>
+              <span
+                class="px-2 py-1 rounded text-xs"
+                :class="{
+                  'bg-green-100 text-green-700': slotProps.value.status === 'admin',
+                  'bg-blue-100 text-blue-700': slotProps.value.status === 'user',
+                }"
+              >
+                {{ slotProps.value.status }}
+              </span>
+            </div>
+            <span v-else>Filtrer par utilisateur</span>
+          </template>
+        </Select>
+
+
+
 
               <!-- Filtre catégorie -->
               <Select
@@ -827,12 +964,12 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         </Column>
 
         <Column field="stock" header="Stock" sortable style="min-width: 6rem" />
-
-
+        
+      
         <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
           <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
         </Column>
-
+        
         <Column field="expiration_date" header="Date Exp" sortable style="min-width: 10rem">
           <template #body="slotProps">
             {{ formatDate(slotProps.data.expiration_date ) }}
@@ -850,7 +987,15 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             </span>
           </template>
         </Column>
-        <Column field="category_name" header="Catégorie" sortable style="min-width: 10rem" />
+
+      <Column header="Catégorie" sortable style="min-width: 10rem">
+        <template #body="slotProps">
+          {{ slotProps.data.category_name || 'Aucune' }}
+        </template>
+      </Column>
+
+
+
 
         <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
           <template #body="slotProps">{{ slotProps?.data.barcode || 'N/A' }}</template>
@@ -859,19 +1004,42 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         <!-- === Actions === -->
         <Column header="Actions" style="min-width: 8rem">
           <template #body="slotProps">
-            <div class="flex justify-center gap-2">
-              <Button icon="pi pi-pencil" rounded outlined @click="editProduct(slotProps.data)" />
+            <div class="flex justify-center gap-1"> <!-- gap réduit -->
+              <Button 
+                icon="pi pi-pencil" 
+                rounded 
+                outlined 
+                class="p-1 text-xs h-7 w-7" 
+                @click="editProduct(slotProps.data)" 
+              />
+
               <Button
                 icon="pi pi-trash"
                 rounded
                 outlined
                 severity="danger"
+                class="p-1 text-xs h-7 w-7"
                 @click="confirmDeleteProduct(slotProps.data)"
               />
-              <Button icon="pi pi-plus" severity="success" @click="openAjoutStock(slotProps.data)" />
+
+              <Button 
+                icon="pi pi-plus" 
+                severity="success"
+                class="p-1 text-xs h-7 w-7"
+                @click="openAjoutStock(slotProps.data)" 
+              />
+
+              <Button 
+                icon="pi pi-minus" 
+                severity="warn"
+                class="p-1 text-xs h-7 w-7"
+                @click="openSortieStock(slotProps.data)" 
+              />
             </div>
           </template>
         </Column>
+
+
       </DataTable>
     </div>
 
@@ -1067,6 +1235,47 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
           <div>
               <label class="block font-bold mb-2">Quantité à ajouter</label>
              <InputNumber v-model="stockQuantity" placeholder="Quantité" />
+
+            <label for=" blocj font-bold mb-3"> Motif</label>
+            <InputText v-model="motif" placeholder="motif"/>
+          </div>
+         
+   
+        </div>
+       
+        
+    </div>
+
+    <template #footer>
+        <Button label="Annuler" class="p-button-text" @click="ajoutStockDialog = false" />
+        <Button label="Ajouter" @click="addStockToProduct" />
+    </template>
+</Dialog>
+
+
+
+ <Dialog v-model:visible="sortieStockDialog" :style="{ width: '90%', maxWidth: '450px' }" header="stortie du stock" modal>
+    <div class="flex flex-col gap-4">
+        <div>
+          <label class="block font-bold mb-2"> Code Barre:   {{ product.barcode || 'N/A'}} </label>
+        </div>
+        <div>
+          <label class="block font-bold mb-2"> Produit:   {{ product.name}} </label>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+           <label class="block font-bold mb-2"> Stock</label>
+            <div>
+              {{ product.stock }}
+            </div>
+          </div>
+
+          <div>
+              <label class="block font-bold mb-2">Quantité à sortire</label>
+             <InputNumber v-model="stockQuantity" placeholder="Quantité" />
+
+            <label for=" blocj font-bold mb-3"> Motif</label>
+            <InputText v-model="motif" placeholder="motif"/>
           </div>
 
         </div>
@@ -1075,7 +1284,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
     <template #footer>
         <Button label="Annuler" class="p-button-text" @click="ajoutStockDialog = false" />
-        <Button label="Ajouter" @click="addStockToProduct" />
+        <Button label="Appliquée" @click="subtraStock" />
     </template>
 </Dialog>
 
@@ -1087,7 +1296,6 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
   :style="{ width: '90%', maxWidth: '700px' }"
   :closable="true"
 >
-
 
 
 
@@ -1130,11 +1338,24 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
     </div>
   </template>
 
-    <Column field="product_name" header="Produit" sortable style="text-align: center;"></Column>
-    <Column field="previous_stock" header="Stock avant" sortable style="text-align: center;"></Column>
-    <Column field="quantity_added" header="Quantité ajoutée" sortable style="text-align: center;"></Column>
-    <Column field="new_stock" header="Stock après" sortable style="text-align: center;"></Column>
+    <Column field="product_name" header="Produit"  style="text-align: center;"></Column>
+    <Column field="previous_stock" header="Stock avant"  style="text-align: center;"></Column>
+    <Column field="quantity_added" header="Quantité "  style="text-align: center;"></Column>
+     <Column field="status" header="Status" sortable style="text-align: center;">
+     <template #body="slotProps"> 
+        <span
+          class="px-2 py-1 rounded text-white text-xs whitespace-nowrap"
+          :class="slotProps.data.status === 'SORTIE' ? 'bg-yellow-600' : 'bg-green-500'"
+        >
+        {{ slotProps.data.status }}
+
+        </span>
+     </template>
+     
+     </Column>
+    <Column field="new_stock" header="Stock après"  style="text-align: center;"></Column>
     <Column field="added_by_name" header="Ajouté par" style="text-align: center;"></Column>
+    <Column field="motif" header="Motif" style="text-align: center;"></Column>
     <Column field="created_at" header="Date" sortable style="text-align: center;">
       <template #body="slotProps">
         {{ formatDate(slotProps.data.created_at) }}

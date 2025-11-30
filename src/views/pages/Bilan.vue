@@ -44,8 +44,11 @@ const pieData = ref(null)
 const pieOptions = ref(null)
 const lineData = ref(null)
 const lineOptions = ref(null)
+const usersForCharts = ref([]);
+const selectedGroup = ref(null)
 
 // ================= INIT DATA =================
+
 async function initData() {
   try {
     isLoading.value = true
@@ -54,7 +57,7 @@ async function initData() {
     // Utilisateur connecté
     user.value = loadCache('userConnected') || await fetchUserById(userId)
     if (!loadCache('userConnected')) saveCache('userConnected', user.value)
-
+    if (!user.value) return; 
     const userProfileData = await fetchUserProfilById(user.value.id)
     userProfile.value = Array.isArray(userProfileData) ? userProfileData[0] : userProfileData
     user.value.currency = userProfile.value?.currency_preference || 'N/A'
@@ -63,6 +66,13 @@ async function initData() {
     const allCreatedUsers = await getUsersCreatedByMe()
     childUsers.value = allCreatedUsers
     allUsers.value = [user.value, ...childUsers.value]
+
+    // -- utilisateurs à afficher par défaut dans les charts --
+      usersForCharts.value = [
+          user.value, // utilisateur connecté
+          ...childUsers.value.filter(c => c.status === "CAISSIER")
+      ];
+
 
     for (let i = 0; i < childUsers.value.length; i++) {
       const childProfile = await fetchUserProfilById(childUsers.value[i].id)
@@ -100,6 +110,7 @@ async function initData() {
   }
 }
 
+
 // ================= Force refresh =================
 function forceRefresh() {
   clearAllCache();
@@ -120,13 +131,20 @@ const selectedUserProfile = computed(() => {
 
 
 const currentUserId = ref(null)
+
 watch(selectedUserId, () => {
   currentUserId.value = selectedUserId.value === null ? user.value.id : parseInt(selectedUserId.value)
 
   updateDashboardCards()
   updatePieChart()
   updateLineChart()
-})
+});
+
+watch(selectedGroup, () => {
+  usersForCharts.value =computeUsersForCharts();
+  updateLineChart();
+  updatePieChart();
+});
 
 watch(() => selectDate.value.global.value, () => {
 
@@ -140,7 +158,7 @@ async function updateDashboardCards() {
 
   // Déterminer quel utilisateur pour les cards
   const userIdForCards = selectedUserId.value === null 
-    ? user.value.id   // par défaut, montrer uniquement l'utilisateur connecté
+    ? user.value?.id   // par défaut, montrer uniquement l'utilisateur connecté
     : parseInt(selectedUserId.value)
 
   // Filtrer invoices pour ce user
@@ -184,28 +202,63 @@ const displayUserProfile = computed(() => {
   return selectedUser?.profile || { currency_preference: 'N/A' }
 })
 
+function computeUsersForCharts(){
+
+  const connected = user.value
+
+  if (selectedUserId.value){
+    return allUsers.value.filter(u => u.id === parseInt(selectedUserId.value));
+  }
+
+  if (connected.status === "CAISSIER"){
+  return [connected];
+  }
+
+  if (selectedGroup.value ==="ADMIN"){
+    return allUsers.value.filter(u => u.status ==="ADMIN");
+  }
+
+  if (selectedGroup.value ==="CAISSIER"){
+    return allUsers.value.filter(u => u.status ==="CAISSIER");
+  }
+
+  return [
+    connected,
+    ...childUsers.value.filter(u => u.status ==="CAISSIER")
+  ];
+
+}
+
+
+
+
 
 async function updatePieChart() {
-  const selectedDateVal = selectDate.value.global.value
-  const userInvoiceTotals = {}
+  const selectedDateVal = selectDate.value.global.value;
+  const userInvoiceTotals = {};
 
-  // Filtrer les factures selon l'utilisateur sélectionné
+  // Utilisateur spécifique OU les utilisateurs autorisés
+  const usersSource = selectedUserId.value
+    ? allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
+    : usersForCharts.value;
+
+  // Factures filtrées
   const filteredInvoices = selectedUserId.value === null
-    ? invoices.value // tous les utilisateurs
-    : invoices.value.filter(inv => inv.cashier === currentUserId.value)
+    ? invoices.value.filter(inv => usersSource.some(u => u.id === inv.cashier))
+    : invoices.value.filter(inv => inv.cashier === parseInt(selectedUserId.value));
 
-  // Calculer le total par utilisateur
+  // Calcul totals
   filteredInvoices.forEach(inv => {
-    const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0]
-    if (invoiceDate === selectedDateVal) {
-      const uid = inv.cashier
-      userInvoiceTotals[uid] = (userInvoiceTotals[uid] || 0) + (parseFloat(inv.total_amount) || 0)
+    const invDate = new Date(inv.created_at).toISOString().split("T")[0];
+    if (invDate === selectedDateVal) {
+      userInvoiceTotals[inv.cashier] =
+        (userInvoiceTotals[inv.cashier] || 0) + parseFloat(inv.total_amount || "0");
     }
-  })
+  });
 
-  const labels = []
-  const data = []
-  const legend = []
+  const labels = [];
+  const data = [];
+  const legend = [];
 
   const baseColors = [
     'rgba(75, 192, 192, 0.8)',
@@ -214,102 +267,91 @@ async function updatePieChart() {
     'rgba(54, 162, 235, 0.8)',
     'rgba(153, 102, 255, 0.8)',
     'rgba(255, 159, 64, 0.8)'
-  ]
+  ];
 
-  allUsers.value.forEach((u, i) => {
-    if (u && userInvoiceTotals[u.id]) {
-      labels.push(u.username)
-      data.push(userInvoiceTotals[u.id])
+  usersSource.forEach((u, i) => {
+    if (userInvoiceTotals[u.id]) {
+      labels.push(u.username);
+      data.push(userInvoiceTotals[u.id]);
       legend.push({
         name: u.username,
         amount: userInvoiceTotals[u.id],
         color: baseColors[i % baseColors.length],
-        currency: u.currency || 'N/A'
-      })
+        currency: u.currency
+      });
     }
-  })
+  });
 
   pieData.value = {
     labels,
-    datasets: [
-      {
-        data,
-        backgroundColor: legend.map(l => l.color),
-        hoverBackgroundColor: legend.map(l => l.color.replace('0.8', '1'))
-      }
-    ],
+    datasets: [{
+      data,
+      backgroundColor: legend.map(l => l.color)
+    }],
     legend
-  }
+  };
 
   pieOptions.value = {
     responsive: true,
-    plugins: {
+      plugins: {
       legend: { display: false },
-      title: { display: true, text: 'Factures par caissier(e)s' }
+      title: { display: true, text: "Factures par caissier(e)s" }
     }
-  }
+  };
 }
 
 
 // ================= Line Chart =================
 function updateLineChart() {
-  const selectedDateVal = selectDate.value.global.value
-  const datasets = []
+  const selectedDateVal = selectDate.value.global.value;
+  const datasets = [];
   const baseColors = [
     '#42A5F5', '#66BB6A', '#FFA726', '#AB47BC',
-    '#26C6DA', '#FF7043', '#8D6E63', '#EC407A',
-    '#7E57C2', '#26A69A', '#EF5350', '#9CCC65'
-  ]
+    '#26C6DA', '#FF7043', '#8D6E63', '#EC407A'
+  ];
 
-  const selectedDate = new Date(selectedDateVal)
+  const selectedDate = new Date(selectedDateVal);
 
-  // 🗓️ Trouver le lundi de la semaine du jour sélectionné
-  const startDate = new Date(selectedDate)
-  const day = startDate.getDay() // 0 = dimanche, 1 = lundi, ...
-  const diff = day === 0 ? -6 : 1 - day // Si dimanche, reculer de 6 jours
-  startDate.setDate(startDate.getDate() + diff)
+  // 🔥 lundi de la semaine
+  const startDate = new Date(selectedDate);
+  const day = startDate.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  startDate.setDate(startDate.getDate() + diff);
 
-  // 📅 Générer les 7 jours de la semaine (lundi → dimanche)
   const labels = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date(startDate)
-    date.setDate(startDate.getDate() + i)
-    return date.toISOString().split('T')[0]
-  })
+    let d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
 
-  // 👥 Déterminer les utilisateurs à afficher
-  const usersToShow = selectedUserId.value === null
-    ? allUsers.value
-    : allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
+  const usersSource = selectedUserId.value
+    ? allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
+    : usersForCharts.value;
 
-  for (let i = 0; i < usersToShow.length; i++) {
-    const u = usersToShow[i]
-    const currency = u.currency || 'N/A'
-
-    const userInvoices = invoices.value.filter(inv => inv.cashier === u.id)
-    const dailyTotals = {}
-    let totalAmount = 0
+  usersSource.forEach((u, i) => {
+    const userInvoices = invoices.value.filter(inv => inv.cashier === u.id);
+    const dailyTotals = {};
+    let totalAmount = 0;
 
     userInvoices.forEach(inv => {
-      const dateStr = new Date(inv.created_at).toISOString().split('T')[0]
-      if (dateStr >= labels[0] && dateStr <= labels[labels.length - 1]) {
-        const amount = parseFloat(inv.total_amount) || 0
-        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amount
-        totalAmount += amount
+      const dateStr = new Date(inv.created_at).toISOString().split('T')[0];
+      if (dateStr >= labels[0] && dateStr <= labels[6]) {
+        const amt = parseFloat(inv.total_amount) || 0;
+        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amt;
+        totalAmount += amt;
       }
-    })
+    });
 
-    const data = labels.map(l => dailyTotals[l] || 0)
     datasets.push({
-      label: `${u.username} (${currency}) — ${formatPrice(totalAmount)}`,
-      data,
+      label: `${u.username} (${u.currency}) — ${formatPrice(totalAmount)}`,
+      data: labels.map(l => dailyTotals[l] || 0),
       borderColor: baseColors[i % baseColors.length],
       backgroundColor: baseColors[i % baseColors.length],
-      tension: 0.3,
-      fill: false
-    })
-  }
+      tension: 0.3
+    });
+  });
 
-  lineData.value = { labels, datasets }
+  lineData.value = { labels, datasets };
 }
 
 
@@ -681,23 +723,121 @@ onMounted(() => {
     <!-- Date Selector -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
  
-        <div class="flex flex-col">
-          <label for="user-filter" class="font-medium">Filtrer par utilisateur :</label>
+      <div class="flex flex-col">
+          <label for="user-filter" class="font-medium">Filtrer par Caissier :</label>
 
-          <Select
-                v-model="selectedUserId"
-                :options="allUsers.map(u => ({ id: u.id, username: u.username }))"
-                optionLabel="username"
-                optionValue="id"
-                placeholder="Filtrer par utilisateur"
-                class="w-full sm:w-56"
-                showClear
-            />
+      <Select
+        v-model="selectedUserId"
+          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='ADMIN')"
+        optionValue="id"
+        placeholder="Filtrer par utilisateur"
+        class="w-full sm:w-56"
+        showClear
+      >
+        <!-- Comment afficher chaque option dans la liste -->
+        <template #option="{ option }">
+          <div class="flex justify-between items-center gap-2">
+            <span>{{ option.username }}</span>
+            <span 
+              class="text-xs px-2 py-0.5 rounded"
+              :class="{
+                'bg-green-100 text-green-800': option.status === 'ADMIN',
+                'bg-blue-100 text-blue-800': option.status === 'CAISSIER',
+              }"
+            >
+              {{ option.status }}
+            </span>
+          </div>
+        </template>
 
-        </div>
+        <!-- Comment afficher l'élément sélectionné -->
+        <template #selectedItem="{ option }">
+          <div class="flex justify-between items-center gap-2">
+            <span>{{ option.username }}</span>
+            <span 
+              class="text-xs px-2 py-0.5 rounded"
+              :class="{
+                'bg-green-100 text-green-800': option.status === 'ADMIN',
+                'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+              }"
+            >
+              {{ option.status }}
+            </span>
+          </div>
+        </template>
+      </Select>
+      </div>
+
+      <div class="flex flex-col">
+          <label for="user-filter" class="font-medium">Filtrer par Admin :</label>
+
+      <Select
+        v-model="selectedUserId"
+          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
+        optionValue="id"
+      
+        placeholder="Filtrer par utilisateur"
+        class="w-full sm:w-56"
+        showClear
+      >
+        <!-- Comment afficher chaque option dans la liste -->
+        <template #option="{ option }">
+          <div class="flex justify-between items-center gap-2">
+            <span>{{ option.username }}</span>
+            <span 
+              class="text-xs px-2 py-0.5 rounded"
+              :class="{
+                'bg-green-100 text-green-800': option.status === 'ADMIN',
+                'bg-blue-100 text-blue-800': option.status === 'CAISSIER',
+              }"
+            >
+              {{ option.status }}
+            </span>
+          </div>
+        </template>
+
+        <!-- Comment afficher l'élément sélectionné -->
+        <template #selectedItem="{ option }">
+          <div class="flex justify-between items-center gap-2">
+            <span>{{ option.username }}</span>
+            <span 
+              class="text-xs px-2 py-0.5 rounded"
+              :class="{
+                'bg-green-100 text-green-800': option.status === 'ADMIN',
+                'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+              }"
+            >
+              {{ option.status }}
+            </span>
+          </div>
+        </template>
+        </Select>
+      </div>
+
+      <div class="flex flex-col">
+        <label class="font-medium">Filtrer groupe :</label>
+
+        <Select
+          v-model="selectedGroup"
+          :options="[
+            { label: 'Aucun', value: null },
+            { label: 'Tous les Admins', value: 'ADMIN' },
+            { label: 'Tous les Caissiers', value: 'CAISSIER' }
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          class="w-full sm:w-56"
+          placeholder="Filtrer groupe"
+          showClear
+        />
+      </div>
+
+
+
+
 
         <!-- 🔹 Sélecteur de date -->
-        <div class="flex flex-col">
+    <div class="flex flex-col">
           <label for="date-select" class="font-medium">Sélectionner une date :</label>
           <InputText
             id="date-select"
@@ -743,24 +883,22 @@ onMounted(() => {
         class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
       />
 
-    <!-- Légende dynamique -->
-    <div v-if="pieData?.legend?.length" class="w-full mt-4 border-t pt-4 space-y-2">
-      <div v-for="(item, index) in pieData.legend" :key="index" class="flex items-center justify-between text-sm">
-        <div class="flex items-center gap-2">
-          <span :style="{ backgroundColor: item.color }" class="w-3 h-3 rounded-full"></span>
-          <span class="text-gray-700 dark:text-gray-300 font-medium">
-            {{ item.name }}
-          </span>
+        <!-- Légende dynamique -->
+        <div v-if="pieData?.legend?.length" class="w-full mt-4 border-t pt-4 space-y-2">
+          <div v-for="(item, index) in pieData.legend" :key="index" class="flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span :style="{ backgroundColor: item.color }" class="w-3 h-3 rounded-full"></span>
+              <span class="text-gray-700 dark:text-gray-300 font-medium">
+                {{ item.name }} 
+              </span>
+            </div>
+            <span class="font-semibold text-gray-900 dark:text-gray-100">
+              {{ formatPrice(item.amount) }} {{ item.currency || 'N/A' }}
+            </span>
+          </div>
         </div>
-        <span class="font-semibold text-gray-900 dark:text-gray-100">
-          {{ formatPrice(item.amount) }} {{ item.currency || 'N/A' }}
-        </span>
       </div>
     </div>
-  </div>
-</div>
-
-
 
 </div>
 

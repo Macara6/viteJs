@@ -14,6 +14,8 @@ const subscriptionTypes =[
     {label: 'Basic', value: 'BASIC'},
     {label :'Medium', value: 'MEDIUM'},
     {label: 'Premium', value: 'PREMIUM'},
+    {label: 'Platinum', value:'PLATINUM'},
+    {label: 'Diamond', value:'DIAMOND'},
 ]
 
 

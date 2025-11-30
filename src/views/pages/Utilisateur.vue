@@ -1,9 +1,9 @@
 
 
 <script setup>
-import { createUserAPI, deleteUserAPI, getUsersCreatedByMe, updateUser } from '@/service/Api';
+import { createUserAPI, deleteUserAPI, fetchUserProfilById, getUsersCreatedByMe, updateUserAPI, updateUserProfile } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, ref } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
  
 const toast = useToast();
@@ -17,10 +17,38 @@ const isSuperuser = localStorage.getItem('is_superuser') === 'true';
 const deleteDialog = ref(false);
 const userToDelete = ref(null);
 
+const selectedUser = ref({});
+const userProfile = ref({});
 
+const isSaving = ref(false);
+
+const userStatusType = [
+    {label:'ADMIN', value:'ADMIN'},
+    {label:'CAISSIER', value:'CAISSIER'},
+    {label:'GESTIONNAIRE_STOCK', value:'GESTIONNAIRE_STOCK'}
+]
+
+
+const editForm = reactive({
+  first_name: "",
+  last_name: "",
+  email: "",
+
+  // profil
+  entrep_name: "",
+  phone_number: "",
+  adress: "",
+  rccm_number: "",
+  impot_number: "",
+});
+
+
+
+const userDetailDialog =ref(false);
 
 onMounted(async () => {
    fetchedUser();
+   
    
 });
 
@@ -56,13 +84,81 @@ function confirmDeleteUser(user){
   deleteDialog.value = true;
 }
 
+
+
+async function openUserDetail(userId){
+  selectedUser.value = userId;
+  const result = await fetchUserProfilById(selectedUser.value.id)
+  userProfile.value = Array.isArray(result) ? result[0] : result;
+
+
+  editForm.first_name = selectedUser.value.first_name;
+  editForm.last_name = selectedUser.value.last_name;
+  editForm.email = selectedUser.value.email;
+
+  editForm.entrep_name = userProfile.value.entrep_name;
+  editForm.phone_number = userProfile.value.phone_number;
+  editForm.adress = userProfile.value.adress;
+  editForm.rccm_number = userProfile.value.rccm_number;
+  editForm.impot_number = userProfile.value.impot_number;
+  
+  
+  userDetailDialog.value = true;
+}
+
+async function submitUserUpdate() {
+  try {
+    isSaving.value = true;
+
+
+    const profilePayload = {
+      user: selectedUser.value.id,
+      entrep_name: editForm.entrep_name,
+      phone_number: editForm.phone_number,
+      adress: editForm.adress,
+      rccm_number: editForm.rccm_number,
+      impot_number: editForm.impot_number,
+    };
+
+    await updateUserProfile(profilePayload);
+
+    // -------------------------
+    // 3. Succès
+    // -------------------------
+    toast.add({
+      severity: "success",
+      summary: "Modification réussie",
+      detail: "Les informations ont été mises à jour.",
+      life: 2500,
+    });
+
+    userDetailDialog.value = false;
+   
+
+  } catch (error) {
+    console.error("Erreur :", error);
+
+    toast.add({
+      severity: "error",
+      summary: "Erreur",
+      detail: "Impossible de sauvegarder les modifications.",
+      life: 3000,
+    });
+
+  } finally {
+    isSaving.value = false;
+  }
+}
+
+
 async function deleteUser(){
     if(!userToDelete.value) return
 
     try{
-        await deleteUserAPI(userToDelete.value.id);
+       const result = await deleteUserAPI(userToDelete.value.id);
         user.value = users.value.filter(u=> u.id !== userToDelete.value.id);
-         toast.add({ severity: 'success', summary: 'Supprimé', detail: 'Utilisateur supprimé avec succès', life: 3000 });
+         toast.add({ severity: 'success', summary: 'Supprimé', detail: result.message, life: 3000 });
+         fetchedUser();
     } catch(error){
        console.error('Erreur lors de la suppression de l\'utilisateur', error);
        toast.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la suppression', life: 3000 });
@@ -95,6 +191,8 @@ async function saveUser() {
     const userData = {
       username: user.value.name,
       email: user.value.email,
+      status:user.value.status
+      
     };
 
     if (isCreating) {
@@ -104,7 +202,7 @@ async function saveUser() {
     try {
       if (user.value.id) {
         // Mise à jour
-        const updateUseri = await updateUser(user.value.id, userData);
+        const updateUseri = await updateUserAPI(user.value.id, userData);
         const index = users.value.findIndex(u => u.id === user.value.id);
         if (index !== -1) {
           users.value[index] = updateUseri;
@@ -153,9 +251,8 @@ function editUser(seleectedUser){
         id:seleectedUser.id,
         name:seleectedUser.username,
         email: seleectedUser.email,
-        password:'',
-        confirPasswor:''
     };
+
     submitted.value = false;
     userDialog.value = true;
 }
@@ -197,12 +294,13 @@ function hideDialog(){
 
 
 <template>
+
+
    <div>
         <div class="card">
             <Toolbar class="mb-6">
                 <template #start>
                     <Button label="Nouveau Utilissateur" icon="pi pi-user-plus" severity="primary" class="mr-2" @click="openNew" />
-                    <Button label="Effacer" icon="pi pi-trash" severity="secondary" @click="confirmDeleteSelected" :disabled="!selectedProducts || !selectedProducts.length" />
                 </template>
 
                 <template #end>
@@ -210,9 +308,19 @@ function hideDialog(){
                 </template>
 
             </Toolbar>
+
+        </div>
+
+         <div
+                v-if="users.length === 0"
+                class="text-center py-16 text-gray-400"
+            >
+                <i class="pi pi-inbox text-5xl mb-3"></i>
+                <p class="text-lg">Aucun utilisateur trouver</p>
         </div>
 
         <DataTable
+        v-else
                 ref="dt"
                 :value="users"
                 dataKey="id"
@@ -224,15 +332,33 @@ function hideDialog(){
                 currentPageReportTemplate="Showing {first} to {last} of {totalRecords} Factures "
             >
 
-            <Column selectionMode="multiple" style="width: 3rem" :exportable="false"></Column>
-                <Column field="id" header="ID" sortable style="min-width: 12rem"></Column>
-                <Column field="username" header="NON UTILISATEUR" sortable style="min-width: 16rem"></Column>
-                
-                <Column field="email" header="EMAIL" sortable style="min-width: 8rem">
-                
-                </Column>
-
             
+                <Column field="id" header="ID" sortable style="min-width: 2rem"></Column>
+                <Column field="username" header="NON UTILISATEUR"  ></Column>
+                <Column field="first_name" header="NOM " >
+                  <template #body="slotProps">
+                        {{ slotProps?.data.first_name || 'N/A' }} {{ slotProps?.data.last_name }}
+                  </template>
+                </Column>
+                <Column field="email" header="EMAIL" sortable style="min-width: 8rem"></Column>
+
+                <Column field="status" header="STATUS" sortable style="min-width: 8rem">
+                  <template #body="slotProps">
+                    <span
+                      :class="[
+                      'px-2 py-1 rounded text-white text-sm font-semibold',
+                      {
+                        'bg-green-500': slotProps.data.status === 'ADMIN',
+                        'bg-orange-600': slotProps.data.status === 'CAISSIER',
+                        'bg-indigo-900': slotProps.data.status === 'GESTIONNAIRE_STOCK'
+                      }
+                    ]"
+                    >
+                    {{ slotProps.data.status }}
+                    </span>
+                  </template>
+                </Column>
+                
                 <Column field="date_joined" header=" CREATION " sortable style="min-width: 12rem">
                    <template #body="slotProps">
                     {{ formatDate(slotProps.data.date_joined)}}
@@ -241,20 +367,30 @@ function hideDialog(){
 
                 <Column field="inventoryStatus" header="ACTION" sortable style="min-width: 12rem">
                     <template #body="slotProps">
+
                         <Button 
                         v-if="isSuperuser"
                         icon="pi pi-eye" 
                         label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
 
                         <Button 
+                        v-if="!isSuperuser"
+                        icon="pi pi-ellipsis-v" 
+                        label="Details" 
+                        outlined 
+                        rounded 
+                        class="mr-2"
+                        severity="info"
+                         @click="openUserDetail(slotProps.data)" />
+
+                        <Button 
                           icon="pi pi-trash" 
                           severity="danger" 
                           rounded 
                           outlined 
-                          label="Supprimer"
                           @click="confirmDeleteUser(slotProps.data)" 
                       />
-                       
+                      
                     </template> 
                 </Column>
 
@@ -288,6 +424,14 @@ function hideDialog(){
                         <InputText id="password" v-model="user.confirPasswor" type="password" required="true"/>
                         <small v-if="submitted && user.password != user.confirPasswor" class="text-red-500">Le mot de pass doit etre le même</small>
                     </div>
+                  <div class="col-span-6">
+                      <label class="block font-bold mb-2">Category</label>
+                      <Select v-model="user.status"
+                      :options="userStatusType"
+                       optionLabel="label" 
+                       optionValue="value" 
+                       placeholder="STATAUS" fluid />
+                    </div>
                 </div>
 
 
@@ -300,6 +444,163 @@ function hideDialog(){
         </Dialog>
 
 
+<Dialog 
+  v-model:visible="userDetailDialog" 
+  :modal="true"
+  header="Utilisateur"
+  :style="{ width: '600px' }"
+  class="p-0"
+>
+  <TabView>
+
+    <!-- ========================= -->
+    <!--       ONGLET DETAIL       -->
+    <!-- ========================= -->
+    <TabPanel header="Détails">
+      <div class="flex flex-col items-center py-4 px-4">
+
+        <!-- AVATAR -->
+        <Avatar 
+          :label="selectedUser?.username?.charAt(0).toUpperCase()" 
+          size="large"
+          class="mb-3"
+          style="background:#e5a046;color:white;width:70px;height:70px;font-size:26px;"
+        />
+
+        <!-- NOM -->
+        <h2 class="text-xl font-semibold text-gray-800">
+          {{ selectedUser?.first_name }} {{ selectedUser?.last_name }}
+        </h2>
+
+        <!-- ROLE -->
+        <Tag 
+          :value="selectedUser?.status" 
+          :severity="selectedUser?.status === 'ADMIN' ? 'success' : 'info'"
+          class="mt-2 px-3 py-1 text-sm"
+        />
+
+        <Divider />
+
+        <!-- INFORMATIONS UTILISATEUR -->
+        <div class="w-full space-y-3">
+
+          <div class="flex justify-between">
+            <span class="font-medium">Nom d'utilisateur :</span>
+            <span>{{ selectedUser?.username }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">Email :</span>
+            <span>{{ selectedUser?.email }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">Date de création :</span>
+            <span>{{ new Date(selectedUser?.date_joined).toLocaleDateString() }}</span>
+          </div>
+
+        </div>
+
+        <Divider />
+        <h3 class="text-lg font-semibold text-gray-800">POINT DE VENTE</h3>
+
+        <div class="w-full space-y-3">
+
+          <div class="flex justify-between">
+            <span class="font-medium">Nom :</span>
+            <span>{{ userProfile?.entrep_name }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">Téléphone :</span>
+            <span>{{ userProfile?.phone_number }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">Adresse :</span>
+            <span>{{ userProfile?.adress }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">RCCM :</span>
+            <span>{{ userProfile?.rccm_number }}</span>
+          </div>
+
+          <div class="flex justify-between">
+            <span class="font-medium">Impot :</span>
+            <span>{{ userProfile?.impot_number }}</span>
+          </div>
+
+        </div>
+
+      </div>
+    </TabPanel>
+
+
+    <!-- ================================ -->
+    <!--      ONGLET MODIFICATION         -->
+    <!-- ================================ -->
+    <TabPanel header="Modifier">
+      <div class="px-4 py-4 space-y-4">
+
+        <!-- FORMULAIRE POINT DE VENTE -->
+        <h3 class="text-lg font-semibold text-gray-800">Point de vente</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div>
+            <label class="font-medium">Nom entreprise</label>
+            <InputText v-model="editForm.entrep_name" class="w-full" />
+          </div>
+
+          <div>
+            <label class="font-medium">Téléphone</label>
+            <InputText v-model="editForm.phone_number" class="w-full" />
+          </div>
+
+          <div>
+            <label class="font-medium">Adresse</label>
+            <InputText v-model="editForm.adress" class="w-full" />
+          </div>
+
+          <div>
+            <label class="font-medium">RCCM</label>
+            <InputText v-model="editForm.rccm_number" class="w-full" />
+          </div>
+
+          <div>
+            <label class="font-medium">Impot</label>
+            <InputText v-model="editForm.impot_number" class="w-full" />
+          </div>
+
+        </div>
+
+        <!-- BOUTONS -->
+        <div class="flex justify-end gap-2 mt-4">
+          <Button 
+            label="Annuler" 
+            class="p-button-text"
+            @click="userDetailDialog = false"
+          />
+          <Button 
+            label="Enregistrer"
+            icon="pi pi-check"
+            class="p-button-success"
+            :loading="isSaving"
+            @click="submitUserUpdate"
+          />
+        </div>
+
+      </div>
+    </TabPanel>
+
+  </TabView>
+</Dialog>
+
+
+
+
+      
         <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
         <span>Voulez-vous vraiment supprimer l'utilisateur <strong>{{ userToDelete?.username }}</strong> ?</span>
         <template #footer>

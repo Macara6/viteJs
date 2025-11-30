@@ -21,7 +21,7 @@ const handleLogin = async() => {
     }
 
     loading.value = true; 
-
+    const userSatatus = localStorage.getItem('status');
     try {
 
        const userData = await login(username.value, password.value); 
@@ -38,12 +38,19 @@ const handleLogin = async() => {
             errorMessage.value = "Votre abonnement BASIC ne permet pas l'accès à cette application";
             return;
            }
-           
-            if(userData.is_superuser){
+          
+        
+          if(userData.is_superuser){
                 router.push('/pages/Utilisateur'); 
-            } else{
-                router.push('/pages/Bilan'); 
+            } else if (userSatatus ==='ADMIN'){
+                  router.push('/pages/Bilan'); 
+                
+            }else if (userSatatus ==='CAISSIER'){
+              router.push('/pages/vente');
+            } else if (userSatatus ==='GESTIONNAIRE_STOCK'){
+                router.push('/pages/Produit')
             }
+            
         
 
        }else{

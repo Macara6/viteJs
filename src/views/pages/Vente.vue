@@ -643,7 +643,7 @@ async function generatePdfInvoice(invoice) {
 
             <InputText
               v-model.number="data.quantity"
-              class="w-12 text-center text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+              class="w-17 text-center text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
               @input="updateQuantity(data, data.quantity)"
             />
 

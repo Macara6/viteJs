@@ -54,28 +54,71 @@ const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'nume
 // --- Charger profil + enfants ---
 async function loadUserProfileAndChildren() {
   loading.value = true;
+
   try {
     const userId = parseInt(localStorage.getItem('id'));
     if (!userId) return;
 
-    const profile = await fetchUserProfilById(userId);
-    userProfile.value = Array.isArray(profile) ? profile[0] : profile;
-    const children = await getUsersCreatedByMe();
-    userOptions.value = [
-      { id: userProfile.value.id, username: userProfile.value.username },
-      ...children
-    ];
+    //  Vérifie si on a déjà le profil + enfants dans le cache
+    const hasCachedProfile = userProfile.value && userProfile.value.id === userId;
+    const hasCachedChildren = userOptions.value && userOptions.value.length > 1;
 
+    let profilePromise = null;
+    let childrenPromise = null;
+
+    //  Ne charge depuis API que si pas en cache
+    if (!hasCachedProfile) {
+      profilePromise = fetchUserProfilById(userId);
+    }
+
+    if (!hasCachedChildren) {
+      childrenPromise = getUsersCreatedByMe();
+    }
+
+    //  Attendre seulement ce qui est nécessaire
+    const [profileData, childrenData] = await Promise.all([
+      profilePromise,
+      childrenPromise
+    ]);
+
+    //  Mettre le profil en cache si rechargé
+    if (profileData) {
+      userProfile.value = Array.isArray(profileData)
+        ? profileData[0]
+        : profileData;
+    }
+
+    //  Mettre les enfants en cache si rechargés
+    if (childrenData) {
+      userOptions.value = [
+        { id: userProfile.value.id, username: userProfile.value.username },
+        ...childrenData
+      ];
+    }
+
+    // 👉 Définir l’utilisateur sélectionné
     selectedUserFilter.value = userId;
-    await loadInvoicesByUser(userId);
 
-  } catch(err) {
+    //  Charger les factures uniquement si pas en cache
+    if (!invoices.value || invoices.value.length === 0) {
+      await loadInvoicesByUser(userId);
+    }
+
+  } catch (err) {
     console.error(err);
-    toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger le profil ou les enfants', life:3000 });
+    toast.add({
+      severity:'error',
+      summary:'Erreur',
+      detail:'Impossible de charger le profil ou les enfants',
+      life:3000
+    });
   } finally {
     loading.value = false;
   }
 }
+
+
+
 const filteredInvoices = computed(() => {
   if (!invoicesCache.value.length) return [];
 
@@ -142,6 +185,8 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
     if (!forceRefresh && cached && cached.length) {
       invoicesCache.value = cached;
       console.log('Factures chargées depuis le cache');
+      loading.value = false;
+      return;
     } else {
       data = await fetchInvoicesAllUsers(userId);
       saveCache('Invoices', data);
@@ -469,7 +514,7 @@ onMounted(async () => {
             </div>
             <div class="flex flex-col">
               <label>Date fin :</label>
-                  <Calendar
+              <Calendar
                 v-model="endDate"
                 dateFormat="yy-mm-dd"     
                 placeholder="Date fin"
@@ -517,6 +562,7 @@ onMounted(async () => {
 
   <!-- HEADER -->
   <template #header>
+
   <div v-if="loading" class="text-center py-8 text-gray-500">
     <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
   </div>

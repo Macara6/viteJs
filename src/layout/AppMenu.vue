@@ -1,11 +1,25 @@
 <script setup>
-import { fetchProduits } from '@/service/Api';
+import { fetchProduits, fetchTrashedUser } from '@/service/Api';
 import { computed, onMounted, ref } from 'vue';
 import AppMenuItem from './AppMenuItem.vue';
 
 const isSuperUser = localStorage.getItem('is_superuser') === 'true';
+const isUserStatus = localStorage.getItem('status');
 const lowStockCount = ref(0);
+const userDeletedCount = ref(0);
 const userId = localStorage.getItem('id');
+
+const loadUserIsDeleted = async () => {
+
+    try{
+       const users = await fetchTrashedUser();
+
+       userDeletedCount.value = users.length;
+    }catch(error){
+      console.error('error lors du comptes des utilisateur suprimmer', error);
+    }
+
+}
 
 const loadLowStock = async () => {
   try {
@@ -27,13 +41,14 @@ const loadLowStock = async () => {
     console.error(error);
   }
 
-  
-
 };
 
 onMounted(() => {
   loadLowStock();
+  loadUserIsDeleted();
   setInterval(loadLowStock, 3000);
+  setInterval(loadUserIsDeleted, 3000);
+
 });
 
 // Menu calculé avec badge réactif
@@ -58,32 +73,81 @@ const model = computed(() => {
       }
     ];
   } else {
-    return [
+    if(isUserStatus ==='ADMIN'){
+        return [
 
-      {
-        label: 'ACCUEIL',
-        items: [
-          { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
-          { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
-          { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
-          { label: 'Bilan/Jour', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
-          { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
-          { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
-    
-          { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
-          {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
-           { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
-         // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
           {
-            label: 'Notification',
-            icon: 'pi pi-fw pi-bell',
-            to: '/pages/Notification',
-            badge: lowStockCount,
-            // 👈 mettre la valeur ici
-          }
-        ]
-      },
-    ];
+            label: 'ACCUEIL',
+            items: [
+              { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+              { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
+              { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
+              { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
+              { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
+              { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
+        
+              { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+              {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
+              { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
+              { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
+            // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
+              {
+                label: 'Notification',
+                icon: 'pi pi-fw pi-bell',
+                to: '/pages/Notification',
+                badge: lowStockCount,
+                // 👈 mettre la valeur ici
+              }
+            ]
+           },
+      ];
+    } else if(isUserStatus ==='CAISSIER'){
+      return [
+
+            {
+              label: 'ACCUEIL',
+              items: [
+                { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+                { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
+                { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
+                { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+                {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
+            
+              // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
+                {
+                  label: 'Notification',
+                  icon: 'pi pi-fw pi-bell',
+                  to: '/pages/Notification',
+                  badge: lowStockCount,
+                  // 👈 mettre la valeur ici
+                }
+              ]
+            },
+        ];
+    } else if (isUserStatus ==='GESTIONNAIRE_STOCK'){
+            return [
+
+            {
+              label: 'ACCUEIL',
+              items: [
+            
+              { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
+               
+            
+              // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
+                {
+                  label: 'Notification',
+                  icon: 'pi pi-fw pi-bell',
+                  to: '/pages/Notification',
+                  badge: lowStockCount,
+                  // 👈 mettre la valeur ici
+                }
+              ]
+            },
+        ];
+    }
+    
+
   }
 });
 </script>

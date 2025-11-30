@@ -2,6 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
+import { fetchUserById } from '@/service/Api';
 import { usePrimeVue } from 'primevue/config';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -12,10 +13,11 @@ const { onMenuToggle, toggleDarkMode, isDarkTheme } = useLayout();
 
 const showDropdown = ref(false);
 const showProfileModal = ref(false);
+const user = ref(null)
 
 const router = useRouter();
 
-
+const userStatus = localStorage.getItem('status');
 const PrimeVue = usePrimeVue();
 
 const username = ref(localStorage.getItem('username') || '');
@@ -28,6 +30,7 @@ const logout = () => {
     localStorage.removeItem('username');
     localStorage.removeItem('id');
     localStorage.removeItem('is_superuser');
+    localStorage.removeItem('status');
 
     // Rediriger vers la page login
     router.push({ name: 'login' });
@@ -41,8 +44,19 @@ onMounted(() => {
 
 onMounted(()=>  {
     username.value = localStorage.getItem('username');
+    fetchUser();
 
 });
+
+async function fetchUser(){
+    const userId = localStorage.getItem('id');
+    try{
+        const result = await fetchUserById(userId);
+        user.value = Array.isArray(result) ? result[0] : result;
+    }catch(error){
+      console.error("erreur lors du chargement de l'utilisateur ", error);
+    }
+}
 
 
 const openProfile = () => {
@@ -100,7 +114,7 @@ const closeProfile = () => {
         
                     <button @click="showDropdown = !showDropdown" class="flex items-center gap-2 px-3 py-1 rounded-md hover:bg-surface-100 dark:hover:bg-surface-700 transition">
                        
-                        <span class="font-semibold text-primary "> {{ isSuperUser ? 'Admin:' : 'Utilisateur:' }} {{ username }}</span>
+                        <span class="font-semibold text-primary "> {{ isSuperUser ? 'Admin:' : `${userStatus} :` }} {{ username }}</span>
                         <i class="pi pi-angle-down"></i>
                     </button>
 
@@ -123,8 +137,8 @@ const closeProfile = () => {
 
     <Dialog v-model:visible="showProfileModal" header="Profil utilisateur" :modal="true" class="w-96">
     <div class="p-4 space-y-2">
-        <p><strong>Nom d'utilisateur:</strong> {{ username }}</p>
-        <p><strong>Email:</strong> {{ email }}</p>
+        <p><strong>Nom d'utilisateur:</strong> {{ user?.username || 'N/A' }}</p>
+        <p><strong>STATUS:</strong> {{ user?.status }}</p>
     </div>
 
  
