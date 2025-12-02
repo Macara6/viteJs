@@ -32,13 +32,22 @@ const loadUsers = async () => {
 const handleRestore = async (id) =>{
     try{
         const result = await restoreUser(id);
+        if(result.error){
+            if(result.status === 403){
+                 toast.add({ severity: 'warn', summary: 'Limite atteinte', detail: result.data.detail, life: 5000 });
+            }
+            return;
+        }
 
-        toast.add({
+
+         toast.add({
             severity: "success",
             summary: "Utilisateur restauré",
             detail: result.message,
             life: 3000,
         });
+        
+
         await loadUsers();
 
     }catch(error){

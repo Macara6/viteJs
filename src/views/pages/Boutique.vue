@@ -5,7 +5,9 @@
 import {
   changePassword,
   checkSecretKeyStatus, createOrUpdateSecretKey,
-  createUserProfl, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
+  createUserProfl,
+  deleteSecretKey,
+  fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
@@ -38,7 +40,10 @@ const passwordForm = ref({
   new_password: '',
 });
 const loadingChangePassword = ref(false);
-
+const deleteSecretKeyDialog = ref(false);
+const submittedSecret = ref(false)
+const secretKey = ref('')
+const userStatus = localStorage.getItem('status')
 
 onMounted(async () => {
    await fetchUserProfil();
@@ -109,6 +114,31 @@ async function saveSecretKey(){
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
   }
 }
+// ffonction pour supprimer le code secret
+async function deteleteKey(){
+  submittedSecret.value = true
+  if(!secretKey.value) return;
+  try{
+     const data = {};
+     data.old_key = secretKey.value;
+     const result = await deleteSecretKey(data);
+    
+      toast.add({
+       severity: 'success',
+        summary: 'Succès',
+         detail: `${result.detail}`,
+        life: 3000 });
+   
+    deleteSecretKeyDialog.value = false;
+  }catch(error){
+    console.error("errur lors de la suppression",error);
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
+  }
+}
+
+function openDeleteDialog(){
+  deleteSecretKeyDialog.value = true;
+}
 
 function openSecretKeyDialog(){
     isCreatingSecret.value = !hasSecretKey.value;
@@ -143,11 +173,14 @@ const editedProfile = ref({
     user:userId,
     entrep_name :'',
     impot_number :'',
+    id_nat:'',
     rccm_number :'',
     phone_number:'',
     adress:'',
     currency_preference:'',
 });
+
+
 const form = ref({
     id:userId,
     username:'',
@@ -217,6 +250,7 @@ function openEditDialog(){
             user: userId,
             entrep_name: '',
             impot_number: '',
+            id_nate:'',
             rccm_number: '',
             phone_number: '',
             adress: '',
@@ -287,13 +321,16 @@ const progressPercent = computed(()=> {
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
         <div><strong>Nom :</strong> {{ userProfile?.entrep_name || 'Non défini' }}</div>
         <div><strong>Numéro d'impôt :</strong> {{ userProfile?.impot_number || 'Non défini' }}</div>
+         <div><strong>ID Nat :</strong> {{ userProfile?.id_nat || 'Non défini' }}</div>
         <div><strong>RCCM :</strong> {{ userProfile?.rccm_number || 'Non défini' }}</div>
         <div><strong>Téléphone :</strong> {{ userProfile?.phone_number || 'Non défini' }}</div>
         <div class="sm:col-span-2"><strong>Adresse :</strong> {{ userProfile?.adress || 'Non défini' }}</div>
         <div><strong>Devise :</strong> {{ userProfile?.currency_preference || 'Non défini' }}</div>
+        
       </div>
       <div class="mt-5">
         <Button 
+          v-if="userStatus =='ADMIN'"
           :label="userProfile ? 'Modifier' : 'Créer le profil'" 
           icon="pi pi-pencil" 
           class="p-button-rounded p-button-sm p-button-info" 
@@ -303,7 +340,7 @@ const progressPercent = computed(()=> {
     </div>
 
     <!-- ================= Utilisateur + Abonnement ================= -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div  class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       <!-- Colonne Utilisateur -->
       <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
@@ -318,11 +355,12 @@ const progressPercent = computed(()=> {
           <Button label="Modifier mes informations" icon="pi pi-user-edit" class="p-button-sm p-button-info" @click="openEditUserDialog"/>
           <Button label="Changer le mot de passe" icon="pi pi-lock" class="p-button-sm p-button-danger" @click="openChangePasswordDialog"/>
           <Button :label="hasSecretKey ? 'Modifier mon code secret' : 'Créer un code secret'" icon="pi pi-key" class="p-button-sm p-button-warning" @click="openSecretKeyDialog"/>
+          <Button v-if="hasSecretKey" label="Supprimer le code secrèt" icon="pi pi-trash" class="p-button-sm p-button-danger" @click="openDeleteDialog"/>
         </div>
       </div>
 
       <!-- Colonne Abonnement -->
-      <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
+      <div v-if="userStatus =='ADMIN'" class="bg-white shadow-lg rounded-lg p-6 border border-gray-200 space-y-4">
         <h2 class="text-2xl font-bold text-blue-600 mb-4">Abonnement</h2>
         <div class="text-gray-700 space-y-2">
           <div class="flex items-center gap-2">
@@ -392,6 +430,11 @@ const progressPercent = computed(()=> {
       <div>
         <label class="font-semibold mb-1 block">Numéro d'impôt</label>
         <InputText v-model="editedProfile.impot_number" class="w-full" />
+      </div>
+
+      <div>
+        <label class="font-semibold mb-1 block">ID Nat</label>
+        <InputText v-model="editedProfile.id_nat" class="w-full" />
       </div>
 
       <div>
@@ -500,6 +543,48 @@ const progressPercent = computed(()=> {
   </template>
 </Dialog>
 
+
+
+
+    <Dialog
+      v-model:visible="deleteSecretKeyDialog"
+      modal
+      header="Vérification du code secret"
+      :style="{ width: '400px' }"
+      class="p-fluid"
+      >
+  <div class="field mb-4">
+    <label for="secret" class="block text-sm font-medium text-gray-700 mb-2">
+      Entrez le code secret pour supprimer
+    </label>
+    <Password
+      id="secret"
+      v-model="secretKey"
+      toggleMask
+      feedback="false"
+      placeholder="Code secret"
+      class="w-full"
+    />
+    <small v-if="submittedSecret && !secretKey" class="p-error block mt-1">
+      Le code secret est requis.
+    </small>
+  </div>
+
+  <div class="flex justify-end gap-2">
+    <Button
+      label="Annuler"
+      icon="pi pi-times"
+      severity="secondary"
+      @click="deleteSecretKeyDialog =false"
+    />
+    <Button
+      label="Vérifier"
+      icon="pi pi-check"
+      severity="success"
+      @click="deteleteKey"
+    />
+  </div>
+</Dialog>
 
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup>
 import {
   cancelInvoiceAPI,
+  checkSecretKeyStatus,
   deleteInvoiceAPI,
   fetchInvoiceDetail,
   fetchInvoicesAllUsers,
@@ -27,6 +28,7 @@ const invoiceDetails = ref([]);
 const showModal = ref(false);
 const deleteInvoicesDialog = ref(false);
 const deleteMode = ref(null);
+const hasSecretKey = ref(false);
 
 
 const userProfile = ref(null);
@@ -46,7 +48,8 @@ const deleteMultipleDialog = ref(false);
 const isSecretValidatedForView = ref(false);
 
 const cancelDialog = ref(false); // cancel invoice 
-const invoiceToCancel = ref(null); // 
+const invoiceToCancel = ref(null); //
+ 
 // --- Helpers ---
 const formatPrice = price => price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
 const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -96,7 +99,7 @@ async function loadUserProfileAndChildren() {
       ];
     }
 
-    // 👉 Définir l’utilisateur sélectionné
+    //  Définir l’utilisateur sélectionné
     selectedUserFilter.value = userId;
 
     //  Charger les factures uniquement si pas en cache
@@ -222,14 +225,25 @@ async function ViewDetailInvoice(invoiceId) {
 // --- Supprimer facture ---
 function confirmDeleteInvoice(inv){ 
   selectedInvoices.value = inv;
-  secretDialog.value = true;
-  deleteMode.value = "single";
+  if(hasSecretKey.value == true){
+    secretDialog.value = true;
+    deleteMode.value = "single";
+  }else{
+    deleteInvoicesDialog.value = true;
+  
+  }
+
 }
 
 function  confirmDeleteMultiple(){
   if(selectedInvoices.value.length === 0) return;
-  secretDialog.value = true;
-  deleteMode.value = "multiple";
+  if(hasSecretKey.value == true){
+     secretDialog.value = true;
+    deleteMode.value = "multiple";
+  }else{
+    deleteMultipleDialog.value = true;
+    deleteMultipleInvoices(); 
+  }
 
 }
 
@@ -240,8 +254,22 @@ function confirmCancelInvoice(invoice){
 
 function askSecretForCancel(){
   cancelDialog.value = false;
-  deleteMode.value ="ANNULER";
-  secretDialog.value = true;
+  if(hasSecretKey.value == true){
+     deleteMode.value ="ANNULER";
+     secretDialog.value = true;
+  }else{
+    cancelDialog.value = true
+    cancelInvoice();
+  }
+
+}
+function openView(){
+  if(hasSecretKey.value == true){
+    deleteMode.value ="viewSensitive";
+    secretDialog.value = true
+  }else{
+    isSecretValidatedForView.value = true;
+  }
 }
 
 
@@ -319,6 +347,7 @@ async function cancelInvoice(){
 
     invoiceToCancel.value = null;
     secretDialog.value = false;
+    cancelDialog.value = false;
     secretKey.value = "";
 
   }catch(error){
@@ -365,6 +394,19 @@ async function verifySecret() {
     }
   } catch(err) {
     toast.add({ severity:'error', summary:'Erreur', detail:'Erreur de vérification', life:3000 });
+  }
+}
+async function checkSecretKey(){
+  try{
+    const res = await checkSecretKeyStatus();
+    hasSecretKey.value = res.has_key || false;
+    if(hasSecretKey.value == true){
+      console.log('cet utilisateur a un code secret');
+    }else{
+      console.log('cette utilisateur  n as pas de code secret')
+    }
+  }catch(error){
+    console.error("Erreur lors de la vetification du code secret");
   }
 }
 
@@ -456,6 +498,7 @@ function downloadPDFInvoices() {
 // --- Mounted ---
 onMounted(async () => {
   await loadUserProfileAndChildren();
+  await checkSecretKey();
 });
 
 </script>
@@ -478,7 +521,7 @@ onMounted(async () => {
             label="Afficher Bénéfice" 
             icon="pi pi-lock" 
             severity="warning" 
-            @click="secretDialog = true; deleteMode= 'viewSensitive'" 
+            @click="openView" 
           />
 
           </div>
@@ -546,19 +589,19 @@ onMounted(async () => {
 
 
      <DataTable
-  ref="dt"
-  :value="filteredInvoices"
-  v-model:selection="selectedInvoices"
-  dataKey="id"
-  :paginator="true"
-  :rows="10"
-  :filters="filters"
-  selectionMode="multiple"
-  paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-  :rowsPerPageOptions="[5, 10, 25]"
-  currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
-  class="min-w-full compact-table"
->
+      ref="dt"
+      :value="filteredInvoices"
+      v-model:selection="selectedInvoices"
+      dataKey="id"
+      :paginator="true"
+      :rows="10"
+      :filters="filters"
+      selectionMode="multiple"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      :rowsPerPageOptions="[5, 10, 25]"
+      currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
+      class="min-w-full compact-table"
+    >
 
   <!-- HEADER -->
   <template #header>

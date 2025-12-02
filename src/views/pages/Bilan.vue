@@ -1,5 +1,11 @@
 <script setup>
-import { fechEntryNote, fetchCashOut, fetchInvoicesAllUsers, fetchUserById, fetchUserProfilById, getUsersCreatedByMe, verifySecretKey } from '@/service/Api'
+import {
+  checkSecretKeyStatus,
+  fechEntryNote,
+  fetchCashOut, fetchInvoicesAllUsers,
+  fetchUserById, fetchUserProfilById,
+  getUsersCreatedByMe, verifySecretKey
+} from '@/service/Api'
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache'
 import { formatPrice } from '@/utils/formatters'
 import { useToast } from 'primevue/usetoast'
@@ -46,7 +52,7 @@ const lineData = ref(null)
 const lineOptions = ref(null)
 const usersForCharts = ref([]);
 const selectedGroup = ref(null)
-
+const hasSecretKey = ref(false);
 // ================= INIT DATA =================
 
 async function initData() {
@@ -166,8 +172,6 @@ async function updateDashboardCards() {
     inv => inv.cashier === userIdForCards &&
            new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
   )
- 
-
 
   const filteredCashouts = cashouts.value.filter(
     c => c.user === userIdForCards &&
@@ -228,9 +232,6 @@ function computeUsersForCharts(){
   ];
 
 }
-
-
-
 
 
 async function updatePieChart() {
@@ -312,7 +313,7 @@ function updateLineChart() {
 
   const selectedDate = new Date(selectedDateVal);
 
-  // 🔥 lundi de la semaine
+  //  lundi de la semaine
   const startDate = new Date(selectedDate);
   const day = startDate.getDay();
   const diff = day === 0 ? -6 : 1 - day;
@@ -372,6 +373,23 @@ async function verifySecret() {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur de vérification', life: 3000 })
   }
 }
+async function chekeSecretKey(){
+  try{
+    const res = await checkSecretKeyStatus();
+    hasSecretKey.value = res.has_key || false;
+  }catch(error){
+    console.error("Erreur lors de la verification du code secret", error);
+  }
+}
+ function openView(){
+
+   if(hasSecretKey.value == true){
+     secretDialog.value = true
+   }else{
+    showSensitiveInfo.value = true;
+   }
+ }
+
 
 async function generatePDF() {
   const pdf = new jsPDF('p', 'mm', 'a4')
@@ -531,6 +549,7 @@ onMounted(() => {
   currentUserId.value = user.value?.id
   initData()
   updateDashboardCards();
+  chekeSecretKey();
 })
 
 </script>
@@ -613,7 +632,7 @@ onMounted(() => {
       severity="warning"
       size="small"
       class="mt-2"
-      @click="secretDialog = true"
+      @click="openView"
     />
 
     </div>

@@ -330,7 +330,7 @@ async function downloadPDF() {
         <template v-else>
           <h2 class="text-lg font-medium mb-2">{{ userProfile ? userProfile.entrep_name : 'N/A' }}</h2>
            <p class="ext-xl font-semibold mb-2">{{ userProfile ? userProfile.adress :'N/A' }}</p>
-           <p class="ext-xl font-semibold mb-1"> le {{formate(new Date()) }}</p>
+           <p class="ext-xl font-semibold mb-1"> le {{formatDate(new Date()) }}</p>
            <h2 class="text-xl font-semibold mb-1">Reçu  N°/:000  {{ seletedEntryNote }}</h2>
            <h3 class="text-lg font-medium mb-2">Client(e) : 
             <span class="text_xl font-semibold mb-1">

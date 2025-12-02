@@ -71,6 +71,21 @@ export async function verifySecretKey(key){
         throw error;
     }
 }
+
+export async function deleteSecretKey(data){
+    const DELETE_KEY_URL = `${API_BASE}secret_key/`;
+    try{
+        const response = await axios.delete(DELETE_KEY_URL, {
+            data, 
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("error lors de la suppression du code", error);
+    }
+}
 // fonction pourverifier le status du code secret 
 export async function checkSecretKeyStatus() {
     const STATUS_URL = `${API_BASE}secret_key/status/`;
@@ -497,19 +512,34 @@ export async function fetchTrashedUser(){
 }
 // function pour restaure l'utilisateur 
 
-export async function restoreUser(userId){
+export async function restoreUser(userId) {
     const url_restore = `${API_BASE}users/restore/${userId}/`;
-    try{
-        const response = await axios.post(url_restore,{},{
+
+    try {
+        const response = await axios.post(url_restore, {}, {
             headers: {
-                'Authorization':`Bearer ${localStorage.getItem('token')}`
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
         });
-        return response.data;
-    }catch(error){
-        console.error("erreur lors de la restauration de l'utilisateur", error.value);
+
+        return {
+            error: false,
+            status: response.status,
+            data: response.data,
+            message: response.data.message
+        };
+
+    } catch (error) {
+        console.error("Erreur lors de la restauration de l'utilisateur", error.response);
+
+        return {
+            error: true,
+            status: error.response?.status || 500,
+            data: error.response?.data || null
+        };
     }
 }
+
 // suprression dans la corbeille
 export async function deleteUserForCorb(userId){
     const url_delete = `${API_BASE}users/delete-permanent/${userId}/`;

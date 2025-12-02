@@ -2,6 +2,7 @@
 <script setup>
 import {
   addStockAPI,
+  checkSecretKeyStatus,
   createCategorie,
   createProductAPI,
   deleteCategorie,
@@ -60,8 +61,7 @@ const stockQuantity = ref(0);
 
 const motif = ref(null);
 
-
-
+const hasSecretKey = ref(false);
 
 const historyDialog = ref(false);
 const historyList = ref([]);
@@ -199,23 +199,31 @@ onMounted(async () => {
       getUserChildren(),
       loadCategoriesAndProductsForUser(userId)
     ]);
-
-    // load main profile & lists in parallel
-           // sets userProfile.value
     selectedUserProfile.value = userProfile.value; 
-    // default shown profile
 
-    // load children/categories/products
-   
-
-    // leave selectedUserFilter null => default to connected user
     selectedUserFilter.value = null;
 
   } catch (err) {
     console.error('Erreur lors du chargement initial :', err);
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données initiales.', life: 3000 });
   }
+  await chekeSecretKey();
 });
+
+async function chekeSecretKey(){
+  try{
+    const res = await checkSecretKeyStatus();
+    hasSecretKey.value = res.has_key || false;
+    if(hasSecretKey.value == true){
+      console.log('cette utilisateur a un code  secret');
+    }else{
+      console.log("cette utilisateur n'as pas de code secret")
+    }
+  }catch(error){
+    console.error('Erreur lors de la verification du code');
+  }
+}
+
 
 // ------------------
 // Watchers
@@ -595,8 +603,13 @@ function onExpirationChange(e) { product.value.expiration_date = e.value ? e.val
 async function editProduct(prod) {
   if (!categorys.value.length) await loadCategories(user.value?.id || localStorage.getItem('id'));
   product.value = { ...prod, tva: prod.tva ?? true };
-  secretDialog.value = true;
-  deleteMode.value ='edite'
+  if(hasSecretKey.value == true){
+      secretDialog.value = true;
+     deleteMode.value ='edite'
+  }else{
+    productDialog.value= true;
+  }
+
 }
 
 async function deleteProduct() {
@@ -611,6 +624,7 @@ async function deleteProduct() {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete product', life: 3000 });
   }
 }
+
 async function deleteHisto(){
   try{
     await deleteStockHistory(histoToDelete.value.id);
@@ -621,17 +635,39 @@ async function deleteHisto(){
     console.error('erreur lors de la suppression')
   }
 }
+
  function confirmDeleteHisto(histo){
   histoToDelete.value = histo;
-  secretDialog.value = true;
-  deleteMode.value ='deleteHisto';
+  if(hasSecretKey.value == true){
+    secretDialog.value = true;
+    deleteMode.value ='deleteHisto';
+  }else{
+    histoDeleteDialog.value = true;
+  }
+
  }
 
+ function openView(){
+ 
+   if (hasSecretKey.value == true){
+      deleteMode.value ='viewSensitive',
+      secretDialog.value = true;
+   }else{
+      isSecretValidatedForView.value = true;
+   }
+
+ }
 
 function confirmDeleteProduct(prod) {
    product.value = prod;
-   secretDialog.value =true;
-   deleteMode.value = 'delete';
+  
+   if(hasSecretKey.value == true){
+      secretDialog.value =true;
+      deleteMode.value = 'delete';
+   }else{
+    deleteProductDialog.value = true;
+   }
+  
    }
 
 
@@ -656,13 +692,20 @@ async function deleteSelectedProducts() {
 function openAjoutStock(prod){
   product.value = prod;
   stockQuantity.value = 0;
-  secretDialog.value = true;
-  deleteMode.value ='ajoutStock'
+  if(hasSecretKey.value == true){
+    secretDialog.value = true;
+    deleteMode.value ='ajoutStock'
+  }else{
+    ajoutStockDialog.value = true;
+  }
+ 
+  
 }
 
 function openSortieStock(prod){
   product.value =prod;
   stockQuantity.value =0;
+
   sortieStockDialog.value = true;
 }
 
@@ -721,6 +764,7 @@ async function subtraStock() {
       stockQuantity.value,
       motif.value
     );
+    motif.value = null;
 
     // Charger le cache actuel
     let cachedProducts = loadCache('products') || [];
@@ -805,7 +849,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
                 @click="forceRefresh"
               />
            <Button label="Télécharger PDF"  severity="info" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
-            <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="secretDialog = true; deleteMode='viewSensitive'" />
+            <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="openView" />
           </div>
         </template>
 

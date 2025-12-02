@@ -132,7 +132,7 @@ const model = computed(() => {
               items: [
             
               { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
-               
+              { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
             
               // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
                 {
