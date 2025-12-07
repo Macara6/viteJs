@@ -9,7 +9,7 @@ import {
   getUsersCreatedByMe,
   verifySecretKey
 } from '@/service/Api';
-import { clearCache, loadCache, saveCache } from '@/utils/cache';
+import { clearAllCache, loadCache, saveCache } from '@/utils/cache';
 import { FilterMatchMode } from '@primevue/core/api';
 import jsPDF from 'jspdf';
 import autoTable from "jspdf-autotable";
@@ -49,7 +49,7 @@ const isSecretValidatedForView = ref(false);
 
 const cancelDialog = ref(false); // cancel invoice 
 const invoiceToCancel = ref(null); //
- 
+const statusUser = localStorage.getItem('status');
 // --- Helpers ---
 const formatPrice = price => price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
 const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -414,8 +414,9 @@ async function checkSecretKey(){
 async function refreshInvoices() {
   loading.value = true;
   try {
-    clearCache('Invoices');
+    clearAllCache();
     await loadUserProfileAndChildren();
+    
     toast.add({ severity: 'success', summary: 'Actualisé', detail: 'Les factures ont été rechargées', life: 3000 });
   } catch(err) {
     console.error(err);
@@ -515,7 +516,7 @@ onMounted(async () => {
       <Toolbar class="flex flex-wrap justify-between items-center gap-2">
 
         <!-- Left: supprimer sélection -->
-        <template #start>
+        <template v-if="statusUser =='ADMIN'" #start>
           <div class="flex flex-wrap gap-2 justify-end">
          <Button 
             label="Afficher Bénéfice" 
@@ -530,9 +531,10 @@ onMounted(async () => {
         <!-- Right: filtre utilisateur + refresh -->
         <template #end>
           <div class="flex flex-wrap items-center gap-2">
-            <label for="userFilter" class="font-medium">Utilisateur :</label>
+            <label v-if="statusUser =='ADMIN'" for="userFilter" class="font-medium">Utilisateur :</label>
 
             <Select
+              v-if="statusUser =='ADMIN'"
               v-model="selectedUserFilter"
               :options="userOptions.map(u =>({id: u.id, username: u.username}))"
               optionLabel="username"
@@ -627,6 +629,7 @@ onMounted(async () => {
         />
 
         <Button 
+        v-if="statusUser =='ADMIN'"
           label="Supprimer sélection"
           icon="pi pi-trash"
           severity="danger"
@@ -725,12 +728,12 @@ onMounted(async () => {
     </template>
   </Column>
 
-  <Column header="Actions" style="max-width: 160px;">
+  <Column  header="Actions" style="max-width: 160px;">
     <template #body="slotProps">
       <div class="flex gap-1">
-        <Button icon="pi pi-trash" outlined rounded severity="danger" class="action-btn" @click="confirmDeleteInvoice(slotProps.data)" />
+        <Button  v-if="statusUser =='ADMIN'" icon="pi pi-trash" outlined rounded severity="danger" class="action-btn" @click="confirmDeleteInvoice(slotProps.data)" />
         <Button icon="pi pi-eye" outlined rounded class="action-btn" @click="ViewDetailInvoice(slotProps.data.id)" />
-        <Button icon="pi pi-ban" outlined rounded severity="danger" class="action-btn" @click="confirmCancelInvoice(slotProps.data)" />
+        <Button  v-if="statusUser =='ADMIN'" icon="pi pi-ban" outlined rounded severity="danger" class="action-btn" @click="confirmCancelInvoice(slotProps.data)" />
       </div>
     </template>
   </Column>

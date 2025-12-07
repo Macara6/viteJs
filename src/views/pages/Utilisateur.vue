@@ -1,7 +1,17 @@
 
 
 <script setup>
-import { createUserAPI, deleteUserAPI, fetchUserProfilById, getUsersCreatedByMe, updateUserAPI, updateUserProfile } from '@/service/Api';
+import {
+  checkSecretKeyStatus,
+  checkSubsrictionStatus,
+  createUserAPI,
+  deleteUserAPI,
+  fetchUserProfilById,
+  getUsersCreatedByMe,
+  updateUserAPI,
+  updateUserProfile,
+  verifySecretKey
+} from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -19,14 +29,17 @@ const userToDelete = ref(null);
 
 const selectedUser = ref({});
 const userProfile = ref({});
+const hasSecretKey = ref(false);
+const secretDialog = ref(false);
+const deleteMode = ref(null);
+const submittedSecret = ref(false);
+const secretKey = ref('')
+
+const isSubscription = ref(false);
 
 const isSaving = ref(false);
 
-const userStatusType = [
-    {label:'ADMIN', value:'ADMIN'},
-    {label:'CAISSIER', value:'CAISSIER'},
-    {label:'GESTIONNAIRE_STOCK', value:'GESTIONNAIRE_STOCK'}
-]
+const userStatusType = ref({})
 
 
 const editForm = reactive({
@@ -40,19 +53,79 @@ const editForm = reactive({
   adress: "",
   rccm_number: "",
   impot_number: "",
+  id_nat:"",
 });
 
-
+ const isSuperUser = localStorage.getItem('is_superuser') === 'true';
 
 const userDetailDialog =ref(false);
 
 onMounted(async () => {
    fetchedUser();
+   checkSecretKey();
+   checkSubscription();
    
    
 });
 
 
+// verification de l'abonnement de l'utilisateur
+async function checkSubscription(){
+ 
+  try{
+    const res = await checkSubsrictionStatus()
+    isSubscription.value = res.has_sub || false
+    if(isSubscription.value == true){
+      userStatusType.value = [
+            {label:'ADMIN', value:'ADMIN'},
+            {label:'CAISSIER', value:'CAISSIER'},
+            {label:'GESTIONNAIRE_STOCK', value:'GESTIONNAIRE_STOCK'}
+      ]
+    }else if(isSubscription.value ==false){
+      userStatusType.value =[
+          {label:'CAISSIER', value:'CAISSIER'},
+          {label:'GESTIONNAIRE_STOCK', value:'GESTIONNAIRE_STOCK'}
+      ]
+    }
+    
+    
+  }catch(error){
+    console.error("errur lors de la verification", error)
+  }
+
+}
+
+// fonction pour verifier le code secret 
+async function verifySecret(){
+  submittedSecret.value = true;
+  if(!secretKey.value) return;
+  try{
+    const isValid = await verifySecretKey(secretKey.value);
+    if(isValid.valid){
+       toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
+      secretDialog.value = false;
+      secretKey.value = "";
+      if(deleteMode.value ==="DELETE"){
+        deleteUser();
+      }
+    }else{
+       toast.add({ severity:'error', summary:'Erreur', detail:'Code secret invalide', life:3000 });
+    }
+  }catch(error){
+    console.error("Erreur lors de la verification du code secret", error);
+  }
+
+}
+
+async function checkSecretKey(){
+  try{
+    const res = await checkSecretKeyStatus();
+    hasSecretKey.value = res.has_key || false;
+    
+  }catch(error){
+    console.error("Erreur lors de la verification du code", error)
+  }
+}
 
 
 async function fetchedUser() {
@@ -80,10 +153,21 @@ async function fetchedUser() {
 }
 
 function confirmDeleteUser(user){
-  userToDelete.value = user;
-  deleteDialog.value = true;
+   userToDelete.value = user;
+   deleteDialog.value = true
+
 }
 
+function askSecretForDelete(){
+  deleteDialog.value = false;
+  if(hasSecretKey.value == true){
+     deleteMode.value ="DELETE";
+     secretDialog.value = true;
+  }else{
+    deleteDialog.value = true;
+    deleteUser();
+  }
+}
 
 
 async function openUserDetail(userId){
@@ -101,6 +185,7 @@ async function openUserDetail(userId){
   editForm.adress = userProfile.value.adress;
   editForm.rccm_number = userProfile.value.rccm_number;
   editForm.impot_number = userProfile.value.impot_number;
+  editForm.id_nat = userProfile.value.id_nat;
   
   
   userDetailDialog.value = true;
@@ -118,6 +203,7 @@ async function submitUserUpdate() {
       adress: editForm.adress,
       rccm_number: editForm.rccm_number,
       impot_number: editForm.impot_number,
+      id_nat:editForm.id_nat
     };
 
     await updateUserProfile(profilePayload);
@@ -424,8 +510,8 @@ function hideDialog(){
                         <InputText id="password" v-model="user.confirPasswor" type="password" required="true"/>
                         <small v-if="submitted && user.password != user.confirPasswor" class="text-red-500">Le mot de pass doit etre le même</small>
                     </div>
-                  <div class="col-span-6">
-                      <label class="block font-bold mb-2">Category</label>
+                  <div v-if="!isSuperUser" class="col-span-6">
+                      <label class="block font-bold mb-2">STATUS</label>
                       <Select v-model="user.status"
                       :options="userStatusType"
                        optionLabel="label" 
@@ -511,6 +597,11 @@ function hideDialog(){
             <span>{{ userProfile?.entrep_name }}</span>
           </div>
 
+         <div class="flex justify-between">
+            <span class="font-medium">ID Nat :</span>
+            <span>{{ userProfile?.id_nat }}</span>
+          </div>
+
           <div class="flex justify-between">
             <span class="font-medium">Téléphone :</span>
             <span>{{ userProfile?.phone_number }}</span>
@@ -551,6 +642,11 @@ function hideDialog(){
           <div>
             <label class="font-medium">Nom entreprise</label>
             <InputText v-model="editForm.entrep_name" class="w-full" />
+          </div>
+       
+          <div>
+            <label class="font-medium">ID Nat</label>
+            <InputText v-model="editForm.id_nat" class="w-full" />
           </div>
 
           <div>
@@ -595,8 +691,46 @@ function hideDialog(){
     </TabPanel>
 
   </TabView>
-</Dialog>
 
+</Dialog>
+      <Dialog 
+        v-model:visible="secretDialog" 
+        header="Entrer le code secret" 
+        :modal="true" 
+        :closable="false" 
+        :style="{ width: '90%', maxWidth: '350px' }"
+      >
+        <div class="flex flex-col gap-2">
+          <label for="secret" class="font-medium">Code secret</label>
+          <InputText 
+            id="secret" 
+            v-model.trim="secretKey" 
+            :class="{ 'p-invalid': submittedSecret && !secretKey }" 
+            autofocus
+            @keyup.enter="verifySecret"
+          />
+          <small v-if="submittedSecret && !secretKey" class="p-error">
+            Le code secret est requis.
+          </small>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <Button 
+              label="Annuler" 
+              icon="pi pi-times" 
+              text 
+              @click="secretDialog = false" 
+            />
+            <Button 
+              label="Valider" 
+              icon="pi pi-check" 
+              severity="success" 
+              @click="verifySecret" 
+            />
+          </div>
+        </template>
+      </Dialog>
 
 
 
@@ -605,7 +739,7 @@ function hideDialog(){
         <span>Voulez-vous vraiment supprimer l'utilisateur <strong>{{ userToDelete?.username }}</strong> ?</span>
         <template #footer>
             <Button label="Non" icon="pi pi-times" text @click="deleteDialog = false" />
-            <Button label="Oui" icon="pi pi-check" severity="danger" @click="deleteUser" />
+            <Button label="Oui" icon="pi pi-check" severity="danger" @click="askSecretForDelete" />
         </template>
     </Dialog>
 

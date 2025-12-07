@@ -3,12 +3,13 @@
 <script setup>
 import { deleteEntryNote, fechEntryNote, fetchEntryNoteDetail, fetchUserProfilById, fetchUsers, getUsersCreatedByMe } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
+import { FilterMatchMode } from '@primevue/core/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
 
-   
+  const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 
    const userId = localStorage.getItem('id');
    const EntryNoteList = ref([]);
@@ -230,6 +231,7 @@ async function downloadPDF() {
               :value="filterdEntryNote" 
               scrollable 
               scrollHeight="400px"
+              :filters="filters"
                class="mt-6">
 
             <template #header>
@@ -263,7 +265,19 @@ async function downloadPDF() {
                         showClear
                       />
                     <!-- Recherche globale -->
+              <!-- Recherche globale -->
+                <span class="relative flex items-center w-full sm:w-64">
+                  <i
+                    v-if="!filters['global'].value"
+                    class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
+                  ></i>
 
+                  <InputText
+                    v-model="filters['global'].value"
+                    placeholder="     Rechercher..."
+                    class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
+                  />
+                </span>
                   </div>
                 </div>
               </template>

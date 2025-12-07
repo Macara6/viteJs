@@ -415,6 +415,8 @@ async function verifySecret() {
         ajoutStockDialog.value = true;
       }else if (deleteMode.value ==='deleteHisto'){
         histoDeleteDialog.value=true;
+      }else if (deleteMode.value =='sortieStock'){
+        sortieStockDialog.value = true;
       }
 
       if(deleteMode.value ==="viewSensitive"){
@@ -703,10 +705,18 @@ function openAjoutStock(prod){
 }
 
 function openSortieStock(prod){
-  product.value =prod;
-  stockQuantity.value =0;
+      product.value =prod;
+     stockQuantity.value =0;
+  if(hasSecretKey.value == true){
+     deleteMode.value ='sortieStock';
+     secretDialog.value = true
+  }else{
+   
+   sortieStockDialog.value = true;
+  }
 
-  sortieStockDialog.value = true;
+
+
 }
 
 // function to add stock

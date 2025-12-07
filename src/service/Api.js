@@ -103,6 +103,21 @@ export async function checkSecretKeyStatus() {
     }
 }
 
+// fonction pour vrifier le status de l'abonnement
+export async function checkSubsrictionStatus(){
+    const  SUB_STATUS_URL = `${API_BASE}subscription/status/`;
+    try{
+        const response = await axios.get(SUB_STATUS_URL, {
+            headers :{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error("error lors de la verification du status de l'abonnement", error)
+    }
+}
+
 export async function createOrUpdateSecretKey(secretData){
     const SECRET_KEY_URL = `${API_BASE}secret_key/`; 
     try{

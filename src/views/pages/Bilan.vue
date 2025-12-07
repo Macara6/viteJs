@@ -53,6 +53,7 @@ const lineOptions = ref(null)
 const usersForCharts = ref([]);
 const selectedGroup = ref(null)
 const hasSecretKey = ref(false);
+const statusUser = localStorage.getItem('status');
 // ================= INIT DATA =================
 
 async function initData() {
@@ -494,7 +495,7 @@ async function generatePDF() {
   pdf.text('Entrées', startX + 105, currentY)
   pdf.text('Sorties', startX + 130, currentY)
 
-  // 🔥 colonnes pour factures annulées
+  //  colonnes pour factures annulées
   pdf.text('Nb.FA', startX + 148, currentY)
   pdf.text('Total FA', startX + 168, currentY)
 
@@ -528,7 +529,6 @@ async function generatePDF() {
     pdf.text(d.nbFacturesAnnulees.toString(), startX + 155, currentY)
 
     pdf.text(`${formatPrice(d.totalFacturesAnnulees)} ${d.currency}`, startX + 178, currentY)
-
     currentY += rowHeight
   })
 
@@ -743,9 +743,10 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
  
       <div class="flex flex-col">
-          <label for="user-filter" class="font-medium">Filtrer par Caissier :</label>
+        <label v-if="statusUser !='CAISSIER'" for="user-filter" class="font-medium">Filtrer par Caissier :</label>
 
       <Select
+        v-if="statusUser !='CAISSIER'" 
         v-model="selectedUserId"
           :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='ADMIN')"
         optionValue="id"
@@ -788,9 +789,10 @@ onMounted(() => {
       </div>
 
       <div class="flex flex-col">
-          <label for="user-filter" class="font-medium">Filtrer par Admin :</label>
+          <label  v-if="statusUser !='CAISSIER'"  for="user-filter" class="font-medium">Filtrer par Admin :</label>
 
       <Select
+       v-if="statusUser !='CAISSIER'" 
         v-model="selectedUserId"
           :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
         optionValue="id"
@@ -833,8 +835,8 @@ onMounted(() => {
         </Select>
       </div>
 
-      <div class="flex flex-col">
-        <label class="font-medium">Filtrer groupe :</label>
+      <div   v-if="statusUser !='CAISSIER'" class="flex flex-col">
+        <label  class="font-medium">Filtrer groupe :</label>
 
         <Select
           v-model="selectedGroup"
