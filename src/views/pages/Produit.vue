@@ -903,7 +903,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
               <!-- Filtre utilisateur -->
         <Select
           v-model="selectedUserFilter"
-          :options="allUsers"
+          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
           optionValue="id"
           placeholder="Filtrer par utilisateur"
           class="w-full sm:w-56"

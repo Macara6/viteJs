@@ -254,16 +254,55 @@ async function downloadPDF() {
 
                   <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
 
-                  <Dropdown
-                        v-model="selectedUserFilter"
-                        :options="childUsers"
-                        optionLabel="username"
-                        optionValue="id"
-                        placeholder="Filtrer par utilisateur"
-                        class="w-full sm:w-60"
-                        @change="loadEntryNoteAndUser"
-                        showClear
-                      />
+            <Dropdown
+              v-model="selectedUserFilter"
+              :options="childUsers.map(u => ({
+                id: u.id,
+                username: u.username,
+                status: u.status
+              })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
+              optionLabel="username"
+              placeholder="Filtrer par utilisateur"
+              class="w-full sm:w-60"
+              @change="loadEntryNoteAndUser"
+              showClear
+            >
+              <!-- Affichage des options dans la liste -->
+              <template #item="slotProps">
+                <div class="flex items-center justify-between w-full">
+                  <span>{{ slotProps.item.username }}</span>
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.item.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.item.status === 'CAISSIER',
+                      'bg-gray-200 text-gray-700': slotProps.item.status === 'GESTIONNAIRE_STOCK'
+                    }"
+                  >
+                    {{ slotProps.item.status }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Affichage de la valeur sélectionnée -->
+              <template #value="slotProps">
+                <div v-if="slotProps.value" class="flex items-center gap-2">
+                  <span>{{ slotProps.value.username }}</span>
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER',
+                      'bg-gray-200 text-gray-700': slotProps.value.status === 'GESTIONNAIRE_STOCK'
+                    }"
+                  >
+                    {{ slotProps.value.status }}
+                  </span>
+                </div>
+                <span v-else>Filtrer par utilisateur</span>
+              </template>
+            </Dropdown>
+
                     <!-- Recherche globale -->
               <!-- Recherche globale -->
                 <span class="relative flex items-center w-full sm:w-64">

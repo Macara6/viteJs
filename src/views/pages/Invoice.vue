@@ -44,7 +44,7 @@ const submittedSecret = ref(false);
 const secretKey = ref('');
 const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 const deleteMultipleDialog = ref(false);
-
+const selectedUserProfile = ref(null);
 const isSecretValidatedForView = ref(false);
 
 const cancelDialog = ref(false); // cancel invoice 
@@ -54,6 +54,26 @@ const statusUser = localStorage.getItem('status');
 const formatPrice = price => price?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ", ");
 const formatDate = value => new Date(value).toLocaleString('fr-FR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 
+// Profil de l'utilisateur sélectionné
+
+
+async function loadSelectedUserProfile(userId) {
+  if (!userId) {
+    selectedUserProfile.value = userProfile.value; // fallback sur l'utilisateur connecté
+    return;
+  }
+
+  try {
+    const profileData = await fetchUserProfilById(userId);
+    selectedUserProfile.value = Array.isArray(profileData) ? profileData[0] : profileData;
+  } catch (err) {
+    console.error('Erreur lors du chargement du profil :', err);
+    selectedUserProfile.value = userProfile.value; // fallback
+  }
+}
+watch(selectedUserFilter, (newUserId) => {
+  loadSelectedUserProfile(newUserId);
+}, { immediate: true });
 // --- Charger profil + enfants ---
 async function loadUserProfileAndChildren() {
   loading.value = true;
@@ -98,6 +118,21 @@ async function loadUserProfileAndChildren() {
         ...childrenData
       ];
     }
+    if (childrenData) {
+  const childrenWithProfile = await Promise.all(childrenData.map(async child => {
+    const profileData = await fetchUserProfilById(child.id);
+    return {
+      ...child,
+      profile: Array.isArray(profileData) ? profileData[0] : profileData
+    };
+  }));
+
+  userOptions.value = [
+    { id: userProfile.value.id, username: userProfile.value.username, profile: userProfile.value },
+    ...childrenWithProfile
+  ];
+}
+
 
     //  Définir l’utilisateur sélectionné
     selectedUserFilter.value = userId;
@@ -119,6 +154,9 @@ async function loadUserProfileAndChildren() {
     loading.value = false;
   }
 }
+
+
+
 
 
 
@@ -534,15 +572,59 @@ onMounted(async () => {
             <label v-if="statusUser =='ADMIN'" for="userFilter" class="font-medium">Utilisateur :</label>
 
             <Select
-              v-if="statusUser =='ADMIN'"
+              v-if="statusUser === 'ADMIN'"
               v-model="selectedUserFilter"
-              :options="userOptions.map(u =>({id: u.id, username: u.username}))"
+              :options="userOptions.map(u => ({
+                id: u.id,
+                username: u.username,
+                status: u.status
+              })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
               optionLabel="username"
               optionValue="id"
               placeholder="Sélectionner utilisateur"
-               class="w-full sm:w-56"
+              class="w-full sm:w-56"
               showClear
-            />
+            >
+              <!-- Affichage des options -->
+              <template #option="slotProps">
+                <div class="flex items-center justify-between w-full">
+                  <span>{{ slotProps.option.username }}</span>
+
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+                      'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                    }"
+                  >
+                    {{ slotProps.option.status }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Affichage de la valeur sélectionnée -->
+              <template #value="slotProps">
+                <div v-if="slotProps.value" class="flex items-center gap-2">
+
+                  <span>{{ slotProps.value.username }}</span>
+
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
+                    }"
+                  >
+                    {{ slotProps.value.status }}
+                  </span>
+
+                </div>
+                <span v-else>Sélectionner utilisateur</span>
+              </template>
+            </Select>
+
+
 
           <div class="flex gap-4 mb-4">
             <div class="flex flex-col">

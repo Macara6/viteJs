@@ -38,6 +38,7 @@ const showChangePasswordDialog = ref(false);
 const passwordForm = ref({
   old_password: '',
   new_password: '',
+  confirm_password:'',
 });
 const loadingChangePassword = ref(false);
 const deleteSecretKeyDialog = ref(false);
@@ -62,6 +63,10 @@ function openChangePasswordDialog() {
 async function handleChangePassword() {
   if (!passwordForm.value.old_password || !passwordForm.value.new_password) {
     toast.add({ severity: 'warn', summary: 'Attention', detail: 'Veuillez remplir tous les champs', life: 3000 });
+    return;
+  }
+  if(passwordForm.value.confirm_password != passwordForm.value.new_password){
+    toast.add({ severity: 'warn', summary: 'Attention', detail: "Les mots de passe ne correspondent pas !", life: 3000 });
     return;
   }
   loadingChangePassword.value = true;
@@ -211,7 +216,7 @@ async function updateUser() {
       }
     }
 
-    console.log("Payload envoyé :", payload);
+   
 
     await updateUserAPI(payload);
 
@@ -530,6 +535,12 @@ const progressPercent = computed(()=> {
       <label class="font-semibold mb-1 block">Nouveau mot de passe</label>
       <Password v-model="passwordForm.new_password" class="w-full" toggleMask feedback="true" />
     </div>
+
+    <div>
+      <label class="font-semibold mb-1 block">Confirmer mot de passe</label>
+      <Password v-model="passwordForm.confirm_password" class="w-full" toggleMask feedback="true" />
+    </div>
+
   </div>
 
   <template #footer>

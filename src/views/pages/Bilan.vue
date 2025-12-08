@@ -159,44 +159,66 @@ watch(() => selectDate.value.global.value, () => {
   updatePieChart()
   updateLineChart()
 })
-
 async function updateDashboardCards() {
   const selectedDateVal = selectDate.value.global.value
 
-  // Déterminer quel utilisateur pour les cards
-  const userIdForCards = selectedUserId.value === null 
-    ? user.value?.id   // par défaut, montrer uniquement l'utilisateur connecté
-    : parseInt(selectedUserId.value)
+  // Déterminer les utilisateurs à prendre en compte pour les cards
+  const userIdsForCards = selectedUserId.value
+    ? [parseInt(selectedUserId.value)] // filtre appliqué, uniquement l'utilisateur sélectionné
+    : [
+        user.value?.id, // utilisateur connecté
+        ...childUsers.value
+          .filter(c => c.status === 'CAISSIER')
+          .map(c => c.id)
+      ]
 
-  // Filtrer invoices pour ce user
+  // Filtrer invoices
   const filteredInvoices = invoices.value.filter(
-    inv => inv.cashier === userIdForCards &&
-           new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
+    inv =>
+      userIdsForCards.includes(inv.cashier) &&
+      new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
   )
 
+  // Filtrer cashouts
   const filteredCashouts = cashouts.value.filter(
-    c => c.user === userIdForCards &&
-         new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+    c =>
+      userIdsForCards.includes(c.user) &&
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
   )
 
+  // Filtrer cash entries
   const filteredCashInt = cashInts.value.filter(
-      c => c.user === userIdForCards && 
+    c =>
+      userIdsForCards.includes(c.user) &&
       new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
-    )
- 
-  
+  )
 
-  total_tva_valid.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.tva || 0), 0)
+  // Calculs des totaux
+  total_tva_valid.value = filteredInvoices.reduce(
+    (sum, inv) => sum + parseFloat(inv.tva || 0),
+    0
+  )
   todaysInvoicesUserConnectCount.value = filteredInvoices.length
-  total_AmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
-  total_ProfitAmountUserConnect.value = filteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.profit_amount || 0), 0)
+  total_AmountUserConnect.value = filteredInvoices.reduce(
+    (sum, inv) => sum + parseFloat(inv.total_amount || 0),
+    0
+  )
+  total_ProfitAmountUserConnect.value = filteredInvoices.reduce(
+    (sum, inv) => sum + parseFloat(inv.profit_amount || 0),
+    0
+  )
   todaysCashoutCount.value = filteredCashouts.length
-  total_AmountCashOut.value = filteredCashouts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
-  
-  total_AmountCashInt.value = filteredCashInt.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0);
-  total_CashIntCount.value =filteredCashInt.length;
- 
+  total_AmountCashOut.value = filteredCashouts.reduce(
+    (sum, c) => sum + parseFloat(c.total_amount || 0),
+    0
+  )
+  total_AmountCashInt.value = filteredCashInt.reduce(
+    (sum, c) => sum + parseFloat(c.total_amount || 0),
+    0
+  )
+  total_CashIntCount.value = filteredCashInt.length
 }
+
 
 const displayUserProfile = computed(() => {
 
