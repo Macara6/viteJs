@@ -226,6 +226,7 @@ watch(selectedUserFilter, async () => {
           username: u.username,
           status: u.status
         })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
+         optionValue="id"
         optionLabel="username"
         placeholder="Filtrer par utilisateur"
         class="w-full sm:w-60"

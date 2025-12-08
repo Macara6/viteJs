@@ -262,6 +262,7 @@ async function downloadPDF() {
                 status: u.status
               })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
               optionLabel="username"
+               optionValue="id"
               placeholder="Filtrer par utilisateur"
               class="w-full sm:w-60"
               @change="loadEntryNoteAndUser"
