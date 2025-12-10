@@ -366,6 +366,7 @@ const pdfUserName =
 
 // 1 watcher unique pour selectedUserFilter
 watch(selectedUserFilter, async (newUserId) => {
+
   try {
     // no selection -> revert to connected user
     if (!newUserId) {
@@ -903,7 +904,8 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
               <!-- Filtre utilisateur -->
         <Select
           v-model="selectedUserFilter"
-          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
+          :options="allUsers.filter(u => u.status !=='CAISSIER')"
+          optionLabel="username"
           optionValue="id"
           placeholder="Filtrer par utilisateur"
           class="w-full sm:w-56"
@@ -927,7 +929,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
           </template>
 
-          <template #value="slotProps">
+          <template #selecteItem="slotProps">
             <div v-if="slotProps.value" class="flex items-center gap-2">
               
               <span>   {{ slotProps.value.username }}</span>

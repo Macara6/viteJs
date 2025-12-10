@@ -27,7 +27,8 @@ const hasSecretKey = ref(false);
 const showSecretKeyDialog = ref(false);
 const secretKeyForm = ref({
   old_key: '',
-  new_key: ''
+  new_key: '',
+  confirm_key:''
 });
 const isCreatingSecret = ref(false);
 
@@ -98,7 +99,12 @@ async function saveSecretKey(){
          toast.add({ severity: 'warn', summary: 'Attention', detail: 'Veuillez entrer un nouveau code secret', life: 3000 });
          return;
         }
+        if(secretKeyForm.value.confirm_key != secretKeyForm.value.new_key){
+           toast.add({ severity: 'warn', summary: 'Attention', detail: "Les mots de passe ne correspondent pas !", life: 3000 });
+           return;
+        }
         const payload = {};
+
         
         if(!isCreatingSecret.value){
             if(!secretKeyForm.value.old_key){
@@ -511,6 +517,12 @@ const progressPercent = computed(()=> {
         <label class="font-semibold mb-1 block">Nouveau code secret</label>
         <Password v-model="secretKeyForm.new_key" class="w-full" toggleMask />
       </div>
+
+       <div>
+        <label class="font-semibold mb-1 block">conrfimer code secret</label>
+        <Password v-model="secretKeyForm.confirm_key" class="w-full" toggleMask />
+      </div>
+
     </div>
     <template #footer>
       <Button label="Annuler" icon="pi pi-times" text @click="showSecretKeyDialog = false" />

@@ -11,6 +11,7 @@ import {
 } from '@/service/Api';
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache';
 import { FilterMatchMode } from '@primevue/core/api';
+import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import autoTable from "jspdf-autotable";
 import { useToast } from 'primevue/usetoast';
@@ -71,9 +72,12 @@ async function loadSelectedUserProfile(userId) {
     selectedUserProfile.value = userProfile.value; // fallback
   }
 }
+
 watch(selectedUserFilter, (newUserId) => {
+
   loadSelectedUserProfile(newUserId);
-}, { immediate: true });
+
+});
 // --- Charger profil + enfants ---
 async function loadUserProfileAndChildren() {
   loading.value = true;
@@ -132,7 +136,6 @@ async function loadUserProfileAndChildren() {
     ...childrenWithProfile
   ];
 }
-
 
     //  Définir l’utilisateur sélectionné
     selectedUserFilter.value = userId;
@@ -533,6 +536,41 @@ function downloadPDFInvoices() {
   doc.save('liste_factures.pdf');
 }
 
+async function downloadPDF() {
+  const element = document.getElementById('cashout-pdf-content');
+  if (!element) return;
+
+  // Capture en haute résolution
+  const canvas = await html2canvas(element, { scale: 2 });
+  const imgData = canvas.toDataURL('image/png');
+
+  const pdf = new jsPDF('p', 'mm', 'a4');
+
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = pdf.internal.pageSize.getHeight();
+
+  const imgWidth = pdfWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  // ➤ Première page
+  pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pdfHeight;
+
+  // ➤ Si le contenu dépasse, on ajoute des pages
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+  }
+
+  pdf.save(`facture_${selectedInvoices.value}.pdf`);
+}
+
+
 
 // --- Mounted ---
 onMounted(async () => {
@@ -569,58 +607,52 @@ onMounted(async () => {
         <!-- Right: filtre utilisateur + refresh -->
         <template #end>
           <div class="flex flex-wrap items-center gap-2">
-            <label v-if="statusUser =='ADMIN'" for="userFilter" class="font-medium">Utilisateur :</label>
-
+          
             <Select
               v-if="statusUser === 'ADMIN'"
               v-model="selectedUserFilter"
-              :options="userOptions.map(u => ({
-                id: u.id,
-                username: u.username,
-                status: u.status
-              })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
-              optionLabel="username"
+              :options="userOptions.filter(u => u.status !=='GESTIONNAIRE_STOCK')"
               optionValue="id"
-              placeholder="Sélectionner utilisateur"
+              optionLabel="username"
+              placeholder="Filtrer par utilisateur"
               class="w-full sm:w-56"
-              showClear
+              :showClear="userOptions.value != 0"
             >
               <!-- Affichage des options -->
-              <template #option="slotProps">
+              <template #option="{option}">
                 <div class="flex items-center justify-between w-full">
-                  <span>{{ slotProps.option.username }}</span>
+                  <span>{{ option.username }}</span>
 
                   <span
                     class="px-2 py-1 rounded text-xs"
                     :class="{
-                      'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-                      'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                      'bg-green-100 text-green-700': option.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': option.status === 'CAISSIER',
+                      'bg-gray-200 text-gray-700': option.status === 'GESTIONNAIRE_STOCK'
                     }"
                   >
-                    {{ slotProps.option.status }}
+                    {{ option.status }}
                   </span>
                 </div>
               </template>
 
               <!-- Affichage de la valeur sélectionnée -->
-              <template #value="slotProps">
-                <div v-if="slotProps.value" class="flex items-center gap-2">
+              <template #selectedItem="{slotProps}">
+                <div  class="flex items-center gap-2">
 
-                  <span>{{ slotProps.value.username }}</span>
+                  <span>{{ slotProps.username }}</span>
 
                   <span
                     class="px-2 py-1 rounded text-xs"
                     :class="{
-                      'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
+                      'bg-green-100 text-green-700': slotProps.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.status === 'CAISSIER'
                     }"
                   >
-                    {{ slotProps.value.status }}
+                    {{ slotProps.status }}
                   </span>
-
                 </div>
-                <span v-else>Sélectionner utilisateur</span>
+            
               </template>
             </Select>
 
@@ -878,7 +910,7 @@ onMounted(async () => {
 
     <!-- Invoice Details Modal -->
     <Dialog v-model:visible="showModal" modal header="🧾 Détails de la facture" :style="{ width: '95%', maxWidth: '900px' }">
-      <div class="p-4 sm:p-6 bg-gray-50 rounded-md shadow-sm overflow-y-auto max-h-[70vh]">
+      <div id="cashout-pdf-content" class="p-4 bg-white">
 
         <!-- Header facture -->
         <div class="flex flex-col sm:flex-row justify-between border-b pb-4 mb-4">
@@ -887,7 +919,23 @@ onMounted(async () => {
               {{ userProfile ? userProfile.entrep_name : 'Entreprise non définie' }}
             </h2>
             <p class="text-gray-600 text-sm sm:text-base">
-              {{ userProfile ? userProfile.adress : 'Adresse non définie' }}
+             ID.Nat :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
+            </p>
+
+            <p class="text-gray-600 text-sm sm:text-base">
+             Numéro Impot :{{ userProfile ? userProfile.impot_number : 'Adresse non définie' }}
+            </p>
+             <p class="text-gray-600 text-sm sm:text-base">
+             RCCM :{{ userProfile ? userProfile.rccm_number : 'Adresse non définie' }}
+            </p>
+            <p class="text-gray-600 text-sm sm:text-base">
+             Address :{{ userProfile ? userProfile.adress : 'Adresse non définie' }}
+            </p>
+            <p class="text-gray-600 text-sm sm:text-base">
+             Tél :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
+            </p>
+            <p class="text-gray-600 text-sm sm:text-base">
+             Devise :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
             </p>
             <p class="mt-2 text-sm"><strong>Client(e) :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</p>
             <p class="text-sm"><strong>Caissier :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</p>
@@ -931,6 +979,7 @@ onMounted(async () => {
               {{ invoices.find(c => c.id === selectedInvoices)?.total_amount || 'N/A' }}
             </span>
           </p>
+          
         </div>
          <div class="flex justify-end mt-4 border-t pt-4">
           <p class="text-lg sm:text-xl font-bold text-right">
@@ -941,6 +990,16 @@ onMounted(async () => {
           </p>
         </div>
 
+      </div>
+    <div
+        class="sticky bottom-0 bg-white py-3 px-4 shadow-md flex justify-end"
+      >
+        <Button
+          label="Télécharger PDF"
+          icon="pi pi-download"
+          class="p-button-success"
+          @click="downloadPDF"
+        />
       </div>
     </Dialog>
 

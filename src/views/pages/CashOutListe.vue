@@ -183,6 +183,12 @@ watch(selectedUserFilter, async () => {
   await refreshUserData();
 });
 
+const findUser = (id) => {
+  if (!Array.isArray(childUsers.value)) return null; // sécurité
+  return childUsers.value.find(u => u.id === id) || null;
+};
+
+
 </script>
 
 
@@ -218,56 +224,61 @@ watch(selectedUserFilter, async () => {
 
           </div>
           <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
-            
-      <Dropdown
-        v-model="selectedUserFilter"
-        :options="childUsers.map(u => ({
-          id: u.id,
-          username: u.username,
-          status: u.status
-        })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
-         optionValue="id"
-        optionLabel="username"
-        placeholder="Filtrer par utilisateur"
-        class="w-full sm:w-60"
-        @change="loadCashOutAndUser"
-        showClear
-      >
-        <!-- Affichage des options dans la liste -->
-        <template #item="slotProps">
-          <div class="flex items-center justify-between w-full">
-            <span>{{ slotProps.item.username }}</span>
-            <span
-              class="px-2 py-1 rounded text-xs"
-              :class="{
-                'bg-green-100 text-green-700': slotProps.item.status === 'ADMIN',
-                'bg-blue-100 text-blue-700': slotProps.item.status === 'CAISSIER',
-                'bg-gray-200 text-gray-700': slotProps.item.status === 'GESTIONNAIRE_STOCK'
-              }"
-            >
-              {{ slotProps.item.status }}
-            </span>
-          </div>
-        </template>
 
-        <!-- Affichage de la valeur sélectionnée -->
-        <template #value="slotProps">
-          <div v-if="slotProps.value" class="flex items-center gap-2">
-            <span>{{ slotProps.value.username }}</span>
-            <span
-              class="px-2 py-1 rounded text-xs"
-              :class="{
-                'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
-                'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER',
-                'bg-gray-200 text-gray-700': slotProps.value.status === 'GESTIONNAIRE_STOCK'
-              }"
+            <Select
+             
+              v-model="selectedUserFilter"
+              :options="childUsers.map(u => ({
+                id: u.id,
+                username: u.username,
+                status: u.status
+              })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
+              optionLabel="username"
+              optionValue="id"
+              placeholder="Sélectionner utilisateur"
+              class="w-full sm:w-56"
+              showClear
             >
-              {{ slotProps.value.status }}
-            </span>
-          </div>
-          <span v-else>Filtrer par utilisateur</span>
-        </template>
-      </Dropdown>
+              <!-- Affichage des options -->
+              <template #option="slotProps">
+                <div class="flex items-center justify-between w-full">
+                  <span>{{ slotProps.option.username }}</span>
+
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+                      'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                    }"
+                  >
+                    {{ slotProps.option.status }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Affichage de la valeur sélectionnée -->
+              <template #seletectItem="slotProps">
+                <div v-if="slotProps.value" class="flex items-center gap-2">
+
+                  <span>{{ slotProps.value.username }}</span>
+
+                  <span
+                    class="px-2 py-1 rounded text-xs"
+                    :class="{
+                      'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
+                      'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
+                    }"
+                  >
+                    {{ slotProps.value.status }}
+                  </span>
+
+                </div>
+                <span v-else>Sélectionner utilisateur</span>
+              </template>
+            </Select>
+
+
 
               <!-- Recherche globale -->
             <span class="relative flex items-center w-full sm:w-64">
@@ -340,8 +351,9 @@ watch(selectedUserFilter, async () => {
         id="cashout-pdf-content"
       >
         <!-- En-tête -->
-        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-          <div class="text-left flex-1">
+    <div class="flex justify-between items-center mb-6">
+       
+        <div class="text-left flex-2"> 
             <template v-if="isSuperUser">
               <h2 class="text-lg font-semibold">BILATECH S.A.R.L.U</h2>
               <p class="text-sm md:text-base">
@@ -354,7 +366,22 @@ watch(selectedUserFilter, async () => {
                 {{ userProfile ? userProfile.entrep_name : "Non défini" }}
               </h2>
               <p class="text-sm md:text-base">
-                {{ userProfile ? userProfile.adress : "Non défini" }}
+              ID.Nat : {{ userProfile ? userProfile.id_nat : "Non défini" }}
+              </p>
+              <p class="text-sm md:text-base">
+               Numéro Impot : {{ userProfile ? userProfile.impot_number : "Non défini" }}
+              </p>
+              <p class="text-sm md:text-base">
+              RCCM : {{ userProfile ? userProfile.rccm_number : "Non défini" }}
+              </p>
+              <p class="text-sm md:text-base">
+               Address : {{ userProfile ? userProfile.adress : "Non défini" }}
+              </p>
+              <p class="text-sm md:text-base">
+              Tél: {{ userProfile ? userProfile.phone_number : "Non défini" }}
+              </p>
+              <p class="text-sm md:text-base">
+              Devise: {{ userProfile ? userProfile.currency_preference : "Non défini" }}
               </p>
             </template>
 
@@ -375,7 +402,7 @@ watch(selectedUserFilter, async () => {
             </h3>
           </div>
 
-          <img src="/demo/bila.png" alt="Logo" class="h-24 md:h-32 lg:h-40" />
+          <img v-if="isSuperUser" src="/demo/bila.png" alt="Logo" class="h-24 md:h-32 lg:h-40" />
         </div>
 
         <!-- Table des détails -->

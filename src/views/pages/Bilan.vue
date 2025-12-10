@@ -4,6 +4,7 @@ import {
   fechEntryNote,
   fetchCashOut, fetchInvoicesAllUsers,
   fetchUserById, fetchUserProfilById,
+  getUsersCreatedBy,
   getUsersCreatedByMe, verifySecretKey
 } from '@/service/Api'
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache'
@@ -135,6 +136,30 @@ const selectedUserProfile = computed(() => {
   const selectedUser = allUsers.value.find(u => u.id === parseInt(selectedUserId.value))
   return selectedUser?.profile || { currency_preference: 'N/A' }
 })
+function computeUsersForCharts() {
+  const connected = user.value;
+
+  if (selectedUserId.value) {
+    return allUsers.value.filter(u => u.id === parseInt(selectedUserId.value));
+  }
+
+  if (connected.status === "CAISSIER") {
+    return [connected];
+  }
+
+  if (selectedGroup.value === "ADMIN") {
+    return allUsers.value.filter(u => u.status === "ADMIN");
+  }
+
+  if (selectedGroup.value === "CAISSIER") {
+    return allUsers.value.filter(u => u.status === "CAISSIER");
+  }
+
+  return [
+    connected,
+    ...childUsers.value.filter(u => u.status === "CAISSIER")
+  ];
+}
 
 
 const currentUserId = ref(null)
@@ -159,19 +184,47 @@ watch(() => selectDate.value.global.value, () => {
   updatePieChart()
   updateLineChart()
 })
+
 async function updateDashboardCards() {
   const selectedDateVal = selectDate.value.global.value
+  let userIdsForCards = []
 
-  // Déterminer les utilisateurs à prendre en compte pour les cards
-  const userIdsForCards = selectedUserId.value
-    ? [parseInt(selectedUserId.value)] // filtre appliqué, uniquement l'utilisateur sélectionné
-    : [
-        user.value?.id, // utilisateur connecté
-        ...childUsers.value
-          .filter(c => c.status === 'CAISSIER')
-          .map(c => c.id)
-      ]
+  if (selectedUserId.value) {
 
+    const selectedUserIdInt = parseInt(selectedUserId.value)
+
+    // TOUJOURS commencer avec l'utilisateur sélectionné
+    userIdsForCards = [selectedUserIdInt]
+
+    // Logs utiles
+    console.log(">>> Admin sélectionné :", selectedUserIdInt)
+
+    // Récupérer ses enfants
+    let childUsersOfSelected = await getUsersCreatedBy(selectedUserIdInt)
+    childUsersOfSelected = childUsersOfSelected?.results || []
+
+    console.log(">>> Enfants trouvés :", childUsersOfSelected)
+
+    // Ajouter TOUS les enfants caissiers
+    const childIds = childUsersOfSelected
+      .filter(u => u.status === "CAISSIER")
+      .map(u => u.id)
+
+    console.log(">>> IDs caissiers :", childIds)
+
+    userIdsForCards = [...userIdsForCards, ...childIds]
+
+    console.log(">>> userIdsForCards final :", userIdsForCards)
+
+  } else {
+
+    userIdsForCards = [
+      user.value?.id,
+      ...childUsers.value
+        .filter(c => c.status === "CAISSIER")
+        .map(c => c.id)
+    ]
+  }
   // Filtrer invoices
   const filteredInvoices = invoices.value.filter(
     inv =>
@@ -217,43 +270,6 @@ async function updateDashboardCards() {
     0
   )
   total_CashIntCount.value = filteredCashInt.length
-}
-
-
-const displayUserProfile = computed(() => {
-
-  if (selectedUserId.value === null) return userProfile.value || { currency_preference: 'N/A' }
-
-  // Sinon, profile de l'utilisateur sélectionné
-  const selectedUser = allUsers.value.find(u => u.id === parseInt(selectedUserId.value))
-  return selectedUser?.profile || { currency_preference: 'N/A' }
-})
-
-function computeUsersForCharts(){
-
-  const connected = user.value
-
-  if (selectedUserId.value){
-    return allUsers.value.filter(u => u.id === parseInt(selectedUserId.value));
-  }
-
-  if (connected.status === "CAISSIER"){
-  return [connected];
-  }
-
-  if (selectedGroup.value ==="ADMIN"){
-    return allUsers.value.filter(u => u.status ==="ADMIN");
-  }
-
-  if (selectedGroup.value ==="CAISSIER"){
-    return allUsers.value.filter(u => u.status ==="CAISSIER");
-  }
-
-  return [
-    connected,
-    ...childUsers.value.filter(u => u.status ==="CAISSIER")
-  ];
-
 }
 
 
@@ -770,8 +786,9 @@ onMounted(() => {
       <Select
         v-if="statusUser !='CAISSIER'" 
         v-model="selectedUserId"
-          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='ADMIN')"
+        :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='ADMIN')"
         optionValue="id"
+        optionLabel="username"
         placeholder="Filtrer par utilisateur"
         class="w-full sm:w-56"
         showClear
@@ -818,7 +835,7 @@ onMounted(() => {
         v-model="selectedUserId"
           :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
         optionValue="id"
-      
+        optionLabel="username"
         placeholder="Filtrer par utilisateur"
         class="w-full sm:w-56"
         showClear

@@ -618,7 +618,7 @@ function hideDialog(){
           </div>
 
           <div class="flex justify-between">
-            <span class="font-medium">Impot :</span>
+            <span class="font-medium">Numéro Impot :</span>
             <span>{{ userProfile?.impot_number }}</span>
           </div>
 

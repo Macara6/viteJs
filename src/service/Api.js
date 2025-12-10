@@ -10,7 +10,7 @@ export async function login(usernam, password) {
             username: usernam,
             password: password
         });
-        const { id, username, email, token, refresh , is_superuser,status} = response.data;
+        const { id, username, email, token, refresh , is_superuser, status} = response.data;
         localStorage.setItem('token',token);
         localStorage.setItem('refresh_token',refresh);
         localStorage.setItem('id',id);
@@ -20,7 +20,8 @@ export async function login(usernam, password) {
         localStorage.setItem('is_superuser', is_superuser);
         localStorage.setItem('status', status)
 
-        return { id, username, email, token ,is_superuser};
+        return { id, username, email, token ,is_superuser, status};
+
     } catch (error) {
         console.error('Error logging in:', error);
         throw error;
@@ -503,6 +504,23 @@ export async function getUsersCreatedByMe() {
         throw error.response?.data || { detail: "Erreur inattendue lors du chargement des utilisateurs." };
     }
 }
+
+export async function getUsersCreatedBy(userId) {
+  const URL_USER = `${API_BASE}users-created-by/`;
+  try {
+    const response = await axios.get(URL_USER, {
+      params: { user_id: userId },
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des utilisateurs créés :", error)
+    return []
+  }
+}
+
 // afficher les utilisateur qui sont de la corbeille 
 export async function fetchTrashedUser(){
     const LIMIT =200;

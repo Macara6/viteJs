@@ -127,6 +127,8 @@ function updateQuantity(item, quantity) {
         }
         updateTotal();
 }
+
+
 async function forceRefreshProducts() {
   try {
     clearCache('products');
@@ -283,7 +285,7 @@ async function createInvoice(){
              totalAmount.value = 0;
              amountPaid.value = 0;
             change.value = 0;
-            tva.value =0;
+            tva_pro.value=0
             clientName.value = '';
    
         }catch (error) {
@@ -629,36 +631,37 @@ async function generatePdfInvoice(invoice) {
     >
       <Column field="product.name" header="Produit" style="width: 40%" />
 
-      <Column header="Qté" style="width: 100px; text-align: center;">
-        <template #body="{ data }">
-          <div class="flex items-center justify-center gap-1">
-            <Button
-              icon="pi pi-minus"
-              size="small"
-              text
-              rounded
-              class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
-              @click="data.quantity > 1 ? updateQuantity(data, data.quantity - 1) : null"
-            />
+    <Column header="Qté" style="width: 100px; text-align: center;">
+      <template #body="{ data }">
+        <div class="flex items-center justify-center gap-1">
+          <Button
+            icon="pi pi-minus"
+            size="small"
+            text
+            rounded
+            class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
+            @click="data.quantity > 1 ? updateQuantity(data, data.quantity - 1) : null"
+          />
 
-            <InputText
-              v-model.number="data.quantity"
-              class="w-17 text-center text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
-              @input="updateQuantity(data, data.quantity)"
-            />
+          <InputNumber
+            v-model.number="data.quantity"
+            class="w-17 text-center text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+            @input="updateQuantity(data, data.quantity)"
+            @blur="handleBlurQuantity(data)"
+          />
 
-            <Button
-              icon="pi pi-plus"
-              size="small"
-              text
-              rounded
-              class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
-              @click="updateQuantity(data, data.quantity + 1)"
-            />
+          <Button
+            icon="pi pi-plus"
+            size="small"
+            text
+            rounded
+            class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
+            @click="updateQuantity(data, data.quantity + 1)"
+          />
+        </div>
+      </template>
+    </Column>
 
-          </div>
-        </template>
-      </Column>
 
       <Column field="price" header="Prix" style="width: 20%;">
         <template #body="{ data }">

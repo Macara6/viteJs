@@ -21,7 +21,8 @@ const handleLogin = async() => {
     }
 
     loading.value = true; 
-    const userSatatus = localStorage.getItem('status');
+
+    
     try {
 
        const userData = await login(username.value, password.value); 
@@ -38,21 +39,28 @@ const handleLogin = async() => {
             errorMessage.value = "Votre abonnement BASIC ne permet pas l'accès à cette application";
             return;
            }
-          
-        
-          if(userData.is_superuser){
-                router.push('/pages/Utilisateur'); 
-            } else if (userSatatus ==='ADMIN'){
-                  router.push('/pages/Bilan'); 
-                
-            }else if (userSatatus ==='CAISSIER'){
-              router.push('/pages/vente');
-            } else if (userSatatus ==='GESTIONNAIRE_STOCK'){
-                router.push('/pages/Produit')
-            }
-            
-        
 
+          if(userData.is_superuser){
+            router.push('/pages/Utilisateur');
+            return;
+          }
+          console.log('userData', userData);
+         switch(userData.status){
+            case 'ADMIN':
+                router.push('/pages/Bilan');
+              break;
+            case 'CAISSIER':
+              router.push('/pages/vente');
+             break;
+
+            case 'GESTIONNAIRE_STOCK':
+              router.push('/pages/Produit');
+              break;
+
+            default:
+                errorMessage.value = "Impossible de déterminer la page d'accueil.";
+         }
+  
        }else{
         throw new Error('Login failed: No user data returned');
        }
