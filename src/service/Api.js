@@ -401,14 +401,14 @@ export async function fetchInvoicesAllUsers() {
             allInvoices.push(...data.results);
             nextUrl = data.next;
         }
-        return allInvoices;
+        
     } catch (error) {
         console.error('Error fetching invoices', error);
         throw error;
     }
+   return allInvoices;
 }
 // afficher les utilisateur qui sont de la corbeille 
-
 
 
 
@@ -458,6 +458,21 @@ export async function cancelInvoiceAPI(invoiceId){
     }catch(error){
         console.error('Error canceling invoice:', error.response ? error.response.data : error);
         throw error;
+    }
+}
+
+export async function fetchChartTotals(baseUserId, date){
+    const url_chart = `${API_BASE}invoice-chart/`;
+    try{
+        const {data} = await axios.get(url_chart, {
+         params: { base_user_id: baseUserId, date },
+         headers:{
+           'Authorization': `Bearer ${localStorage.getItem('token')}`
+         }
+        });
+        return data.totals_by_cashier;
+    }catch(error){
+         console.error("Erreur lors de la recuperation du totals:", error)
     }
 }
 
@@ -519,6 +534,22 @@ export async function getUsersCreatedBy(userId) {
     console.error("Erreur lors de la récupération des utilisateurs créés :", error)
     return []
   }
+}
+
+export async function fetchUserIdsForChart(baseUserId){
+    const url = `${API_BASE}user-for-chart/`;
+    try{
+        const {data} = await axios.get(url, {
+        params: { base_user_id: baseUserId },
+         headers:{
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        return data.user_ids;
+    }catch(error){
+        console.error("Erreur lors de la récupération des utilisateurs créés :", error)
+        return []
+    }
 }
 
 // afficher les utilisateur qui sont de la corbeille 
@@ -871,6 +902,33 @@ export async function reactivateSubscription(userId){
    }
 }
 
+// functon to fetch to all cashout for all user
+export async function fetchCashoutAllUsers() {
+  const LIMIT = 200;
+  let nextUrl = `${API_BASE}cashouts-all-users/?limit=${LIMIT}`;
+  let allCashOuts = [];
+
+  try {
+    while (nextUrl) {
+      const response = await axios.get(nextUrl, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = response.data;
+      allCashOuts.push(...data.results);
+      nextUrl = data.next;
+    }
+  } catch (error) {
+    console.error('Error fetching cashouts', error);
+  }
+
+
+  return allCashOuts;
+}
+
+
+
 export async function fetchCashOut(userId){
     const CASHOUT_URL = `${API_BASE}cashouts/?user=${userId}`;
 
@@ -954,6 +1012,27 @@ export async function createEntryNote(entryNoteData){
         throw error;
     }
 }
+export async function fetchEntryNoteAllUser() {
+    const LIMIT =200;
+    let nextUrl = `${API_BASE}EntryNotes-all-users/?limit=${LIMIT}`;
+    let allEntrys = [];
+    try{
+        while(nextUrl){
+            const response = await axios.get(nextUrl, {
+                headers : {
+                   'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = response.data;
+            allEntrys.push(...data.results);
+            nextUrl = data.next
+        }
+    }catch(error){
+        console.error('Error fetching entry note', error);
+    }
+    return allEntrys;
+}
+
 
 export async function fechEntryNote(userId){
     const FECHING_ENTRYNOTE = `${API_BASE}entryNote/?user=${userId}`;

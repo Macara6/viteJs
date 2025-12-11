@@ -1,9 +1,11 @@
 <script setup>
 import {
   checkSecretKeyStatus,
-  fechEntryNote,
-  fetchCashOut, fetchInvoicesAllUsers,
-  fetchUserById, fetchUserProfilById,
+  fetchCashoutAllUsers,
+  fetchEntryNoteAllUser,
+  fetchInvoicesAllUsers,
+  fetchUserById,
+  fetchUserProfilById,
   getUsersCreatedBy,
   getUsersCreatedByMe, verifySecretKey
 } from '@/service/Api'
@@ -100,15 +102,18 @@ async function initData() {
     inv.status ==="ANNULER" && new Date(inv.created_at).toISOString().split('T')[0] == selectDate.value.global.value
      ).reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
 
-    cashouts.value = await fetchCashOut(activeUserId);
-    cashInts.value = await fechEntryNote(activeUserId);
 
-    console.log('cashout pour utilisateur selecte',cashouts.value)
+    const allCashouts = await fetchCashoutAllUsers(activeUserId);
+    cashouts.value = allCashouts || [];
+    
+    const allEntrys = await fetchEntryNoteAllUser(activeUserId)
+    cashInts.value =  allEntrys || [];
+
 
     // Met à jour le dashboard
     updateDashboardCards();
     updatePieChart();
-    updateLineChart();
+   
 
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error)
@@ -136,7 +141,9 @@ const selectedUserProfile = computed(() => {
   const selectedUser = allUsers.value.find(u => u.id === parseInt(selectedUserId.value))
   return selectedUser?.profile || { currency_preference: 'N/A' }
 })
+
 function computeUsersForCharts() {
+  
   const connected = user.value;
 
   if (selectedUserId.value) {
@@ -161,6 +168,17 @@ function computeUsersForCharts() {
   ];
 }
 
+async function getAllUserIdsForDashboard(baseUserId){
+
+  const ids =[baseUserId];
+  
+  let children = await getUsersCreatedBy(baseUserId)
+
+  children = children?.results || []
+  const caissiers = children.filter(u => u.status === "CAISSIER");
+  ids.push(...caissiers.map(c => c.id));
+  return ids;
+}
 
 const currentUserId = ref(null)
 
@@ -169,12 +187,12 @@ watch(selectedUserId, () => {
 
   updateDashboardCards()
   updatePieChart()
-  updateLineChart()
+  
 });
 
 watch(selectedGroup, () => {
   usersForCharts.value =computeUsersForCharts();
-  updateLineChart();
+ 
   updatePieChart();
 });
 
@@ -182,49 +200,30 @@ watch(() => selectDate.value.global.value, () => {
 
   updateDashboardCards()
   updatePieChart()
-  updateLineChart()
+  
 })
+
 
 async function updateDashboardCards() {
   const selectedDateVal = selectDate.value.global.value
-  let userIdsForCards = []
 
-  if (selectedUserId.value) {
+  let baseUserId = selectedUserId.value
+    ? parseInt(selectedUserId.value)     // ADMIN sélectionné
+    : user.value?.id                     // ADMIN connecté ou caissier connecté
 
-    const selectedUserIdInt = parseInt(selectedUserId.value)
+  const userIdsForCards = await getAllUserIdsForDashboard(baseUserId)
 
-    // TOUJOURS commencer avec l'utilisateur sélectionné
-    userIdsForCards = [selectedUserIdInt]
+  console.log(">>> Groupe sélectionné =", selectedGroup.value)
 
-    // Logs utiles
-    console.log(">>> Admin sélectionné :", selectedUserIdInt)
+  if (selectedGroup.value === "ADMIN") {
+     console.log(">>> Mode tous caisseirs :")
+   }
 
-    // Récupérer ses enfants
-    let childUsersOfSelected = await getUsersCreatedBy(selectedUserIdInt)
-    childUsersOfSelected = childUsersOfSelected?.results || []
+  console.log(">>> User de base :", baseUserId)
 
-    console.log(">>> Enfants trouvés :", childUsersOfSelected)
+  console.log(">>> IDs finaux (admin + caissiers) :", userIdsForCards)
 
-    // Ajouter TOUS les enfants caissiers
-    const childIds = childUsersOfSelected
-      .filter(u => u.status === "CAISSIER")
-      .map(u => u.id)
-
-    console.log(">>> IDs caissiers :", childIds)
-
-    userIdsForCards = [...userIdsForCards, ...childIds]
-
-    console.log(">>> userIdsForCards final :", userIdsForCards)
-
-  } else {
-
-    userIdsForCards = [
-      user.value?.id,
-      ...childUsers.value
-        .filter(c => c.status === "CAISSIER")
-        .map(c => c.id)
-    ]
-  }
+ 
   // Filtrer invoices
   const filteredInvoices = invoices.value.filter(
     inv =>
@@ -272,34 +271,10 @@ async function updateDashboardCards() {
   total_CashIntCount.value = filteredCashInt.length
 }
 
-
-async function updatePieChart() {
-  const selectedDateVal = selectDate.value.global.value;
-  const userInvoiceTotals = {};
-
-  // Utilisateur spécifique OU les utilisateurs autorisés
-  const usersSource = selectedUserId.value
-    ? allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
-    : usersForCharts.value;
-
-  // Factures filtrées
-  const filteredInvoices = selectedUserId.value === null
-    ? invoices.value.filter(inv => usersSource.some(u => u.id === inv.cashier))
-    : invoices.value.filter(inv => inv.cashier === parseInt(selectedUserId.value));
-
-  // Calcul totals
-  filteredInvoices.forEach(inv => {
-    const invDate = new Date(inv.created_at).toISOString().split("T")[0];
-    if (invDate === selectedDateVal) {
-      userInvoiceTotals[inv.cashier] =
-        (userInvoiceTotals[inv.cashier] || 0) + parseFloat(inv.total_amount || "0");
-    }
-  });
-
+async function computeAdminPieData(selectedDateVal) {
   const labels = [];
   const data = [];
   const legend = [];
-
   const baseColors = [
     'rgba(75, 192, 192, 0.8)',
     'rgba(255, 99, 132, 0.8)',
@@ -309,40 +284,209 @@ async function updatePieChart() {
     'rgba(255, 159, 64, 0.8)'
   ];
 
-  usersSource.forEach((u, i) => {
-    if (userInvoiceTotals[u.id]) {
-      labels.push(u.username);
-      data.push(userInvoiceTotals[u.id]);
+  const admins = allUsers.value.filter(u => u.status === "ADMIN");
+
+  for (let i = 0; i < admins.length; i++) {
+    const admin = admins[i];
+
+    // Récupérer tous les descendants directs
+    const allChildren = await getUsersCreatedBy(admin.id); // retourne un objet {results: [...]}
+    const children = allChildren?.results || [];
+
+    // Filtrer les caissiers directs
+    const directCashiers = children.filter(c => c.status === "CAISSIER");
+
+    // Total pour l'admin
+    let adminTotal = 0;
+    invoices.value.forEach(inv => {
+      const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0];
+      if (invoiceDate === selectedDateVal && inv.cashier === admin.id) {
+        adminTotal += parseFloat(inv.total_amount || 0);
+      }
+    });
+
+    // Total pour ses caissiers directs uniquement
+    let cashiersTotal = 0;
+    invoices.value.forEach(inv => {
+      const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0];
+      if (
+        invoiceDate === selectedDateVal &&
+        directCashiers.some(c => c.id === inv.cashier)
+      ) {
+        cashiersTotal += parseFloat(inv.total_amount || 0);
+      }
+    });
+
+    const totalWithCashiers = adminTotal + cashiersTotal;
+
+    console.log('admin :', i, 'adminTotal:', adminTotal, 'cashiersTotal:', cashiersTotal, 'total:', totalWithCashiers);
+
+    labels.push(admin.username);
+    data.push(totalWithCashiers);
+    legend.push({
+      name: admin.username,
+      amount: totalWithCashiers,
+      currency: admin.currency,
+      color: baseColors[i % baseColors.length]
+    });
+  }
+
+  return { labels, data, legend };
+}
+
+async function updatePieChart() {
+  const selectedDateVal = selectDate.value.global.value;
+  const isUserSelected = !!selectedUserId.value;
+  const baseUserId = isUserSelected ? parseInt(selectedUserId.value) : user.value.id;
+
+  // 1️⃣ Récupérer enfants/cashiers
+  const children = (await getUsersCreatedBy(baseUserId))?.results || [];
+  const cashiers = children.filter(u => u.status === "CAISSIER");
+
+  const baseUserInfo = allUsers.value.find(u => u.id === baseUserId) || {
+    username: isUserSelected ? "Admin" : user.value.username,
+    currency: user.value.currency
+  };
+
+  // 2️⃣ Calculer les totaux par utilisateur pour la date sélectionnée
+  const totalsByCashier = {};
+  invoices.value.forEach(inv => {
+    const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0];
+    if (invoiceDate === selectedDateVal) {
+      totalsByCashier[inv.cashier] = (totalsByCashier[inv.cashier] || 0) + parseFloat(inv.total_amount || 0);
+    }
+  });
+
+  const labels = [];
+  const data = [];
+  const legend = [];
+  const baseColors = [
+    'rgba(75, 192, 192, 0.8)',
+    'rgba(255, 99, 132, 0.8)',
+    'rgba(255, 206, 86, 0.8)',
+    'rgba(54, 162, 235, 0.8)',
+    'rgba(153, 102, 255, 0.8)',
+    'rgba(255, 159, 64, 0.8)'
+  ];
+
+  if (selectedGroup.value === "ADMIN") {
+    // 🔹 ADMIN : afficher uniquement les admins, total de leurs caissiers inclus
+    const admins = allUsers.value.filter(u => u.status === "ADMIN");
+    const lineUsers = [];
+
+    for (let i = 0; i < admins.length; i++) {
+      const admin = admins[i];
+      const allChildren = await getUsersCreatedBy(admin.id);
+      const children = allChildren?.results || [];
+      const directCashiers = children.filter(c => c.status === "CAISSIER");
+
+      // Total admin
+      const adminTotal = invoices.value
+        .filter(inv => inv.cashier === admin.id && new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal)
+        .reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+
+      // Total caissiers directs
+      const cashiersTotal = directCashiers
+        .map(c => invoices.value
+          .filter(inv => inv.cashier === c.id && new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal)
+          .reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+        )
+        .reduce((a, b) => a + b, 0);
+
+      const totalWithCashiers = adminTotal + cashiersTotal;
+
+      // Pie chart
+      labels.push(admin.username);
+      data.push(totalWithCashiers);
       legend.push({
-        name: u.username,
-        amount: userInvoiceTotals[u.id],
+        name: admin.username,
+        amount: totalWithCashiers,
+        currency: admin.currency,
+        color: baseColors[i % baseColors.length]
+      });
+
+      // Line chart : admin seulement, caissiers cachés mais leurs totaux inclus
+      lineUsers.push({
+        id: admin.id,
+        username: admin.username,
+        currency: admin.currency,
+        directCashiers
+      });
+    }
+
+    pieData.value = { labels, datasets: [{ data, backgroundColor: legend.map(l => l.color) }], legend };
+    updateLineChart(lineUsers, "ADMIN");
+
+  } else if (selectedGroup.value === "CAISSIER") {
+
+  cashiers.forEach((c, i) => {
+    const total = totalsByCashier[c.id] || 0;
+    if (total > 0) {
+      labels.push(c.username);
+      data.push(total);
+      legend.push({
+        name: c.username,
+        amount: total,
         color: baseColors[i % baseColors.length],
-        currency: u.currency
+        currency: baseUserInfo.currency   // 🔥 Devise du parent
       });
     }
   });
 
-  pieData.value = {
-    labels,
-    datasets: [{
-      data,
-      backgroundColor: legend.map(l => l.color)
-    }],
-    legend
-  };
+  // 🔥 IMPORTANT : assigner aussi la devise pour le chart ligne
+  cashiers.forEach(c => {
+    c.currency = baseUserInfo.currency;
+  });
 
+
+
+    pieData.value = { labels, datasets: [{ data, backgroundColor: legend.map(l => l.color) }], legend };
+    updateLineChart(cashiers);
+
+
+  } else {
+// 🔹 Cas normal : utilisateur + ses caissiers visibles
+const allUsersOfBase = [
+  { id: baseUserId, username: baseUserInfo.username, currency: baseUserInfo.currency },
+  ...cashiers.map(c => ({
+    id: c.id,
+    username: c.username,
+    // ⚡ Devise = celle de l'admin direct (baseUserInfo.currency) par défaut USD si vide
+    currency: baseUserInfo.currency || 'USD'
+  }))
+];
+
+allUsersOfBase.forEach((u, i) => {
+  const total = totalsByCashier[u.id] || 0;
+  if (total > 0) {
+    labels.push(u.username);
+    data.push(total);
+    legend.push({
+      name: u.username,
+      amount: total,
+      color: baseColors[i % baseColors.length],
+      currency: u.currency // affichera la devise de l'admin direct
+    });
+  }
+});
+
+
+    pieData.value = { labels, datasets: [{ data, backgroundColor: legend.map(l => l.color) }], legend };
+    updateLineChart(allUsersOfBase);
+  }
+
+  // Options Pie chart
   pieOptions.value = {
     responsive: true,
-      plugins: {
+    plugins: {
       legend: { display: false },
       title: { display: true, text: "Factures par caissier(e)s" }
     }
   };
 }
 
-
-// ================= Line Chart =================
-function updateLineChart() {
+// ===== Line Chart =====
+function updateLineChart(usersList, selectedGroupValue = "") {
   const selectedDateVal = selectDate.value.global.value;
   const datasets = [];
   const baseColors = [
@@ -351,39 +495,46 @@ function updateLineChart() {
   ];
 
   const selectedDate = new Date(selectedDateVal);
-
-  //  lundi de la semaine
   const startDate = new Date(selectedDate);
   const day = startDate.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   startDate.setDate(startDate.getDate() + diff);
 
   const labels = Array.from({ length: 7 }, (_, i) => {
-    let d = new Date(startDate);
+    const d = new Date(startDate);
     d.setDate(startDate.getDate() + i);
     return d.toISOString().split("T")[0];
   });
 
-  const usersSource = selectedUserId.value
-    ? allUsers.value.filter(u => u.id === parseInt(selectedUserId.value))
-    : usersForCharts.value;
-
-  usersSource.forEach((u, i) => {
-    const userInvoices = invoices.value.filter(inv => inv.cashier === u.id);
+  usersList.forEach((item, i) => {
+    const admin = item; // admin ou caissier selon le cas
     const dailyTotals = {};
     let totalAmount = 0;
 
-    userInvoices.forEach(inv => {
+    invoices.value.forEach(inv => {
       const dateStr = new Date(inv.created_at).toISOString().split('T')[0];
-      if (dateStr >= labels[0] && dateStr <= labels[6]) {
-        const amt = parseFloat(inv.total_amount) || 0;
-        dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amt;
-        totalAmount += amt;
+
+      if (labels.includes(dateStr)) {
+        if (selectedGroupValue === "ADMIN") {
+          // Somme des totaux : admin + ses caissiers directs, caissiers cachés
+          const directCashiers = item.directCashiers || [];
+          if (inv.cashier === admin.id || directCashiers.some(c => c.id === inv.cashier)) {
+            const amt = parseFloat(inv.total_amount) || 0;
+            dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amt;
+            totalAmount += amt;
+          }
+        } else {
+          if (inv.cashier === admin.id) {
+            const amt = parseFloat(inv.total_amount) || 0;
+            dailyTotals[dateStr] = (dailyTotals[dateStr] || 0) + amt;
+            totalAmount += amt;
+          }
+        }
       }
     });
 
     datasets.push({
-      label: `${u.username} (${u.currency}) — ${formatPrice(totalAmount)}`,
+      label: `${admin.username} (${admin.currency}) — ${formatPrice(totalAmount)}`,
       data: labels.map(l => dailyTotals[l] || 0),
       borderColor: baseColors[i % baseColors.length],
       backgroundColor: baseColors[i % baseColors.length],
@@ -393,7 +544,6 @@ function updateLineChart() {
 
   lineData.value = { labels, datasets };
 }
-
 
 
 async function verifySecret() {
@@ -875,6 +1025,7 @@ onMounted(() => {
       </div>
 
       <div   v-if="statusUser !='CAISSIER'" class="flex flex-col">
+
         <label  class="font-medium">Filtrer groupe :</label>
 
         <Select
@@ -890,6 +1041,7 @@ onMounted(() => {
           placeholder="Filtrer groupe"
           showClear
         />
+
       </div>
 
 

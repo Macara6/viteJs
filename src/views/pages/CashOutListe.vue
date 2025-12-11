@@ -148,6 +148,7 @@ async function downloadPDF() {
   pdf.save(`bon_sortie_${selectedCashout.value}.pdf`);
 }
 
+
 /* ===================== Suppression ===================== */
 function deleteToCahOut(cashout) {
   selectedCashoutToDelete.value = cashout;
@@ -346,7 +347,7 @@ const findUser = (id) => {
       :style="{ width: dialogWidth }"
       class="responsive-dialog"
     >
-      <div
+    <div
         class="p-6 overflow-y-auto max-h-[70vh] space-y-6"
         id="cashout-pdf-content"
       >
