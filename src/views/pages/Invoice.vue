@@ -173,7 +173,7 @@ const filteredInvoices = computed(() => {
     .filter(inv => {
       const created = new Date(inv.created_at); // ISO string from backend
 
-      // UTC-safe date comparison (ignore time)
+      
       if (startDate.value) {
         const start = new Date(Date.UTC(
           startDate.value.getFullYear(),
@@ -935,14 +935,16 @@ onMounted(async () => {
              Tél :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
             </p>
             <p class="text-gray-600 text-sm sm:text-base">
-             Devise :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
+             Devise :{{ userProfile ? userProfile.currency_preference : 'Adresse non définie' }}
             </p>
             <p class="mt-2 text-sm"><strong>Client(e) :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</p>
             <p class="text-sm"><strong>Caissier :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</p>
           </div>
           <div class="text-right text-sm sm:text-base text-gray-500 mt-2 sm:mt-0">
             <p><strong>Date :</strong> {{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) || 'N/A' }}</p>
-            <p><strong>Facture ID :</strong> {{ selectedInvoices }}</p>
+            <p><strong>Status :</strong> {{ invoices.find(c => c.id ===selectedInvoices)?.status || 'N/A'}}</p>
+             <p><strong>Facture ID :</strong> {{ selectedInvoices }}</p>
+
           </div>
         </div>
 

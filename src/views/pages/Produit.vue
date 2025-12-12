@@ -86,6 +86,7 @@ const isSecretValidatedForView = ref(false);
 const deleteMode = ref(null);
 const histoDeleteDialog = ref(false);
 const isLoading = ref(false);
+const userStatus = localStorage.getItem('status');
 // ------------------
 // Utilities / loaders
 // ------------------
@@ -604,14 +605,12 @@ async function saveProduct() {
 function onExpirationChange(e) { product.value.expiration_date = e.value ? e.value.toISOString().split('T')[0] : null; }
 
 async function editProduct(prod) {
+
   if (!categorys.value.length) await loadCategories(user.value?.id || localStorage.getItem('id'));
   product.value = { ...prod, tva: prod.tva ?? true };
-  if(hasSecretKey.value == true){
-      secretDialog.value = true;
-     deleteMode.value ='edite'
-  }else{
-    productDialog.value= true;
-  }
+
+  productDialog.value= true;
+  
 
 }
 
@@ -695,28 +694,16 @@ async function deleteSelectedProducts() {
 function openAjoutStock(prod){
   product.value = prod;
   stockQuantity.value = 0;
-  if(hasSecretKey.value == true){
-    secretDialog.value = true;
-    deleteMode.value ='ajoutStock'
-  }else{
-    ajoutStockDialog.value = true;
-  }
- 
-  
+
+  ajoutStockDialog.value = true;
+
 }
 
 function openSortieStock(prod){
       product.value =prod;
      stockQuantity.value =0;
-  if(hasSecretKey.value == true){
-     deleteMode.value ='sortieStock';
-     secretDialog.value = true
-  }else{
-   
+
    sortieStockDialog.value = true;
-  }
-
-
 
 }
 
@@ -860,7 +847,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
                 @click="forceRefresh"
               />
            <Button label="Télécharger PDF"  severity="info" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
-            <Button label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="openView" />
+            <Button v-if="userStatus !='GESTIONNAIRE_STOCK'" label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="openView" />
           </div>
         </template>
 
@@ -1019,7 +1006,17 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
           </template>
         </Column>
 
-        <Column field="stock" header="Stock" sortable style="min-width: 6rem" />
+        <Column field="stock" header="Stock" sortable style="min-width: 6rem" >
+        <template #body="{data}">
+          <span 
+            class="px-2 py-1 text-white text-sm font-bold rounded"
+            :class="data.stock < 10 ? 'bg-red-500' : 'bg-green-500'"
+          >
+          {{ data.stock }}
+          </span>
+        </template>
+        
+        </Column>
         
       
         <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
@@ -1410,7 +1407,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
      
      </Column>
     <Column field="new_stock" header="Stock après"  style="text-align: center;"></Column>
-    <Column field="added_by_name" header="Ajouté par" style="text-align: center;"></Column>
+    <Column field="added_by_name" header="Fait par" style="text-align: center;"></Column>
     <Column field="motif" header="Motif" style="text-align: center;"></Column>
     <Column field="created_at" header="Date" sortable style="text-align: center;">
       <template #body="slotProps">

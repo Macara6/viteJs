@@ -22,6 +22,7 @@ const toast = useToast()
 const user = ref(null)
 const userProfile = ref(null)
 const invoices = ref([])
+const invoicesCancel = ref([]);
 const cashouts = ref([])
 const cashInts =ref([]);
 const childUsers = ref([])
@@ -94,13 +95,7 @@ async function initData() {
     
     // on garde le factures avec un status  Valide
     invoices.value = allInvoices.filter(inv => inv.status ==="VALIDE");
-
-    canceledInvoicesCount.value = allInvoices.filter(inv =>
-     inv.status ==="ANNULER" && new Date(inv.created_at).toISOString().split('T')[0] ==selectDate.value.global.value ).length
-    canceledTotalAmount.value = allInvoices.filter(inv => 
-    
-    inv.status ==="ANNULER" && new Date(inv.created_at).toISOString().split('T')[0] == selectDate.value.global.value
-     ).reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
+    invoicesCancel.value = allInvoices.filter(inv =>inv.status ==="ANNULER");
 
 
     const allCashouts = await fetchCashoutAllUsers(activeUserId);
@@ -184,7 +179,6 @@ const currentUserId = ref(null)
 
 watch(selectedUserId, () => {
   currentUserId.value = selectedUserId.value === null ? user.value.id : parseInt(selectedUserId.value)
-
   updateDashboardCards()
   updatePieChart()
   
@@ -192,12 +186,11 @@ watch(selectedUserId, () => {
 
 watch(selectedGroup, () => {
   usersForCharts.value =computeUsersForCharts();
- 
+  updateDashboardCards();
   updatePieChart();
 });
 
 watch(() => selectDate.value.global.value, () => {
-
   updateDashboardCards()
   updatePieChart()
   
@@ -205,19 +198,34 @@ watch(() => selectDate.value.global.value, () => {
 
 
 async function updateDashboardCards() {
+  
+ 
+
   const selectedDateVal = selectDate.value.global.value
 
   let baseUserId = selectedUserId.value
     ? parseInt(selectedUserId.value)     // ADMIN sélectionné
     : user.value?.id                     // ADMIN connecté ou caissier connecté
 
-  const userIdsForCards = await getAllUserIdsForDashboard(baseUserId)
+    let userIdsForCards = []
 
-  console.log(">>> Groupe sélectionné =", selectedGroup.value)
+    if (selectedGroup.value === "CAISSIER") {
+      
+      let children = await getUsersCreatedBy(baseUserId);
+      
+      children = children?.results || [];
+      const caissiers = children.filter(u => u.status ==="CAISSIER");
+      userIdsForCards.push(...caissiers.map(c =>c.id))
+      console.log(">>> Mode CAISSIER : utilisateur + son caissier direct :", userIdsForCards)
+     
+     
 
-  if (selectedGroup.value === "ADMIN") {
-     console.log(">>> Mode tous caisseirs :")
-   }
+    } else {
+     
+      userIdsForCards = await getAllUserIdsForDashboard(baseUserId)
+      console.log(">>> Mode normal :", userIdsForCards)
+    }
+
 
   console.log(">>> User de base :", baseUserId)
 
@@ -230,6 +238,14 @@ async function updateDashboardCards() {
       userIdsForCards.includes(inv.cashier) &&
       new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
   )
+  
+  const filteredCancelInvoices = invoicesCancel.value.filter(
+    inv => 
+    userIdsForCards.includes(inv.cashier) && 
+    new Date(inv.created_at).toISOString().split('T')[0] ===selectedDateVal
+  )
+
+  canceledInvoicesCount.value = filteredCancelInvoices.length
 
   // Filtrer cashouts
   const filteredCashouts = cashouts.value.filter(
@@ -250,11 +266,20 @@ async function updateDashboardCards() {
     (sum, inv) => sum + parseFloat(inv.tva || 0),
     0
   )
+
+  canceledTotalAmount.value = filteredCancelInvoices.reduce(
+    (sum, inv) => sum + parseFloat(inv.total_amount || 0),
+    0
+  )
+
   todaysInvoicesUserConnectCount.value = filteredInvoices.length
+ 
   total_AmountUserConnect.value = filteredInvoices.reduce(
     (sum, inv) => sum + parseFloat(inv.total_amount || 0),
     0
   )
+ 
+
   total_ProfitAmountUserConnect.value = filteredInvoices.reduce(
     (sum, inv) => sum + parseFloat(inv.profit_amount || 0),
     0
@@ -795,7 +820,7 @@ onMounted(() => {
 
 
      
-    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+    <div v-if="statusUser !='CAISSIER'" class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
       <div class="flex justify-between items-center mb-2">
         <div>
           <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Bénéfice estimé</span>
