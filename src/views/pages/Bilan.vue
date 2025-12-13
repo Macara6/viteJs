@@ -65,50 +65,62 @@ async function initData() {
     isLoading.value = true
     const userId = localStorage.getItem('id')
     const activeUserId = selectedUserId.value || userId;
-    // Utilisateur connecté
+
+    // -- Utilisateur connecté --
     user.value = loadCache('userConnected') || await fetchUserById(userId)
     if (!loadCache('userConnected')) saveCache('userConnected', user.value)
-    if (!user.value) return; 
-    const userProfileData = await fetchUserProfilById(user.value.id)
+    if (!user.value) return;
+
+    // -- Profil utilisateur --
+    const cachedProfile = loadCache(`userProfile_${user.value.id}`)
+    const userProfileData = cachedProfile || await fetchUserProfilById(user.value.id)
     userProfile.value = Array.isArray(userProfileData) ? userProfileData[0] : userProfileData
+    if (!cachedProfile) saveCache(`userProfile_${user.value.id}`, userProfile.value)
     user.value.currency = userProfile.value?.currency_preference || 'N/A'
 
-    // Enfants
-    const allCreatedUsers = await getUsersCreatedByMe()
-    childUsers.value = allCreatedUsers
+    // -- Enfants --
+    const cachedChildren = loadCache(`childUsers_${user.value.id}`)
+    childUsers.value = cachedChildren || await getUsersCreatedByMe()
+    if (!cachedChildren) saveCache(`childUsers_${user.value.id}`, childUsers.value)
+
     allUsers.value = [user.value, ...childUsers.value]
 
-    // -- utilisateurs à afficher par défaut dans les charts --
-      usersForCharts.value = [
-          user.value, // utilisateur connecté
-          ...childUsers.value.filter(c => c.status === "CAISSIER")
-      ];
+    // -- Utilisateurs pour les charts --
+    usersForCharts.value = [
+      user.value,
+      ...childUsers.value.filter(c => c.status === "CAISSIER")
+    ]
 
+    // -- Profils enfants en cache --
+    await Promise.all(childUsers.value.map(async (child) => {
+      const childCache = loadCache(`userProfile_${child.id}`)
+      const childProfile = childCache || await fetchUserProfilById(child.id)
+      child.profile = Array.isArray(childProfile) ? childProfile[0] : childProfile
+      if (!childCache) saveCache(`userProfile_${child.id}`, child.profile)
+      child.currency = child.profile?.currency_preference || 'N/A'
+    }))
 
-    for (let i = 0; i < childUsers.value.length; i++) {
-      const childProfile = await fetchUserProfilById(childUsers.value[i].id)
-      childUsers.value[i].profile = Array.isArray(childProfile) ? childProfile[0] : childProfile
-      childUsers.value[i].currency = childUsers.value[i].profile?.currency_preference || 'N/A'
-    }
+    // -- Factures, cashouts et entrées (optionnel: cache aussi si beaucoup de données) --
+    const invoicesCache = loadCache(`invoices_${activeUserId}`)
+    const allInvoices = invoicesCache || await fetchInvoicesAllUsers(activeUserId)
+    if (!invoicesCache) saveCache(`invoices_${activeUserId}`, allInvoices)
 
-    const allInvoices = await fetchInvoicesAllUsers(activeUserId)
-    
-    // on garde le factures avec un status  Valide
-    invoices.value = allInvoices.filter(inv => inv.status ==="VALIDE");
-    invoicesCancel.value = allInvoices.filter(inv =>inv.status ==="ANNULER");
+    invoices.value = allInvoices.filter(inv => inv.status === "VALIDE")
+    invoicesCancel.value = allInvoices.filter(inv => inv.status === "ANNULER")
 
+    const cashoutsCache = loadCache(`cashouts_${activeUserId}`)
+    const allCashouts = cashoutsCache || await fetchCashoutAllUsers(activeUserId)
+    if (!cashoutsCache) saveCache(`cashouts_${activeUserId}`, allCashouts)
+    cashouts.value = allCashouts || []
 
-    const allCashouts = await fetchCashoutAllUsers(activeUserId);
-    cashouts.value = allCashouts || [];
-    
-    const allEntrys = await fetchEntryNoteAllUser(activeUserId)
-    cashInts.value =  allEntrys || [];
+    const entryCache = loadCache(`entries_${activeUserId}`)
+    const allEntrys = entryCache || await fetchEntryNoteAllUser(activeUserId)
+    if (!entryCache) saveCache(`entries_${activeUserId}`, allEntrys)
+    cashInts.value = allEntrys || []
 
-
-    // Met à jour le dashboard
-    updateDashboardCards();
-    updatePieChart();
-   
+    // -- Mise à jour dashboard --
+    updateDashboardCards()
+    updatePieChart()
 
   } catch (error) {
     console.error('Erreur lors du chargement des données:', error)
@@ -117,6 +129,7 @@ async function initData() {
     isLoading.value = false
   }
 }
+
 
 
 // ================= Force refresh =================
@@ -458,7 +471,7 @@ async function updatePieChart() {
     }
   });
 
-  // 🔥 IMPORTANT : assigner aussi la devise pour le chart ligne
+  //  IMPORTANT : assigner aussi la devise pour le chart ligne
   cashiers.forEach(c => {
     c.currency = baseUserInfo.currency;
   });
