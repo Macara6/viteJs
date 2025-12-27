@@ -87,58 +87,60 @@ const handleLogin = async() => {
 
 </script>
 
-
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4 sm:px-6 lg:px-8">
-    <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 sm:p-10">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 lg:px-8">
+    
+    <!-- Card connexion -->
+    <div class="w-full max-w-md bg-gray-900 dark:bg-gray-800 rounded-3xl shadow-2xl p-8 sm:p-10 relative overflow-hidden">
+      
+      <!-- Halo subtil derrière le card -->
+      <div class="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-tr from-[#7BB661]/40 via-[#004D4A]/30 to-[#F9A825]/20 rounded-full blur-3xl animate-pulse-slow"></div>
 
-        <div class="text-center mb-8">
-        <img src="/demo/bilatechslogan.png" alt="Logo BilaTech" class="h-30 sm:h-40 mx-auto mb-2" />
-        <h2 class="text-2xl sm:text-3xl font-semibold text-gray-800 dark:text-white">Connexion</h2>
-        <p class="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Connectez-vous à votre compte</p>
-        </div>
+      <div class="text-center mb-8 relative z-10">
+        <img src="/demo/bilatechblanc.png" alt="Logo BilaTech" class="h-32 sm:h-40 mx-auto mb-4" />
+         
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#7BB661]">Connexion</h2>
+        <p class="text-gray-300 text-sm sm:text-base">Connectez-vous à votre compte</p>
+      </div>
 
-
-      <div v-if="errorMessage" class="text-red-500 text-center mb-4 text-sm sm:text-base">
+      <div v-if="errorMessage" class="text-red-500 text-center mb-4 text-sm sm:text-base relative z-10">
         {{ errorMessage }}
       </div>
 
-      <div class="space-y-6">
-        <!-- Champ Nom d'utilisateur -->
+      <div class="space-y-6 relative z-10">
+        <!-- Nom d’utilisateur -->
         <div>
-          <label for="username" class="block text-gray-700 dark:text-gray-200 text-sm font-medium mb-2">
+          <label for="username" class="block text-gray-200 text-sm font-medium mb-2">
             Nom d’utilisateur
           </label>
           <InputText
             id="username"
             v-model="username"
             placeholder="Nom d’utilisateur"
-            class="w-full h-12 text-base"
+            class="w-full h-12 text-base rounded-xl bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661] transition-all"
           />
         </div>
 
-        <!-- Champ Mot de passe -->
+        <!-- Mot de passe -->
         <div>
-          <label for="password" class="block text-gray-700 dark:text-gray-200 text-sm font-medium mb-2">
+          <label for="password" class="block text-gray-200 text-sm font-medium mb-2">
             Mot de passe
           </label>
-          <div class="w-full">
-            <Password
-              id="password"
-              v-model="password"
-              placeholder="Mot de passe"
-              :toggleMask="true"
-              class="custom-password w-full h-12"
-              inputClass="w-full h-12 text-base"
-              :feedback="false"
-            />
-          </div>
+          <Password
+            id="password"
+            v-model="password"
+            placeholder="Mot de passe"
+            :toggleMask="true"
+            class="custom-password w-full rounded-xl bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661] transition-all"
+            inputClass="w-full h-12 text-base"
+            :feedback="false"
+          />
         </div>
 
-        <!-- Bouton de connexion -->
+        <!-- Bouton -->
         <Button
           label="Se connecter"
-          class="w-full py-3 text-base font-medium rounded-xl flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200"
+          class="w-full py-3 text-base font-semibold rounded-xl flex justify-center items-center gap-2 bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-xl hover:scale-105 hover:shadow-2xl transition-transform duration-300"
           @click="handleLogin"
           :disabled="loading"
         >
@@ -147,23 +149,24 @@ const handleLogin = async() => {
         </Button>
 
         <div class="text-center mt-4">
-          <RouterLink to="/reset" class="text-sm text-primary hover:underline">
-            Mot de passe oublié 
+          <RouterLink to="/reset" class="text-sm text-[#7BB661] hover:underline transition-colors">
+            Mot de passe oublié ?
           </RouterLink>
         </div>
-        
+        <h3 class="text-center 2xl sm:text-3xl font-extrabold text-[#7BB661]">2026</h3>
+
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Ajuste la taille du champ mot de passe pour correspondre exactement au champ texte */
+/* Ajuste la taille du champ mot de passe pour correspondre au champ texte */
 .custom-password :deep(input) {
   height: 3rem !important;
   width: 100% !important;
   font-size: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.75rem;
 }
 
 /* Ajustement icônes œil */

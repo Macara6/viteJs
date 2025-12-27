@@ -204,6 +204,7 @@ const router = createRouter({
             name: 'landing',
             component: () => import('@/views/pages/Landing.vue')
         },
+        
         {
             path: '/pages/notfound',
             name: 'notfound',
