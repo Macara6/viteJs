@@ -10,6 +10,8 @@ const availablePrinters = ref([]);
 const selectedPrinter = ref(localStorage.getItem('printerName') || null);
 const qzDetected = ref(false);
 const qzConnected = ref(false);
+const copyCount = ref(Number(localStorage.getItem('printerCopyCount')) || 1);
+
 
 // Connexion à QZ Tray
 async function connectQZ() {
@@ -86,7 +88,8 @@ function savePrinter() {
         return;
     }
     localStorage.setItem('printerName', selectedPrinter.value);
-    toast.add({ severity: 'success', summary: 'Enregistré', detail: `Imprimante "${selectedPrinter.value}" enregistrée.`, life: 3000 });
+    localStorage.setItem('printerCopyCount', copyCount.value); // <- enregistrement du nombre de copies
+    toast.add({ severity: 'success', summary: 'Enregistré', detail: `Imprimante "${selectedPrinter.value}" et ${copyCount.value} copie(s) enregistrée(s).`, life: 3000 });
 }
 
 // Initialisation au montage
@@ -99,6 +102,17 @@ onMounted(async () => {
 <template>
   <div class="p-6 max-w-md mx-auto border rounded shadow-md">
     <h2 class="text-2xl font-bold mb-4">Paramètres Imprimante</h2>
+
+
+    <div class="mb-4">
+    <label class="block mb-2 font-semibold">Nombre de copies :</label>
+    <input
+        type="number"
+        min="1"
+        v-model.number="copyCount"
+        class="w-full border rounded px-2 py-1"
+    />
+    </div>
 
     <div class="mb-4">
       <label class="block mb-2 font-semibold">Imprimante disponible :</label>

@@ -200,15 +200,32 @@ function addToInvoice(product) {
 }
 
 function updateTotal(){
-        totalAmount.value = invoiceItems.value.reduce((sum, item) => {
-            return sum + item.quantity * item.price;
-        },0);
-        const totalWithTva = invoiceItems.value
-          .filter(item => item.tva ===true)
-          .reduce((sum, item) => sum + item.quantity * item.price, 0)
-        console.log('poduct avec tva ',totalWithTva.value)
-        tva_pro.value = totalWithTva * 0.16;       
+    totalAmount.value = invoiceItems.value.reduce((sum, item) => {
+        return sum + item.quantity * item.price;
+    }, 0);
+
+    const totalWithTva = invoiceItems.value
+      .filter(item => item.tva === true)
+      .reduce((sum, item) => sum + item.quantity * item.price, 0);
+
+    console.log('produits avec tva', totalWithTva);
+    tva_pro.value = totalWithTva * 0.16;       
 }
+
+
+function calculateInvoiceTva(invoiceItems) {
+    if (!invoiceItems || !invoiceItems.length) return 0;
+
+    return invoiceItems
+        .map(item => {
+            const product = products.value.find(p => p.id === item.product); // récupère le produit réel
+            if (!product) return 0;
+            return (product.tva ? item.quantity * item.price * 0.16 : 0);
+        })
+        .reduce((sum, val) => sum + val, 0);
+}
+
+
   
     
 watch(amountPaid, () => {
@@ -406,14 +423,15 @@ function centerText(text, lineLength = 48) {
 }
 
 function formatLine(name, qty, price, total, currency, lineLength = 48) {
-    // Limite le nom du produit à 12 caractères
-    const productName = name.length > 12 ? name.slice(0, 12) : name.padEnd(12);
+    // Affiche tout le nom du produit, aligne uniquement le reste
     const quantity = qty.toString().padStart(4);
     const priceStr = price.toFixed(2).padStart(9);
     const totalStr = total.toFixed(2).padStart(9);
 
-    return `${productName}${quantity} ${priceStr} ${currency} ${totalStr} ${currency}\n`;
+    // Retourne la ligne complète
+    return `${name} ${quantity} ${priceStr} ${currency} ${totalStr} ${currency}\n`;
 }
+
 
 // Centrer et mettre en gras / double taille
 function printHeader(name) {
@@ -472,15 +490,18 @@ async function printInvoice(invoice) {
             data.push(formatLine(name, qty,    price,    total,  currency, lineLength));
         });
 
+        const tvaInvoice = calculateInvoiceTva(invoice.items);
+        console.log('TVA invoice:', tvaInvoice);
+
         // Totaux
         const totalInvoice = Number(invoice.total_amount ?? invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.price), 0));
         data.push('-'.repeat(lineLength) + '\n');
         data.push(`Total         : ${totalInvoice.toFixed(2)} ${currency}\n`);
         data.push(`Montant percu : ${invoice.amount_paid.toFixed(2)} ${currency}\n`);
-        data.push(`TVA           : ${tva_pro.value.toFixed(2)} ${currency}\n`);
+        data.push(`TVA           : ${tvaInvoice.toFixed(2)} ${currency}\n`);
         data.push(`Reste         : ${invoice.change.toFixed(2)} ${currency}\n`);
         data.push('-'.repeat(lineLength) + '\n');
-
+        
         // Message final centré
         data.push(centerText('Merci de votre confiance !', lineLength) + '\n\n');
         data.push(centerText('Powered By Bilatech.org', lineLength) + '\n\n');
