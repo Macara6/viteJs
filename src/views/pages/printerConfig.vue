@@ -61,9 +61,10 @@ async function testPrint() {
         toast.add({ severity: 'warn', summary: 'Aucune imprimante', detail: 'Veuillez sélectionner une imprimante.', life: 3000 });
         return;
     }
-
+    const copies = Number(copyCount.value) || 1;
     try {
         const config = qz.configs.create(selectedPrinter.value);
+
         const data = [
             { type: 'raw', format: 'plain', data: '\x1B\x40' },
             '      Bilatech Solution\n',
@@ -73,7 +74,12 @@ async function testPrint() {
             'Merci de votre confiance !\n\n',
             '\x1D\x56\x41\x10'
         ];
-        await qz.print(config, data);
+        
+        for (let i = 0 ;i < copies; i ++){
+           await qz.print(config, data);
+        }
+       
+
         toast.add({ severity: 'success', summary: 'Test réussi', detail: 'Ticket de test imprimé.', life: 3000 });
     } catch (err) {
         console.error("Erreur impression test :", err);
@@ -88,7 +94,7 @@ function savePrinter() {
         return;
     }
     localStorage.setItem('printerName', selectedPrinter.value);
-    localStorage.setItem('printerCopyCount', copyCount.value); // <- enregistrement du nombre de copies
+    localStorage.setItem('printerCopyCount', copyCount.value); 
     toast.add({ severity: 'success', summary: 'Enregistré', detail: `Imprimante "${selectedPrinter.value}" et ${copyCount.value} copie(s) enregistrée(s).`, life: 3000 });
 }
 

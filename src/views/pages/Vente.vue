@@ -452,6 +452,7 @@ async function printInvoice(invoice) {
             alert("Veuillez d'abord configurer une imprimante !");
             return;
         }
+        const copies = Number(localStorage.getItem('printerCopies')) || 1;
         const cashier_username =localStorage.getItem('username')
         const config = qz.configs.create(printerName);
         const profile = userProfile.value || {};
@@ -507,13 +508,23 @@ async function printInvoice(invoice) {
         data.push(centerText('Powered By Bilatech.org', lineLength) + '\n\n');
         data.push('\x1D\x56\x41\x10'); // Coupe automatique
 
-        await qz.print(config, data);
+        for (let i = 0; i < copies; i ++){
+            const printData = [
+                ...data,
+                '\x1D\x56\x41\x10' // ✂️ Coupe papier pour CHAQUE copie
+            ];
+          await qz.print(config, data);
+        }
+       
+
+
         alert("Facture imprimée avec succès !");
     } catch (err) {
         console.error(err);
         alert("Erreur impression : " + err.message);
     }
 } 
+
 
 import jsPDF from "jspdf";
 
