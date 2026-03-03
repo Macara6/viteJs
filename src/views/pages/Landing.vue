@@ -1,5 +1,8 @@
 <script setup>
 import { ref } from 'vue';
+
+
+
 function smoothScroll(id) {
     document.body.click();
     document.querySelector(id).scrollIntoView({
@@ -19,11 +22,11 @@ function downloadApp() {
     document.body.removeChild(link);
 
      downloadCount.value += 1;
-
     setTimeout(() => {
         downloading.value = false;
     }, 1000);
 }
+
 
 
 
@@ -56,6 +59,15 @@ function downloadApp() {
 
           <!-- Bouton Se connecter -->
           <div class="flex border-t lg:border-t-0 border-gray-700 py-4 lg:py-0 mt-4 lg:mt-0 gap-2">
+
+            <Button
+                label="Créer un compte"
+                icon="pi pi-user-plus"
+                class="!text-xl mt-4 !px-6 !py-3 bg-indigo-600 text-white shadow-xl"
+                as="router-link"
+                to="/signup"
+              />
+
             <Button 
               label="Se connecter" 
               text 
@@ -85,6 +97,7 @@ function downloadApp() {
           <p class="font-normal text-xl md:text-2xl leading-relaxed text-gray-300 mt-4">
             Une plateforme <span class="text-[#F9A825] font-semibold">technologique innovante</span> pour la <span class="text-[#7BB661] font-semibold">gestion d’entreprise</span>, la <span class="text-[#004D4A] font-semibold">facturation</span> et le <span class="text-[#F9A825] font-semibold">suivi des performances</span>. Simple, rapide et accessible.
           </p>
+
           <Button 
             label="Se connecter" 
             as="router-link" 
@@ -359,9 +372,8 @@ function downloadApp() {
   </div>
 </div>
 
-
-        </div>
-    </div>
+  </div>
+  </div>
 </template>
 
 

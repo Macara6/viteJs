@@ -101,6 +101,13 @@ const router = createRouter({
                     component:() => import('@/views/pages/Statistique.vue'),
                      meta: { requiresAuth: true }
                 },
+
+                {
+                    path:'/pages/Customer',
+                    name:'Customer',
+                    component:() => import('@/views/pages/Customers.vue'),
+                },
+
                 {
                     path:'/pages/bilan',
                     name:'Bilan',
@@ -214,6 +221,11 @@ const router = createRouter({
             path: '/login',
             name: 'login',
             component: () => import('@/views/pages/auth/Login.vue')
+        },
+        {
+            path:'/signup',
+            name:'signup',
+            component:() => import('@/views/pages/auth/Signup.vue')
         },
         {
           path:'/reset',

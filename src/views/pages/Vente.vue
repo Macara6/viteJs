@@ -1,7 +1,7 @@
 
 
 <script setup>
-      import { createInvoiceAPI, fetchProduits, fetchUserProfilById } from '@/service/Api';
+      import { createCustomer, createInvoiceAPI, fetchCustomer, fetchProduits, fetchUserProfilById } from '@/service/Api';
 
 import { clearCache, loadCache, saveCache } from '@/utils/cache';
 import { useToast } from 'primevue/usetoast';
@@ -9,14 +9,14 @@ import { computed, onMounted, ref, watch } from 'vue';
 const products = ref([]);
 const selectedProducts = ref([]);
 const filters = ref({
-        global: { value: null, matchMode: 'contains' }
-   });
+   global: { value: null, matchMode: 'contains' }
+});
 
 const invoiceItems = ref([]);
-const clientName = ref('');
+
 
 const totalAmount = computed(() => {
-          return invoiceItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
+   return invoiceItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
 });
 
  const amountPaid = ref(null);
@@ -25,7 +25,7 @@ const change = ref(0)
 
 const tva_pro = ref(0);
 
-  const userProfile = ref(null);
+const userProfile = ref(null);
 const search = ref('');
 const toast = useToast();
 const barcodeSearch = ref('');
@@ -43,19 +43,192 @@ let lastInvoice = null; // pour stocker la facture pendant un  moment
 
 const showCancelConfirm = ref(false);
 
+const customers = ref([]);
+const clientName = ref('');
+const clientPhone = ref('');
+const clientLastName = ref('');
+const clientInfo = ref('');
+const clientSexe = ref(null);
+const selectedCustomer = ref(null);
+
+const isNewCustomer = ref(false)
+const customer = ref(false);
+const showPointsDialog = ref(false);
+const pointsToUse = ref(0)
+
+const enteredCardNumber = ref('')
+
+const pointsDiscount = ref(0);
+const discountValueInput = ref(0)
+const ptsUsed = ref(0);
+const finalTotal = computed(() => {
+  return Math.max(0, totalAmount.value - pointsDiscount.value)
+})
+const customerSexe = [
+    {label:'M',value:'M'},
+    {label:'F', value:'F'}
+]
+
+
   onMounted(async () => {
-        await loadProduct();
-        await fetchUserProfl();
+    await loadProduct();
+    await fetchUserProfl();
+    await getCustomers();
       
-    });
+  });
  
-    function filterProducts() {
+
+  async function getCustomers(){
+    const response = await fetchCustomer();
+    customers.value = response;
+  }
+
+
+  function filterProducts() {
     if (!barcodeSearch.value) {
         return products.value;
     }
     return products.value.filter(p => p.barcode?.includes(barcodeSearch.value));
   }
 
+
+
+async function searchCustomerByPhone(){
+  if(!clientPhone.value) return
+  try{
+
+    const found = customers.value.find(
+      c => c.phone_number === clientPhone.value
+    )
+    if(found){
+      selectedCustomer.value = found
+      clientName.value = found.name;
+      clientInfo.value = found.balance_point +'Pts'+'-'+found.total_value_points+userProfile?.value.currency_preference
+      clientLastName.value = found.las_name;
+      clientSexe.value = found.sexe
+      isNewCustomer.value = false
+      customer.value = true
+      
+    
+      toast.add({
+        severity: 'success',
+        summary: 'Client trouvé',
+        detail: 'Client chargé automatiquement',
+        life: 2000
+      })
+
+    }else{
+      selectedCustomer.value = null;
+      isNewCustomer.value = true;
+      customer.value = false;
+      clientName.value = ''
+      clientLastName.value = ''
+      clientSexe.value = null
+      
+      toast.add({
+        severity: 'warn',
+        summary: 'Nouveau client',
+        detail: 'Client non enregistré',
+        life: 2000
+      })
+    }
+
+  }catch(error){
+    console.error(error)
+  }
+}
+
+function applyPointsDiscount(){
+  
+  if(!selectedCustomer.value || !userProfile.value) return
+
+  if(!enteredCardNumber.value){
+    toast.add({
+      severity: 'warn',
+      summary: 'Attention',
+      detail: 'Veuillez entrer le numéro de la carte.',
+      life: 3000
+    })
+    return;
+  }
+  if(enteredCardNumber.value !== selectedCustomer.value.loyalty_card_number){
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Numéro de carte invalide.',
+      life: 3000
+    })
+    enteredCardNumber.value = '';
+    return;
+
+  }
+
+
+  let value = discountValueInput.value
+
+  if(value <= 0) return
+
+  const maxValue = selectedCustomer.value.balance_point * userProfile.value.point_output
+
+  value = Math.min(value, maxValue)
+  
+   ptsUsed.value =
+    Math.ceil(value / userProfile.value.point_output)
+
+  pointsDiscount.value = value
+
+  console.log('Points utilisés :', ptsUsed.value)
+  console.log('Réduction :', value)
+  console.log('Total final :', finalTotal.value)
+  console.log('point discount :', pointsDiscount.value)
+
+  showPointsDialog.value = false;
+}
+
+
+
+
+
+
+async function saveNewCustomer(){
+
+  if(!clientName.value || !clientPhone.value ){
+    toast.add({
+      severity: 'warn',
+      summary: 'Champs requis',
+      detail: 'Nom et téléphone obligatoires',
+      life: 2000
+    });
+    return null;
+  }
+
+  try{
+
+    const payload = {
+      name : clientName.value,
+      last_name: clientLastName.value,
+      email: null,
+      sexe: clientSexe.value,
+      phone_number: clientPhone.value,
+      created_by: localStorage.getItem('id')
+    }
+
+    await createCustomer(payload);
+    toast.add({
+        severity: 'success',
+        summary: 'Client trouvé',
+        detail: 'Client ajoutée',
+        life: 2000
+      })
+
+    isNewCustomer.value = false;
+    customer.value = false;
+    
+  }catch(error){
+    console.error("error pour le client:",error)
+  }
+
+}
 
 
 watch(barcodeSearch, (newValue) => {
@@ -71,13 +244,20 @@ watch(barcodeSearch, (newValue) => {
 
 watch(amountPaid, (newValue) => {
     const paid = parseFloat(newValue) || 0;
-    change.value = paid - totalAmount.value;
+    if(paid > totalAmount.value){
+        change.value = paid - totalAmount.value ;
+    }else if(finalTotal.value != 0){
+       change.value = paid - finalTotal.value;
+    }
+    
     
 });
 
 function onInput(event) {
     const paid = parseFloat(event.value) || 0;
-    change.value = paid - totalAmount.value;
+     
+    change.value = paid - totalAmount.value + pointsDiscount.value;
+    
 }
 
 
@@ -109,6 +289,7 @@ async function fetchUserProfl(){
         console.error('Erreur lors du chargement du profile utilisateur', error);
       }
 }
+
 
 function refreshPage() {
         loadProduct();
@@ -143,6 +324,7 @@ async function forceRefreshProducts() {
       detail: 'Les produits ont été rechargés depuis l’API.',
       life: 3000,
     });
+
   } catch (error) {
     console.error('Erreur lors de l’actualisation :', error);
     toast.add({
@@ -227,7 +409,6 @@ function calculateInvoiceTva(invoiceItems) {
 
 
   
-    
 watch(amountPaid, () => {
   calculateChange();
 });
@@ -235,8 +416,14 @@ watch(amountPaid, () => {
 function calculateChange() {
     const paid = Number(amountPaid.value) || 0;
     const total = Number(totalAmount.value) || 0;
-
-    change.value = paid > total ? paid - total : 0;
+    if(paid > total ){
+      change.value = paid - total;
+    }else if( finalTotal.value != 0 ){
+      change.value = paid - finalTotal.value;
+    }else{
+        change.value = 0;
+    }
+   
 }
 
     const verifierStockProduits = () => {
@@ -261,17 +448,32 @@ function calculateChange() {
         return true;
 };
 
+
 async function createInvoice(){
-          if (amountPaid.value < totalAmount.value) {
+      if(finalTotal.value !== 0){
+        if (amountPaid.value < finalTotal.value) {
+          toast.add({
+            severity: 'warn',
+            summary: 'Paiement insuffisant',
+            detail: 'Le montant payé est inférieur au montant dû.',
+            life: 3000
+          })
+          return
+        }
+
+      }else{
+        if (amountPaid.value < totalAmount.value) {
             toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
             return;
         }
+      }
+
         if(invoiceItems.value.length == 0){
             toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'la facture est vide', life: 3000 });
             return;
         }
 
-        change.value =amountPaid.value - totalAmount.value;
+        change.value =amountPaid.value - totalAmount.value + pointsDiscount.value;
 
         if (!verifierStockProduits()) {
         return; // Stoppe la création si stock insuffisant
@@ -290,8 +492,12 @@ async function createInvoice(){
                 quantity: item.quantity,
                 price: item.price,
                 purchase_price: item.purchase_price
-            }))
+            })),
+          customer: selectedCustomer.value?.id || null,
+          points_used : ptsUsed.value,
+          points_discount : pointsDiscount.value
         };
+
         try{ 
             await createInvoiceAPI(invoiceData);
             saveCache('Invoices',invoiceData);
@@ -304,13 +510,16 @@ async function createInvoice(){
             change.value = 0;
             tva_pro.value=0
             clientName.value = '';
+            clientPhone.value ='';
+            customer.value = false;
+            await getCustomers();
    
         }catch (error) {
                 console.error('Erreur lors de la création de la facture :', error);
                 if (error.response && error.response.data) {
                     console.error('Détails de l’erreur :', error.response.data);
-                }
-        }
+            }
+      }
 }
 
 
@@ -511,7 +720,7 @@ async function printInvoice(invoice) {
         for (let i = 0; i < copies; i ++){
             const printData = [
                 ...data,
-                '\x1D\x56\x41\x10' // ✂️ Coupe papier pour CHAQUE copie
+                '\x1D\x56\x41\x10' // Coupe papier pour CHAQUE copie
             ];
           await qz.print(config, data);
         }
@@ -642,15 +851,79 @@ async function generatePdfInvoice(invoice) {
 
   <!-- Client -->
    <Button label="Factures en attente"  icon="pi pi-clock" @click="showPendingDialog = true" class="!big-orange-600 mb-2" />
+
+    <!-- Téléphone -->
+    <div class="mb-2">
+      <label class="block text-sm font-medium text-gray-600 mb-1">
+        Téléphone
+      </label>
+
+      <InputText
+        v-model="clientPhone"
+        placeholder="Numéro de téléphone..."
+        class="w-full text-sm rounded-md border-gray-300"
+        @blur="searchCustomerByPhone"
+      />
+    </div>
+
+    <div v-if="isNewCustomer" class="space-y-2 border p-3 rounded-lg bg-yellow-50">
+
+      <InputText
+        v-model="clientName "
+        placeholder="Nom"
+        class="w-full text-sm"
+      />
+
+      <InputText
+        v-model="clientLastName"
+        placeholder="Post-nom"
+        class="w-full text-sm"
+      />
+
+      <Dropdown
+        v-model="clientSexe"
+        :options="customerSexe"
+        placeholder="Sexe"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full text-sm"
+      />
+      <Button
+        label="Enregistré"
+        icon="pi pi-check-circle"
+        @click="saveNewCustomer"
+        class="bg-green-900 hover:bg-green-600 text-white text-sm font-semibold rounded-md px-4 py-2 shadow-sm border-none transition-all"
+      />
+    </div>
+
+
+
   <div class="mb-2">
-    <label class="block text-sm font-medium text-gray-600 mb-1">Client</label>
-   
-    <InputText
-      v-model="clientName"
-      placeholder="Nom du client..."
-      class="w-full text-sm rounded-md border-gray-300 focus:border-green-500 focus:ring-green-500"
-    />
+    <label class="block text-sm font-medium text-gray-600 mb-1">
+      Client
+    </label>
+
+   <div class="flex flex-col sm:flex-row gap-2">
+      <!-- Nom client (modifiable) -->
+      <InputText
+        v-model="clientName"
+        placeholder="Nom du client..."
+        class="w-1/2 text-sm rounded-md border-gray-300 
+              focus:border-green-500 focus:ring-green-500"
+      />
+
+      <!-- Infos client (non modifiable) -->
+      <InputText
+        v-if="customer"
+        v-model="clientInfo"
+        readonly
+        class="w-1/2 text-sm rounded-md border-gray-300 
+              bg-gray-100 text-gray-600 cursor-not-allowed"
+      />
+
+    </div>
   </div>
+
 
   <!-- Produits -->
   <div class="overflow-auto border border-gray-100 rounded-md mb-4 max-h-[260px]">
@@ -733,12 +1006,25 @@ async function generatePdfInvoice(invoice) {
             {{ formatPrice(totalAmount) }} {{ userProfile?.currency_preference || '' }}
           </span>
         </div>
+
         <div class="flex justify-between sm:justify-start sm:gap-2">
           <span>TVA:</span>
           <span class="text-red-600">
             {{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference || '' }}
           </span>
         </div>
+
+        <div v-if="pointsDiscount > 0" class="text-green-600">
+            Réduction : - {{ formatPrice(pointsDiscount) }}
+            {{ userProfile?.currency_preference }}
+         </div>
+
+         <div v-if="pointsDiscount > 0" class="text-green-600">
+            Total final :  {{ formatPrice(finalTotal) }}
+            {{ userProfile?.currency_preference }}
+         </div>
+
+
         <div class="flex justify-between sm:justify-start sm:gap-2">
           <span>Reste :</span>
           <span class="text-red-600">
@@ -767,30 +1053,49 @@ async function generatePdfInvoice(invoice) {
 
     </div>
 
-    <!-- Bouton -->
-    <div class="mt-3 flex justify-end gap-2">
+   <div class="mt-3 flex flex-wrap justify-end gap-2">
+
       <Button
-          label="Annuler"
-          icon="pi pi-times"
-          severity="danger"
-          class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-md px-3 py-2 shadow-sm border-none transition"
-          @click="confirmCancelInvoice"
+        label="Annuler"
+        icon="pi pi-times"
+        severity="danger"
+        class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold 
+              rounded-md px-4 py-2 shadow-sm border-none transition"
+        @click="confirmCancelInvoice"
       />
 
       <Button
         label="Mettre en attente"
         icon="pi pi-shopping-bag"
-        class="!bg-yellow-500 hover:!bg-yellow-600 !border-yellow-700 !border-0 text-white text-sm font-semibold rounded-md px-3 py-2 shadow-sm border-none transition mr-2"
+        class="!bg-yellow-500 hover:!bg-yellow-600 
+              text-white text-sm font-semibold 
+              rounded-md px-4 py-2 shadow-sm border-none transition"
         @click="savePendingInvoice"
+      />
+
+      <!-- Bouton réduction points -->
+      <Button
+        v-if="customer"
+        label="Utiliser les points"
+        icon="pi pi-star"
+        class="!bg-indigo-600 hover:!bg-indigo-700 
+              text-white text-sm font-semibold 
+              rounded-md px-4 py-2 shadow-sm border-none transition"
+        @click="showPointsDialog = true"
       />
 
       <Button
         label="Payer & imprimer"
         icon="pi pi-money-bill"
         @click="createInvoice"
-        class="bg-green-900 hover:bg-green-600 text-white text-sm font-semibold rounded-md px-4 py-2 shadow-sm border-none transition-all"
+        class="bg-green-900 hover:bg-green-600 
+              text-white text-sm font-semibold 
+              rounded-md px-4 py-2 shadow-sm border-none transition"
       />
+
     </div>
+
+
   </div>
 
 </div>
@@ -906,6 +1211,75 @@ async function generatePdfInvoice(invoice) {
   </div>
 </Dialog>
 
+
+<!--  Modal réduction par points -->
+<Dialog
+  v-model:visible="showPointsDialog"
+  header="Utiliser les points fidélité"
+  :modal="true"
+  :style="{ width: '400px' }"
+>
+
+  <div v-if="selectedCustomer" class="space-y-3">
+
+    <!-- Infos client -->
+    <div class="bg-indigo-50 p-3 rounded-lg text-sm">
+      <div class="font-semibold text-indigo-700">
+        Points disponibles : {{ selectedCustomer.balance_point }}
+      </div>
+
+      <div class="text-gray-600 text-xs">
+        Valeur :
+        {{ formatPrice(selectedCustomer.total_value_points) }}
+        {{ userProfile?.currency_preference || '' }}
+      </div>
+    </div>
+
+    <!-- Saisie points -->
+    <div>
+      <label class="text-sm text-gray-600">Montant de la réduction</label>
+
+      <InputNumber
+        v-model="discountValueInput"
+        :max="selectedCustomer.total_value_points"
+        :min="0"
+        mode="decimal"
+        :useGrouping="false"
+        class="w-full mt-1"
+      />
+    </div>
+  <!-- Numéro carte fidélité -->
+    <div>
+      <label class="text-sm text-gray-600">Numéro de la carte</label>
+
+      <InputText
+        v-model="enteredCardNumber"
+        placeholder="Entrez le numéro de la carte"
+        class="w-full mt-1"
+      />
+    </div>
+    <!-- Boutons -->
+    <div class="flex justify-end gap-2 mt-4">
+
+      <Button
+        label="Annuler"
+        icon="pi pi-times"
+        severity="secondary"
+        @click="showPointsDialog = false"
+      />
+
+      <Button
+        label="Appliquer"
+        icon="pi pi-check"
+        class="bg-indigo-600 text-white"
+        @click="applyPointsDiscount"
+      />
+
+    </div>
+
+  </div>
+
+</Dialog>
 
   </div>
 </template>

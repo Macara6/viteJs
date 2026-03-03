@@ -269,6 +269,7 @@ export async function  createProductAPI(productData){
        ( console.error('Error creating product', error.response ? error.response.data : error))
     }
 }
+
 // function pour creer le produit du depôt 
 export async function  createDepotProduit(productData) {
     const CREATE_DEPOT_PRODUCT = `${API_BASE}depotProduit/`;
@@ -411,9 +412,6 @@ export async function fetchInvoicesAllUsers() {
 }
 // afficher les utilisateur qui sont de la corbeille 
 
-
-
-
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
     let INVOICE_URL = `${API_BASE}invoicesView/`;
     if (onlyChildren) {
@@ -521,6 +519,7 @@ export async function getUsersCreatedByMe() {
     }
 }
 
+
 export async function getUsersCreatedBy(userId) {
   const URL_USER = `${API_BASE}users-created-by/`;
   try {
@@ -575,8 +574,8 @@ export async function fetchTrashedUser(){
         console.log('error lors de la recuperations des utilisateur dans le corbeille', error);
     }
 }
-// function pour restaure l'utilisateur 
 
+// function pour restaure l'utilisateur 
 export async function restoreUser(userId) {
     const url_restore = `${API_BASE}users/restore/${userId}/`;
 
@@ -666,6 +665,30 @@ export async function createUserAPI(userData){
     }
 }
 
+
+// function pour nouveau compte 
+export async function registerAPI(userData){
+    const REGISTER_URL = `${API_BASE}register/`;
+    try{
+        const response = await axios.post(REGISTER_URL, userData);
+        return response.data
+    } catch(error){
+        if (error.response){
+            return {
+                error: true,
+                status:error.response.status,
+                data:error.response.data
+            };
+        }else{
+            return {
+                error: true,
+                message: "Erreur réseau. veuillez réessayer."
+            };
+        }
+    }
+}
+
+
 export async function updateUser(userId,userData){
     const UPDATE_URL = `${API_BASE}userUpdateView/${userId}/`;
     try{
@@ -681,7 +704,7 @@ export async function updateUser(userId,userData){
         console.log('Error updating user', error.response?.data || error);
     }
 }
-// ffoncton pour supprimer l'utilisateur 
+// foncton pour supprimer l'utilisateur 
 export async function deleteUserAPI(userId){
     const DELETE_USER_URL = `${API_BASE}user/delete/${userId}/`;
     try{
@@ -696,8 +719,47 @@ export async function deleteUserAPI(userId){
         throw error;
     }
 }
-// fonction pour creer une facture 
 
+//fonction pour créer un client 
+export async function createCustomer(customerData){
+    const CREATE_CUSTOMER = `${API_BASE}customer/created/`;
+    try{
+        const response = await axios.post(CREATE_CUSTOMER, customerData,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error to createting a new customer', error.respons ? error.response.data : error);
+        throw error;
+    }
+}
+
+// fonction pour afficher les clients
+export async function fetchCustomer(){
+    const LIMIT = 200;
+    let nextUrl = `${API_BASE}customer/listView/?limit=${LIMIT}`;
+    let allCustomers = [];
+    try{
+        while (nextUrl){
+            const response = await axios.get(nextUrl, {
+                headers:{
+                    'Authorization':`Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = response.data;
+            allCustomers.push(...data.results);
+            nextUrl = data.next;
+        }
+        return allCustomers;
+    }catch(error){
+        console.error('error to fetching customer',error);
+    }
+}
+
+
+// fonction pour creer une facture 
 export async function createInvoiceAPI(invoiceData) {
     const CREATE_INVOICE_URL = `${API_BASE}invoices/`;
     try{
@@ -713,6 +775,24 @@ export async function createInvoiceAPI(invoiceData) {
         throw error;
     }
 }
+
+// fonction pour géneré la carte de fidelité
+export const downloadCard = async (customerId) => {
+    const URL_DOWNLOADCARD = `${API_BASE}customer/${customerId}/loyalty-card/`;
+    const response = await axios.get(URL_DOWNLOADCARD, {
+        responseType: 'blob' 
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "carte_fidelite.pdf";
+    link.click();
+
+    window.URL.revokeObjectURL(url);
+}
+
+
 export async function fetchInvoiceDetail(invoiceId){
     const URL_DeTAIL_INVOICE = `${API_BASE}invoice/detail/?invoice=${invoiceId}`;
     try{
@@ -756,6 +836,10 @@ export async function fetchUserProfilById(userId) {
     console.error('Error fetching user profile:', error?.response?.data || error);
     throw error;
   }
+}
+
+export const togglePoint = (id) =>{
+    return axios.post(`${API_BASE}userProfil/toggle/${id}/`);
 }
 
 

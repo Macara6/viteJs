@@ -591,6 +591,7 @@ async function saveProduct() {
     } else {
       const createdProduct = await createProductAPI(productData);
       products.value.unshift(createdProduct);
+
       toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
     }
 
@@ -816,8 +817,8 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
 
 <template>
- <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-100 dark:bg-gray-900">
 
+ <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-100 dark:bg-gray-900">
     <!-- === TOOLBAR PRINCIPALE === -->
     <div class="card mb-6 shadow-sm rounded-xl bg-white dark:bg-gray-800">
       <Toolbar class="flex flex-wrap justify-between items-center gap-4 p-4">
@@ -898,6 +899,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
           class="w-full sm:w-56"
           showClear
         >
+        
           <template #option="slotProps">
             <div class="flex items-center justify-between w-full">
               <span>{{ slotProps.option.username }}</span>
@@ -1119,6 +1121,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             <label class="block font-bold mb-2">Prix Vente {{ userProfile ? userProfile.currency_preference : 'N/D' }}</label>
             <InputNumber v-model="product.price"  mode="decimal" :maxFractionDigits="2" locale="en-US"  :useGrouping="false"  fluid />
           </div>
+          
           <div>
             <label class="block font-bold mb-2">Prix Achat {{ userProfile ? userProfile.currency_preference : 'N/D' }}</label>
             <InputNumber v-model="product.purchase_price" mode="decimal" :maxFractionDigits="2" locale="en-US"  :useGrouping="false"  fluid />
@@ -1436,7 +1439,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
   <Dialog
     v-model:visible="histoDeleteDialog"
     header="Confirmer la suppression"
-    :modal="true"a
+    :modal="true"
     :style="{ width: '90%', maxWidth: '350px' }"
    >
     <div class="flex items-center gap-3">
@@ -1450,6 +1453,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
   </Dialog>
 
   </div>
+  
 
 </template>
 

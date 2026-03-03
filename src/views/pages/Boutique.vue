@@ -7,7 +7,9 @@ import {
   checkSecretKeyStatus, createOrUpdateSecretKey,
   createUserProfl,
   deleteSecretKey,
-  fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateUserAPI, updateUserProfile
+  fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById,
+  togglePoint,
+  updateUserAPI, updateUserProfile
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
@@ -169,6 +171,13 @@ async function fetchUserProfil(){
     }
 }
 
+async function togglePoints(){
+    const res = await togglePoint(userProfile.value?.id)
+  userProfile.value.point_is_activate = res.data.point_is_activate
+  fetchUserProfil();
+}
+
+
 async function  fetchUser() {
     try{
         const result = await fetchUserById(userId);
@@ -328,17 +337,81 @@ const progressPercent = computed(()=> {
 
     <!-- ================= Profil Boutique ================= -->
     <div class="bg-white shadow-lg rounded-lg p-6 border border-gray-200">
-      <h2 class="text-2xl font-bold text-blue-600 mb-5">Profil de la Boutique</h2>
+    <h2 class="text-2xl font-bold text-blue-600 mb-5">
+      Profil de la Boutique
+    </h2>
+
+    <div class="bg-white shadow rounded-xl p-5 mb-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+
         <div><strong>Nom :</strong> {{ userProfile?.entrep_name || 'Non défini' }}</div>
         <div><strong>Numéro d'impôt :</strong> {{ userProfile?.impot_number || 'Non défini' }}</div>
-         <div><strong>ID Nat :</strong> {{ userProfile?.id_nat || 'Non défini' }}</div>
+        <div><strong>ID Nat :</strong> {{ userProfile?.id_nat || 'Non défini' }}</div>
         <div><strong>RCCM :</strong> {{ userProfile?.rccm_number || 'Non défini' }}</div>
         <div><strong>Téléphone :</strong> {{ userProfile?.phone_number || 'Non défini' }}</div>
         <div class="sm:col-span-2"><strong>Adresse :</strong> {{ userProfile?.adress || 'Non défini' }}</div>
         <div><strong>Devise :</strong> {{ userProfile?.currency_preference || 'Non défini' }}</div>
-        
+        <div> <strong> Type d'activicté : {{ userProfile?.type_of_activity || 'Non défini' }}</strong> </div>
+
       </div>
+    </div>
+    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 
+            border border-indigo-200 
+            shadow-lg rounded-xl p-6">
+
+      <h3 class="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2">
+         Gestion des Points de Fidélité
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-gray-800">
+
+        <!-- Points à l'entrée -->
+        <div class="bg-white rounded-lg p-4 shadow border">
+          <p class="text-sm text-gray-500">Valeur d'un point (Entrée )</p>
+          <p class="text-2xl font-bold text-green-600">
+            {{ userProfile?.point_entry || 0 }}
+            {{ userProfile?.currency_preference }}
+          </p>
+        </div>
+
+        <!-- Points à la sortie -->
+        <div class="bg-white rounded-lg p-4 shadow border">
+          <p class="text-sm text-gray-500">Valeur d'un point (Sortie)</p>
+          <p class="text-2xl font-bold text-red-600">
+            {{ userProfile?.point_output || 0 }}
+            {{ userProfile?.currency_preference }}
+          </p>
+        </div>
+
+        <!-- Activation -->
+        <div class="bg-white rounded-lg p-4 shadow border">
+          <p class="text-sm text-gray-500">Statut</p>
+          <button
+            @click="togglePoints"
+            class="relative inline-flex items-center h-7 w-14 rounded-full transition"
+            :class="userProfile?.point_is_activate ? 'bg-green-500' : 'bg-gray-400'"
+          >
+            <span
+              class="inline-block w-5 h-5 transform bg-white rounded-full transition"
+              :class="userProfile?.point_is_activate ? 'translate-x-7' : 'translate-x-1'"
+            ></span>
+          </button>
+
+          <span class="ml-2 font-semibold">
+            {{ userProfile?.point_is_activate ? 'Activé' : 'Désactivé' }}
+          </span>
+
+
+
+        </div>
+
+      </div>
+    </div>
+
+
+
+
+
       <div class="mt-5">
         <Button 
           v-if="userStatus =='ADMIN'"

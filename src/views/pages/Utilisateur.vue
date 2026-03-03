@@ -268,6 +268,7 @@ async function saveUser() {
     (
       (isCreating && user.value.password && user.value.confirPasswor) || !isCreating
     )
+    
   ) {
     if (isCreating && user.value.password !== user.value.confirPasswor) {
       toast.add({ severity: 'error', summary: 'Erreur', detail: 'Les mots de passe ne correspondent pas', life: 3000 });
@@ -510,14 +511,16 @@ function hideDialog(){
                         <InputText id="password" v-model="user.confirPasswor" type="password" required="true"/>
                         <small v-if="submitted && user.password != user.confirPasswor" class="text-red-500">Le mot de pass doit etre le même</small>
                     </div>
+
                   <div v-if="!isSuperUser" class="col-span-6">
                       <label class="block font-bold mb-2">STATUS</label>
                       <Select v-model="user.status"
                       :options="userStatusType"
                        optionLabel="label" 
-                       optionValue="value" 
+                       optionValue="value"
                        placeholder="STATAUS" fluid />
-                    </div>
+                   </div>
+
                 </div>
 
 

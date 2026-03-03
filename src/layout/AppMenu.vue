@@ -81,6 +81,7 @@ const model = computed(() => {
             items: [
               { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
               { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
+              { label: 'Clients', icon: 'pi pi-id-card', to:'/pages/Customer'},
               { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
               { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
               { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },

@@ -11,7 +11,14 @@ export  function formatDate (value ){
   if(value == null) return "N/A"
 
  return new Date(value).toLocaleString(
-  'fr-FR', { year:'numeric', month:'2-digit', day:'2-digit' 
+  'fr-FR', { year:'numeric', month:'2-digit', day:'2-digit' }
+ );
+}
 
-  });
+export function formatLoyaltyCard(number){
+  if (!number) return '';
+
+  const cleanNumber = number.toString();
+  if(cleanNumber.length !==6) return cleanNumber;
+  return cleanNumber.slice(0, 3) + '-' + cleanNumber.slice(3);
 }
