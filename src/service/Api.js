@@ -812,7 +812,7 @@ export async function fetchInvoiceDetail(invoiceId){
 const profileCache = new Map(); // cache en mémoire
 
 export async function fetchUserProfilById(userId) {
-  // ⚡ Retourne depuis le cache si existe
+  //  Retourne depuis le cache si existe
   if (profileCache.has(userId)) {
     return profileCache.get(userId);
   }

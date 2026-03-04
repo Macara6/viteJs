@@ -23,7 +23,7 @@ const form = ref({
   store_name: '',
   store_address: '',
   store_phone: '',
-  currency: 'CDF',
+  currency: '',
   business_type: '',
   plan: 'BASIC'
 })
@@ -44,8 +44,8 @@ const validateStep = () => {
             errorMessage.value = "Veuillez entrer le mot de passe.";
             return false;
         }
-        if (form.value.password.length < 6){
-            errorMessage.value = "Le mot de passe doit contenir au moins 6 caractères.";
+        if (form.value.password.length <5){
+            errorMessage.value = "Le mot de passe doit contenir au moins 5 caractères.";
             return false;
         }
 
@@ -161,10 +161,13 @@ const progress = computed(() => (step.value - 1) / (totalSteps - 1) * 100)
         <input v-model="form.store_name" placeholder="Nom du point de vente" class="input" />
         <input v-model="form.store_address" placeholder="Adresse" class="input" />
         <input v-model="form.store_phone" placeholder="Téléphone" class="input" />
-        <select v-model="form.currency" class="input">
+
+        <select v-model="form.currency"  class="input">
+          <option disabled value="">-- Sélectionner une devise --</option>
           <option value="CDF">Franc Congolais (CDF)</option>
           <option value="USD">Dollar Américain (USD)</option>
         </select>
+
         <input v-model="form.business_type" placeholder="Type d'activité" class="input" />
         <p v-if="errorMessage" class="text-red-400 text-sm mb-4">
         {{ errorMessage }}

@@ -287,6 +287,8 @@ async function saveProfile(){
     try{
         if(isEditMode.value){
             await updateUserProfile(editedProfile.value);
+            userProfile.value.point_output = editedProfile.value.point_output;
+            userProfile.value.point_entry = editedProfile.value.point_entry;
             toast.add({ severity: 'success', summary: 'Succès', detail: 'Profil mis à jour', life: 3000 });
         }else{
             await createUserProfl(editedProfile.value);
@@ -367,7 +369,9 @@ const progressPercent = computed(()=> {
 
         <!-- Points à l'entrée -->
         <div class="bg-white rounded-lg p-4 shadow border">
-          <p class="text-sm text-gray-500">Valeur d'un point (Entrée )</p>
+          <p class="text-base font-semibold text-black">
+            Valeur d'un point (Entrée)
+          </p>
           <p class="text-2xl font-bold text-green-600">
             {{ userProfile?.point_entry || 0 }}
             {{ userProfile?.currency_preference }}
@@ -376,7 +380,7 @@ const progressPercent = computed(()=> {
 
         <!-- Points à la sortie -->
         <div class="bg-white rounded-lg p-4 shadow border">
-          <p class="text-sm text-gray-500">Valeur d'un point (Sortie)</p>
+          <p class="text-base font-semibold text-black">Valeur d'un point (Sortie)</p>
           <p class="text-2xl font-bold text-red-600">
             {{ userProfile?.point_output || 0 }}
             {{ userProfile?.currency_preference }}
@@ -385,7 +389,7 @@ const progressPercent = computed(()=> {
 
         <!-- Activation -->
         <div class="bg-white rounded-lg p-4 shadow border">
-          <p class="text-sm text-gray-500">Statut</p>
+          <p class="text-base font-semibold text-black">Statut</p>
           <button
             @click="togglePoints"
             class="relative inline-flex items-center h-7 w-14 rounded-full transition"
@@ -544,6 +548,16 @@ const progressPercent = computed(()=> {
         </select>
       </div>
     </div>
+
+     <div>
+        <label class="font-semibold mb-1 block">Valeur d'un point (Entrée)</label>
+        <InputText v-model="editedProfile.point_entry" class="w-full" />
+      </div>
+
+      <div>
+        <label class="font-semibold mb-1 block">Valeur d'un point (Sortie)</label>
+        <InputText v-model="editedProfile.point_output" class="w-full" />
+      </div>
 
     <template #footer>
       <Button label="Annuler" icon="pi pi-times" text @click="showDialog = false" />
