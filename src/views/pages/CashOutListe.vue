@@ -305,10 +305,11 @@ const findUser = (id) => {
           <template #body="slotProps" v-if="isSuperUser">
             USD {{ slotProps.data.total_amount }}
           </template>
-          <template #body="slotProps" v-else>
-            {{ userProfile ? userProfile.currency_preference : "Non défini" }}
-            {{ slotProps.data.total_amount }}
-          </template>
+          <template #body="slotProps">
+          {{ slotProps.data.currency 
+              || (userProfile ? userProfile.currency_preference : "N/A") }}
+          {{ slotProps.data.total_amount }}
+        </template>
         </Column>
 
         <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>

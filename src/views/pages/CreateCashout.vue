@@ -14,7 +14,7 @@ import { useRouter } from 'vue-router';
     const details = ref([
         {reason: '', amount:null}
     ]);
-
+   const selectedCurrency = ref('')
     const router = useRouter();
     
     const addDetail = ()=>{
@@ -24,6 +24,7 @@ import { useRouter } from 'vue-router';
     const removeDetail =(index) =>{
         details.value.splice(index, 1);
     }
+ 
 
     const handleCreatCashOut = async () =>{
         const userId = parseInt(localStorage.getItem('id'));
@@ -33,14 +34,18 @@ import { useRouter } from 'vue-router';
         if(validDatails.length ===0){
             toast.add({severity:'error', summary:'Erreur',detail:'Veuillez ajouter un detail valide', life:3000});
         }
+        if(!selectedCurrency.value){
+            toast.add({severity:'error', summary:'Erreur',detail:'Veuillez ajouter une devise', life:3000});
+        }
         const total = details.value.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+
         const payload = {
             user_id:userId,
             motif:motif.value,
+            currency:selectedCurrency.value,
             total_amount: total,
             detail_inputs: details.value,
-
-        };  
+        };
         try{
             await createCashOutAPI(payload);
             toast.add({severity:'success', summary:'Sussessful',detail:'Bon de sortie créé ',life:3000});
@@ -76,9 +81,43 @@ onMounted(async () => {
             <div class="card flex flex-col gap-4 w-full">
                 <div class="font-semibold text-xl">Nouveu Bon de sortie</div>
 
-                <div class="flex flex-wrap gap-2 w-full">
-                    <label for="motif">Demandeur</label>
-                    <InputText id="motif" type="text" v-model="motif" />
+                <div class="flex flex-col md:flex-row gap-4 w-full">
+
+                    <!-- Demandeur -->
+                    <div class="flex flex-col w-full">
+                        <label for="motif">Demandeur</label>
+                        <InputText id="motif" type="text" v-model="motif" />
+                    </div>
+
+                    <!-- Devise -->
+                    <div class="flex flex-col w-full">
+                    <label class="text-sm font-semibold text-gray-800 mb-2">
+                        Devise
+                    </label>
+
+                    <div class="relative">
+                        <select 
+                        v-model="selectedCurrency"
+                        class="w-full h-11 px-3 pr-10 rounded-lg border border-gray-300 
+                                bg-white text-gray-900 font-medium
+                                focus:outline-none focus:ring-2 focus:ring-indigo-500 
+                                focus:border-indigo-500 transition duration-200"
+                        >
+                         <option disabled value="">
+                            Sélectionner une devise
+                        </option>
+                        <option value="CDF">Franc Congolais (CDF)</option>
+                        <option value="USD">Dollar Américain (USD)</option>
+                        </select>
+
+                        <!-- Icône flèche -->
+                        <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-500">
+                        
+                        </div>
+                    </div>
+
+                    </div>
+
                 </div>
 
                 <div v-for="(detail, index) in details" :key="index" class="flex flex-col md:flex-row gap-4">
@@ -89,7 +128,7 @@ onMounted(async () => {
                 <div class="flex flex-col w-full">
 
                     <label v-if="isSuperUser">Montant USD</label>
-                    <label v-else>Montant {{ userProfile ? userProfile.currency_preference : 'N/A' }}</label>
+                    <label v-else>Montant {{ selectedCurrency }}</label>
                     <InputText  v-model="detail.amount" type="number" />
                 </div>
                 <div class="flex items-end">
@@ -102,5 +141,6 @@ onMounted(async () => {
               
             </div>
         </div>
+
     </Fluid>
 </template>

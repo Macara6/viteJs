@@ -330,7 +330,8 @@ async function downloadPDF() {
                         USD {{ slotProps.data.total_amount }} 
                     </template>
                     <template #body="slotProps" v-else>
-                        {{ userProfile ? userProfile.currency_preference : "Non défini" }}
+                      {{ slotProps.data.currency 
+                          || (userProfile ? userProfile.currency_preference : "N/A") }}
                         {{ slotProps.data.total_amount }} 
                     </template>
                 </Column>
@@ -406,8 +407,7 @@ async function downloadPDF() {
               Devise: {{ userProfile ? userProfile.currency_preference : "Non défini" }}
               </p>
             </template>
-
-                        <p class="text-sm md:text-base">
+               <p class="text-sm md:text-base">
               Date : {{ formatDate(new Date()) }}
             </p>
             <h3 class="text-base md:text-lg font-medium">
