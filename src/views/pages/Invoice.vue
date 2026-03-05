@@ -256,7 +256,6 @@ async function ViewDetailInvoice(invoiceId) {
     selectedInvoices.value = invoiceId;
     invoiceDetails.value = details;
     showModal.value = true;
-    
   } catch(err) {
     console.error(err);
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les détails', life:3000 });
@@ -767,7 +766,6 @@ onMounted(async () => {
   </div>
 </template>
 
-
   <!-- Colonnes -->
   <Column selectionMode="multiple" headerStyle="width: 40px"></Column>
 
@@ -853,7 +851,6 @@ onMounted(async () => {
   </Column>
 
 </DataTable>
-
 
     </div>
 
@@ -956,20 +953,37 @@ onMounted(async () => {
                 <span class="font-medium">{{ slotProps.data.product_name }}</span>
               </template>
             </Column>
+
+
             <Column field="price" header="Prix U" style="min-width: 80px">
               <template #body="slotProps">
-                {{ userProfile ? userProfile.currency_preference : '' }}{{ formatPrice(slotProps.data.price) }}
+                <span v-if="slotProps.data.is_gift" class="text-green-600 font-semibold">
+                  🎁 Cadeau
+                </span>
+                <span v-else>
+                  {{ userProfile ? userProfile.currency_preference : '' }}
+                  {{ formatPrice(slotProps.data.price) }}
+                </span>
               </template>
             </Column>
+
             <Column field="quantity" header="Qté" style="width: 60px; text-align: center;">
               <template #body="slotProps">{{ slotProps.data.quantity }}</template>
             </Column>
+
             <Column header="Total" style="min-width: 80px">
               <template #body="slotProps">
-                {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
-                {{ formatPrice(slotProps.data.price * slotProps.data.quantity) }}
+                <span v-if="slotProps.data.is_gift" class="text-green-600 font-semibold">
+                  🎁 Gratuit
+                </span>
+
+                <span v-else>
+                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
+                  {{ formatPrice(slotProps.data.price * slotProps.data.quantity) }}
+                </span>
               </template>
             </Column>
+          
           </DataTable>
         </div>
 

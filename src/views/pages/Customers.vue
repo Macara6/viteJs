@@ -2,6 +2,7 @@
 <script setup>
 import { createCustomer, downloadCard, fetchCustomer, fetchUserProfilById } from '@/service/Api';
 import { formatDate, formatLoyaltyCard } from '@/utils/formatters';
+import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 
@@ -11,6 +12,8 @@ const customer = ref({});
 const customerDialog = ref(false);
 const submitted = ref(false);
 const userProfile = ref(null);
+
+const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 
 const customerSexe = [
     {label:'M',value:'M'},
@@ -88,12 +91,14 @@ async function saveCustomer(){
   <div class="card">
     <div class="font-semibold text-xl mb-4">Liste des Clients</div>
 
-      <DataTable
-       :value="customers"
-        scrollable
-        scrollHeight="400px"
-        class="mt-6" 
-      >
+  <DataTable
+    :value="customers"
+    scrollable
+    :filters="filters"
+    :globalFilterFields="['name','last_name','phone_number','loyalty_card_number']"
+    scrollHeight="400px"
+    class="mt-6"
+  >
 
       <template #header>
         <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -108,18 +113,31 @@ async function saveCustomer(){
             
           </div>
           <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
+            <span class="relative flex items-center w-full sm:w-64">
+              <i
+                v-if="!filters['global'].value"
+                class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
+              ></i>
 
+              <InputText
+                v-model="filters['global'].value"
+                placeholder="     Rechercher..."
+                class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
+              />
+            </span>
             </div>
           </div>
         </template>
+
         <Column field="id" header="Id" style="min-width: 10px"></Column>
 
 
-        <Column field="" header="Nom & Post-Nom" style="min-width: 150px"> 
+        <Column field=""   header="Nom & Post-Nom" style="min-width: 150px"> 
         <template #body="slotProps">
           {{ slotProps.data.name}} - {{ slotProps.data.last_name }}
         </template>
         </Column>
+
         <Column field="sexe" header="Sexe" style="min-width: 20px" /> 
 
         <Column field="phone_number" header="Téléphone" style="min-width: 100px"/> 

@@ -100,9 +100,15 @@ async function searchCustomerByPhone(){
     const found = customers.value.find(
       c => c.phone_number === clientPhone.value
     )
+
     if(found){
+      if(found.sexe == 'M'){
+          clientName.value ='Mr '+found.name;
+      } else{
+          clientName.value ='Mme '+found.name;
+      }
       selectedCustomer.value = found
-      clientName.value = found.name;
+       
       clientInfo.value = found.balance_point +'Pts'+'-'+found.total_value_points+userProfile?.value.currency_preference
       clientLastName.value = found.las_name;
       clientSexe.value = found.sexe
@@ -137,6 +143,7 @@ async function searchCustomerByPhone(){
     console.error(error)
   }
 }
+
 
 function applyPointsDiscount(){
   
@@ -255,9 +262,7 @@ watch(amountPaid, (newValue) => {
 
 function onInput(event) {
     const paid = parseFloat(event.value) || 0;
-     
-    change.value = paid - totalAmount.value + pointsDiscount.value;
-    
+    change.value = paid - totalAmount.value + pointsDiscount.value;  
 }
 
 
@@ -340,6 +345,7 @@ function removeFromInvoice(productId){
         invoiceItems.value = invoiceItems.value.filter(item => item.product.id !== productId);
         updateTotal();
 }
+
 // fajouter le produit a la facture 
 function addToInvoice(product) {
     // Vérifier le stock disponible
@@ -379,6 +385,45 @@ function addToInvoice(product) {
     }
 
     updateTotal();
+}
+
+function addGiftToInvoice(product){
+  if(product.stock < 1){
+    toast.add({
+      severity: 'error',
+      summary: 'Stock insuffisant',
+      detail: `Le produit "${product.name}" est en rupture de stock.`,
+      life: 5000
+    });
+    return;
+  }
+  
+  const existing = invoiceItems.value.find(
+    item => item.product.id === product.id && item.is_gift
+  )
+  if(existing){
+
+    if(existing.quantity + 1 > product.stock){
+      toast.add({
+        severity: 'error',
+        summary: 'Stock insuffisant',
+        detail: `Impossible d'ajouter plus de "${product.name}" (stock disponible: ${product.stock}).`,
+        life: 5000
+      });
+      return
+    }
+    existing.quantity += 1;
+  }else{
+    invoiceItems.value.push({
+      product:product,
+      quantity:1,
+      price:0,
+      purchase_price:product.purchase_price,
+      tva:false,
+      is_gift:true
+    })
+  }
+  updateTotal();
 }
 
 function updateTotal(){
@@ -450,30 +495,30 @@ function calculateChange() {
 
 
 async function createInvoice(){
-      if(finalTotal.value !== 0){
-        if (amountPaid.value < finalTotal.value) {
-          toast.add({
+      const finalTotal = totalAmount.value - pointsDiscount.value;
+
+      if (finalTotal > 0 && amountPaid.value < finalTotal) {
+        toast.add({
             severity: 'warn',
             summary: 'Paiement insuffisant',
             detail: 'Le montant payé est inférieur au montant dû.',
             life: 3000
-          })
-          return
-        }
+        })
+        return
+    }
+    if (invoiceItems.value.length == 0) {
+        toast.add({
+            severity: 'warn',
+            summary: 'Facture vide',
+            detail: 'La facture est vide',
+            life: 3000
+        });
+        return;
+    }
 
-      }else{
-        if (amountPaid.value < totalAmount.value) {
-            toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'Le montant payé est inférieur au total.', life: 3000 });
-            return;
-        }
-      }
 
-        if(invoiceItems.value.length == 0){
-            toast.add({ severity: 'warn', summary: 'Paiement insuffisant', detail: 'la facture est vide', life: 3000 });
-            return;
-        }
 
-        change.value =amountPaid.value - totalAmount.value + pointsDiscount.value;
+        change.value =amountPaid.value - finalTotal
 
         if (!verifierStockProduits()) {
         return; // Stoppe la création si stock insuffisant
@@ -481,8 +526,11 @@ async function createInvoice(){
         if(!clientName.value || clientName.value.trim() ==''){
           clientName.value = 'Client Dievers'
         }
+
         const invoiceData = {
+
             client_name :clientName.value,
+
             total_amount:totalAmount.value,
             amount_paid:amountPaid.value,
             cashier:localStorage.getItem('id'),
@@ -491,15 +539,19 @@ async function createInvoice(){
                 product: item.product.id,
                 quantity: item.quantity,
                 price: item.price,
-                purchase_price: item.purchase_price
+                purchase_price: item.purchase_price,
+                is_gift:item.is_gift
             })),
           customer: selectedCustomer.value?.id || null,
           points_used : ptsUsed.value,
           points_discount : pointsDiscount.value
         };
 
+
         try{ 
             await createInvoiceAPI(invoiceData);
+
+
             saveCache('Invoices',invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
             lastInvoice =invoiceData;
@@ -509,9 +561,14 @@ async function createInvoice(){
              amountPaid.value = 0;
             change.value = 0;
             tva_pro.value=0
+
             clientName.value = '';
             clientPhone.value ='';
             customer.value = false;
+
+            ptsUsed.value = 0;
+            pointsDiscount.value = 0;
+
             await getCustomers();
    
         }catch (error) {
@@ -829,15 +886,29 @@ async function generatePdfInvoice(invoice) {
           </Column>
           <Column header="Action">
             <template #body="{ data }">
-              <Button
-                icon="pi pi-cart-plus"
-                label="Ajouter"
-                @click="addToInvoice(data)"
-                size="small"
-                class="w-full md:w-auto bg-indigo-500 hover:bg-indigo-600 text-white border-none rounded-lg shadow-sm transition"
-              />
+              <div class="flex gap-2">
+                <!-- Ajouter à la facture -->
+                <Button
+                  icon="pi pi-cart-plus"
+                  label="Ajouter"
+                  @click="addToInvoice(data)"
+                  size="small"
+                  class="bg-indigo-500 hover:bg-indigo-600 text-white border-none rounded-lg"
+                />
+
+                <!-- 🎁 Cadeau -->
+                <Button
+                  icon="pi pi-gift"
+                  severity="info"
+                  size="small"
+                  @click="addGiftToInvoice(data)"
+                />
+
+              </div>
+
             </template>
           </Column>
+
         </DataTable>
       </div>
     </div>
@@ -1189,7 +1260,7 @@ async function generatePdfInvoice(invoice) {
         />
 
         <Button 
-            label="📄 Télécharger en PDF" 
+            label="Télécharger en PDF" 
             class="p-button-secondary w-full"
             @click="onPdfSelected"
         />

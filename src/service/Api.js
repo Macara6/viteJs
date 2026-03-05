@@ -201,9 +201,7 @@ export async function getCategoryByUser(userID) {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-
             const data = response.data;
-
             // Ajoute les résultats obtenus
             allCategories.push(...data.results);
 
