@@ -74,6 +74,7 @@ const customerSexe = [
     await loadProduct();
     await fetchUserProfl();
     await getCustomers();
+     
       
   });
  
@@ -92,6 +93,18 @@ const customerSexe = [
   }
 
 
+function exchangeRate(value){
+    const rate = Number(userProfile.value?.exchange_rate || 1);
+    const currency = userProfile.value?.currency_preference;
+    if(currency ==="CDF"){
+      return `${(value / rate).toFixed(2)} USD`;
+    }
+    if(currency ==="USD"){
+      return `${(value * rate).toFixed(2)} CDF`;
+    }
+
+    return value;
+}
 
 async function searchCustomerByPhone(){
   if(!clientPhone.value) return
@@ -1070,39 +1083,66 @@ async function generatePdfInvoice(invoice) {
   <div class="border-t border-gray-200 pt-3 pb-2 text-right bg-gray-50 rounded-lg shadow-inner self-center w-full max-w-xl">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <!-- Totaux -->
-      <div class="space-y-1 text-sm sm:text-base font-semibold text-gray-800">
-        <div class="flex justify-between sm:justify-start sm:gap-2">
+      <div class="bg-gray-50 p-5 rounded-lg border w-full max-w-md space-y-3 text-sm sm:text-base font-semibold text-gray-800">
+
+        <div class="flex justify-between items-center">
           <span>Total :</span>
-          <span class="text-indigo-600">
-            {{ formatPrice(totalAmount) }} {{ userProfile?.currency_preference || '' }}
+          <span class="flex gap-3 items-center">
+            <span class="text-indigo-600 tabular-nums">
+              {{ formatPrice(totalAmount) }} {{ userProfile?.currency_preference }}
+            </span>
+            <span class="text-gray-700 font-bold tabular-nums">
+              ({{ exchangeRate(totalAmount) }})
+            </span>
           </span>
         </div>
 
-        <div class="flex justify-between sm:justify-start sm:gap-2">
-          <span>TVA:</span>
-          <span class="text-red-600">
-            {{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference || '' }}
+        <div class="flex justify-between items-center">
+          <span>TVA :</span>
+          <span class="flex gap-3 items-center">
+            <span class="text-red-600 tabular-nums">
+              {{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference }}
+            </span>
+            <span class="text-gray-700 font-bold tabular-nums">
+              ({{ exchangeRate(tva_pro) }})
+            </span>
           </span>
         </div>
 
-        <div v-if="pointsDiscount > 0" class="text-green-600">
-            Réduction : - {{ formatPrice(pointsDiscount) }}
-            {{ userProfile?.currency_preference }}
-         </div>
+        <div v-if="pointsDiscount > 0" class="flex justify-between items-center text-green-600">
+          <span>Réduction :</span>
+          <span class="flex gap-3 items-center">
+            <span class="tabular-nums">
+              - {{ formatPrice(pointsDiscount) }} {{ userProfile?.currency_preference }}
+            </span>
+            <span class="text-gray-700 font-bold tabular-nums">
+              ({{ exchangeRate(pointsDiscount) }})
+            </span>
+          </span>
+        </div>
 
-         <div v-if="pointsDiscount > 0" class="text-green-600">
-            Total final :  {{ formatPrice(finalTotal) }}
-            {{ userProfile?.currency_preference }}
-         </div>
+        <div class="border-t border-dashed pt-3"></div>
 
+        <div v-if="pointsDiscount > 0" class="flex justify-between items-center text-lg font-bold">
+          <span>Total final :</span>
+          <span class="flex gap-3 items-center">
+            <span class="text-indigo-700 tabular-nums">
+              {{ formatPrice(finalTotal) }} {{ userProfile?.currency_preference }}
+            </span>
+            <span class="text-gray-800 font-bold text-base tabular-nums">
+              ({{ exchangeRate(finalTotal) }})
+            </span>
+          </span>
+        </div>
 
-        <div class="flex justify-between sm:justify-start sm:gap-2">
+        <div class="border-t border-dashed pt-3"></div>
+
+        <div class="flex justify-between items-center">
           <span>Reste :</span>
-          <span class="text-red-600">
-            {{ formatPrice(change) }} {{ userProfile?.currency_preference || '' }}
+          <span class="text-red-600 font-bold tabular-nums">
+            {{ formatPrice(change) }} {{ userProfile?.currency_preference }}
           </span>
         </div>
-
 
       </div>
 

@@ -465,6 +465,18 @@ async function refreshInvoices() {
     loading.value = false;
   }
 }
+// function pour coversion 
+function exchangeRate(value){
+  const rate = Number(userProfile.value?.exchange_rate || 1);
+  const currency = userProfile.value?.currency_preference;
+  if(currency ==="CDF"){
+    return `${(value / rate).toFixed(2)} USD`;
+  }
+  if(currency ==="USD"){
+    return `${(value * rate).toFixed(2)} CDF`
+  }
+  return value;
+}
 
 function downloadPDFInvoices() {
 
@@ -775,6 +787,7 @@ onMounted(async () => {
     </template>
   </Column>
 
+
   <Column field="client_name" header="Client" sortable style="max-width: 130px;">
     <template #body="slotProps">
       <span class="cell">{{ slotProps.data.client_name }}</span>
@@ -837,6 +850,13 @@ onMounted(async () => {
       >
         {{ slotProps.data.status }}
       </span>
+    </template>
+  </Column>
+  <Column field="invoice_number" header=" N° Ticket" sortable  style="max-width: 150px;" >
+    <template #body="slotProps">
+      <div class="text-center">
+        {{ slotProps.data.invoice_number  || 'N/A'}}
+       </div>
     </template>
   </Column>
 
@@ -906,7 +926,7 @@ onMounted(async () => {
       </Dialog>
 
     <!-- Invoice Details Modal -->
-    <Dialog v-model:visible="showModal" modal header="🧾 Détails de la facture" :style="{ width: '95%', maxWidth: '900px' }">
+    <Dialog v-model:visible="showModal" modal header=" Détails de la facture" :style="{ width: '95%', maxWidth: '900px' }">
       <div id="cashout-pdf-content" class="p-4 bg-white">
 
         <!-- Header facture -->
@@ -940,7 +960,7 @@ onMounted(async () => {
           <div class="text-right text-sm sm:text-base text-gray-500 mt-2 sm:mt-0">
             <p><strong>Date :</strong> {{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) || 'N/A' }}</p>
             <p><strong>Status :</strong> {{ invoices.find(c => c.id ===selectedInvoices)?.status || 'N/A'}}</p>
-             <p><strong>Facture ID :</strong> {{ selectedInvoices }}</p>
+             <p><strong>N° Ticket :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A'}}</p>
 
           </div>
         </div>
@@ -987,26 +1007,49 @@ onMounted(async () => {
           </DataTable>
         </div>
 
-        <!-- Total facture -->
-        <div class="flex justify-end mt-4 border-t pt-4">
-          <p class="text-lg sm:text-xl font-bold text-right">
-            Total : <span class="text-green-600">
-              {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
-              {{ invoices.find(c => c.id === selectedInvoices)?.total_amount || 'N/A' }}
-            </span>
-          </p>
-          
-        </div>
-         <div class="flex justify-end mt-4 border-t pt-4">
-          <p class="text-lg sm:text-xl font-bold text-right">
-            TVA : <span class="text-green-600">
-              {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
-              {{ invoices.find(c => c.id === selectedInvoices)?.tva || 'N/A' }}
-            </span>
-          </p>
+        <!-- Totaux facture -->
+        <div class="mt-6 border-t pt-4 space-y-2 text-sm">
+
+          <!-- Total -->
+          <div class="flex justify-end">
+            <div class="flex items-center gap-10 font-medium">
+              <span class="text-gray-700">Total :</span>
+
+              <div class="text-right">
+                <div class="text-green-600 font-semibold">
+                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                  {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                </div>
+
+                <div class="text-gray-500 text-sm">
+                  ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TVA -->
+          <div class="flex justify-end">
+            <div class="flex items-center gap-10 font-medium">
+              <span class="text-gray-700">TVA :</span>
+
+              <div class="text-right">
+                <div class="text-red-600 font-semibold">
+                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                  {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
+                </div>
+
+                <div class="text-gray-500 text-xs">
+                  ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
+
     <div
         class="sticky bottom-0 bg-white py-3 px-4 shadow-md flex justify-end"
       >

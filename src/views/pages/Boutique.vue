@@ -256,8 +256,6 @@ async function updateUser() {
   }
 }
 
-
-
 // fonction pour modier le profile
 function openEditDialog(){
 
@@ -287,8 +285,11 @@ async function saveProfile(){
     try{
         if(isEditMode.value){
             await updateUserProfile(editedProfile.value);
+
             userProfile.value.point_output = editedProfile.value.point_output;
             userProfile.value.point_entry = editedProfile.value.point_entry;
+            userProfile.value.exchange_rate = editedProfile.value.exchange_rate;
+
             toast.add({ severity: 'success', summary: 'Succès', detail: 'Profil mis à jour', life: 3000 });
         }else{
             await createUserProfl(editedProfile.value);
@@ -353,10 +354,19 @@ const progressPercent = computed(()=> {
         <div><strong>Téléphone :</strong> {{ userProfile?.phone_number || 'Non défini' }}</div>
         <div class="sm:col-span-2"><strong>Adresse :</strong> {{ userProfile?.adress || 'Non défini' }}</div>
         <div><strong>Devise :</strong> {{ userProfile?.currency_preference || 'Non défini' }}</div>
-        <div> <strong> Type d'activicté : {{ userProfile?.type_of_activity || 'Non défini' }}</strong> </div>
+            <!-- Badge pour taux de change -->
+        <div class="flex items-center gap-2">
+          <strong>Taux de change :</strong>
+          <span class="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-full">
+            {{ userProfile?.exchange_rate || 'Non défini' }}
+          </span>
+        </div>
+        
+        <div><strong> Type d'activicté : {{ userProfile?.type_of_activity || 'Non défini' }}</strong> </div>
 
       </div>
     </div>
+
     <div class="bg-gradient-to-r from-indigo-50 to-blue-50 
             border border-indigo-200 
             shadow-lg rounded-xl p-6">
@@ -548,8 +558,12 @@ const progressPercent = computed(()=> {
         </select>
       </div>
     </div>
-
+    <div>
+        <label class="font-semibold mb-1 block">Taux de change</label>
+        <InputText v-model="editedProfile.exchange_rate" class="w-full" />
+      </div>
      <div>
+
         <label class="font-semibold mb-1 block">Valeur d'un point (Entrée)</label>
         <InputText v-model="editedProfile.point_entry" class="w-full" />
       </div>
@@ -652,7 +666,6 @@ const progressPercent = computed(()=> {
     />
   </template>
 </Dialog>
-
 
 
 
