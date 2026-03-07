@@ -598,16 +598,21 @@ async function createInvoice(){
 function confirmCancelInvoice(){
   showCancelConfirm.value = true;
 }
+
 function cancelInvoiceConfirmed(){
-  showCancelConfirm.value = false;
+ 
 
   invoiceItems.value = [];
   clientName.value = '';
   amountPaid.value = null;
   totalAmount.value = 0;
   change.value = 0;
-  tva.value =0
+  tva_pro.value = 0;
   barcodeSearch.value = '';
+  clientPhone.value = '';
+  clientInfo.value = '';
+
+ showCancelConfirm.value = false;
 
   toast.add({
     severity: 'success',
@@ -643,16 +648,21 @@ function savePendingInvoice(){
     totalAmount:totalAmount.value,
     amountPaid: amountPaid.value || 0,
     change: change.value || 0,
-     date: new Date()
+    tva_pro: tva_pro.value || 0,
+    clientPhone: clientPhone.value ||'N/A',
+    clientInfo: clientInfo.value || 'N/A',
+    date: new Date()
   };
-  pendingInvoices.value.push(pending);
 
+  pendingInvoices.value.push(pending);
     clientName.value = '';
     invoiceItems.value = [];
     totalAmount.value = 0;
     amountPaid.value = 0;
     change.value = 0;
-    tva.value = 0;
+    tva_pro.value = 0;
+    clientInfo.value = '';
+    clientPhone.value ='';
 
    toast.add({ severity: 'success', summary: 'Facture en attente', detail: 'La facture a été mise en attente.', life: 3000 });
 }
@@ -668,6 +678,9 @@ function resumeInvoice(pending){
     totalAmount.value = pending.totalAmount;
     amountPaid.value = pending.amountPaid;
     change.value = pending.change;
+    tva_pro.value = pending.tva_pro;
+    clientInfo.value = pending.clientInfo;
+    clientPhone.value = pending.clientPhone;
 
     pendingInvoices.value = pendingInvoices.value.filter(inv => inv.id !==pending.id);
 
@@ -1141,6 +1154,9 @@ async function generatePdfInvoice(invoice) {
           <span>Reste :</span>
           <span class="text-red-600 font-bold tabular-nums">
             {{ formatPrice(change) }} {{ userProfile?.currency_preference }}
+          </span>
+          <span class="text-gray-800 font-bold text-basse tabular-nums">
+            ({{ exchangeRate(change) }})
           </span>
         </div>
 

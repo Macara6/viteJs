@@ -41,6 +41,8 @@ const total_AmountUserConnect = ref(0)
 const total_ProfitAmountUserConnect = ref(0)
 const total_tva_valid= ref(0);
 const total_AmountCashOut = ref(0);
+const total_AmountCashoutUSD = ref(0);
+const total_AmountCashIntUSD = ref(0);
 const todaysCashoutCount = ref(0);
 const total_AmountCashInt = ref(0);
 const total_CashIntCount = ref(0);
@@ -58,7 +60,7 @@ const usersForCharts = ref([]);
 const selectedGroup = ref(null)
 const hasSecretKey = ref(false);
 const statusUser = localStorage.getItem('status');
-// ================= INIT DATA =================
+// ========= INIT DATA =======
 
 async function initData() {
   try {
@@ -117,7 +119,6 @@ async function initData() {
     const allEntrys = entryCache || await fetchEntryNoteAllUser(activeUserId)
     if (!entryCache) saveCache(`entries_${activeUserId}`, allEntrys)
     cashInts.value = allEntrys || []
-
     // -- Mise à jour dashboard --
     updateDashboardCards()
     updatePieChart()
@@ -209,11 +210,21 @@ watch(() => selectDate.value.global.value, () => {
   
 })
 
+function exchangeRate(value){
+  const rate =Number(userProfile.value?.exchange_rate || 1);
+  const currency = userProfile.value?.currency_preference;
+  if(currency ==="CDF"){
+    return `${( value / rate ).toFixed(2)} USD`;
+  }
+  if(currency === "USD"){
+    return `${( value * rate ).toFixed(2)} CDF`;
+  }
+  return value;
+}
+
 
 async function updateDashboardCards() {
   
- 
-
   const selectedDateVal = selectDate.value.global.value
 
   let baseUserId = selectedUserId.value
@@ -231,8 +242,6 @@ async function updateDashboardCards() {
       userIdsForCards.push(...caissiers.map(c =>c.id))
       console.log(">>> Mode CAISSIER : utilisateur + son caissier direct :", userIdsForCards)
      
-     
-
     } else {
      
       userIdsForCards = await getAllUserIdsForDashboard(baseUserId)
@@ -264,14 +273,30 @@ async function updateDashboardCards() {
   const filteredCashouts = cashouts.value.filter(
     c =>
       userIdsForCards.includes(c.user) &&
-      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal && c.currency ==='CDF' 
   )
 
   // Filtrer cash entries
   const filteredCashInt = cashInts.value.filter(
     c =>
       userIdsForCards.includes(c.user) &&
-      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal &&
+      c.currency ==='CDF'
+  )
+  // Filtre cash entre USD
+  const filteredCashIntUSD = cashInts.value.filter(
+    c => 
+     userIdsForCards.includes(c.user) &&
+     new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal &&
+      c.currency ==='USD'
+  )
+ 
+  // Filter le casheOutUSD
+  const filterCashoutUSD = cashouts.value.filter(
+    c =>
+      userIdsForCards.includes(c.user) && 
+      new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal && c.currency ==='USD'
+      
   )
 
   // Calculs des totaux
@@ -297,7 +322,8 @@ async function updateDashboardCards() {
     (sum, inv) => sum + parseFloat(inv.profit_amount || 0),
     0
   )
-  todaysCashoutCount.value = filteredCashouts.length
+  todaysCashoutCount.value = (filteredCashouts.length) + (filterCashoutUSD.length)
+
   total_AmountCashOut.value = filteredCashouts.reduce(
     (sum, c) => sum + parseFloat(c.total_amount || 0),
     0
@@ -306,7 +332,18 @@ async function updateDashboardCards() {
     (sum, c) => sum + parseFloat(c.total_amount || 0),
     0
   )
-  total_CashIntCount.value = filteredCashInt.length
+
+  total_AmountCashIntUSD.value = filteredCashIntUSD.reduce(
+    (sum, c) => sum + parseFloat(c.total_amount || 0),
+    0
+  )
+
+  total_CashIntCount.value = (filteredCashInt.length) + (filteredCashIntUSD.length)
+
+  total_AmountCashoutUSD.value = filterCashoutUSD.reduce(
+    (sum, c) => sum + parseFloat(c.total_amount || 0),
+    0
+  )
 }
 
 async function computeAdminPieData(selectedDateVal) {
@@ -386,7 +423,7 @@ async function updatePieChart() {
     currency: user.value.currency
   };
 
-  // 2️⃣ Calculer les totaux par utilisateur pour la date sélectionnée
+  // 2️ Calculer les totaux par utilisateur pour la date sélectionnée
   const totalsByCashier = {};
   invoices.value.forEach(inv => {
     const invoiceDate = new Date(inv.created_at).toISOString().split('T')[0];
@@ -408,7 +445,7 @@ async function updatePieChart() {
   ];
 
   if (selectedGroup.value === "ADMIN") {
-    // 🔹 ADMIN : afficher uniquement les admins, total de leurs caissiers inclus
+    //  ADMIN : afficher uniquement les admins, total de leurs caissiers inclus
     const admins = allUsers.value.filter(u => u.status === "ADMIN");
     const lineUsers = [];
 
@@ -466,7 +503,7 @@ async function updatePieChart() {
         name: c.username,
         amount: total,
         color: baseColors[i % baseColors.length],
-        currency: baseUserInfo.currency   // 🔥 Devise du parent
+        currency: baseUserInfo.currency   //  Devise du parent
       });
     }
   });
@@ -776,6 +813,7 @@ onMounted(() => {
   initData()
   updateDashboardCards();
   chekeSecretKey();
+  console.log('total cashout USD :', total_AmountCashoutUSD.value)
 })
 
 </script>
@@ -813,53 +851,85 @@ onMounted(() => {
 
       </div>
 
-
-
       <!-- Total valide -->
     <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-      <div class="flex justify-between items-center mb-2">
+
+      <div class="flex justify-between items-start mb-3">
+
         <div>
-          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Total Factures Valide</span>
-          <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
-            {{ formatPrice(total_AmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">
+            Total Factures Valide
+          </span>
+
+          <!-- Montant officiel -->
+          <div class="text-gray-900 dark:text-gray-100 font-bold text-xl mt-1">
+            {{ formatPrice(total_AmountUserConnect) }}
+            {{ selectedUserProfile?.currency_preference || 'N/A' }}
           </div>
+
+          <!-- Montant converti -->
+          <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
+            ({{ exchangeRate(total_AmountUserConnect) }})
+          </div>
+
         </div>
 
       </div>
+
       <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
         Total pour aujourd'hui : {{ selectDate.global.value }}
       </div>
+
     </div>
 
 
-     
-    <div v-if="statusUser !='CAISSIER'" class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+        
+    <div v-if="statusUser != 'CAISSIER'" class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
+      
       <div class="flex justify-between items-center mb-2">
-        <div>
-          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">Bénéfice estimé</span>
 
-         
+        <div>
+          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">
+            Bénéfice estimé
+          </span>
+
+          <!-- Montant principal -->
           <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
+
             <span v-if="showSensitiveInfo">
-                {{ formatPrice(total_ProfitAmountUserConnect) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+              {{ formatPrice(total_ProfitAmountUserConnect) }}
+              {{ selectedUserProfile?.currency_preference || 'N/A' }}
             </span>
+
             <span v-else>XXXXX</span>
+
           </div>
+
+          <!-- Conversion -->
+          <div
+            v-if="showSensitiveInfo"
+            class="text-black dark:text-gray-200 text-base font-semibold mt-1"
+          >
+            ({{ exchangeRate(total_ProfitAmountUserConnect) }})
+          </div>
+
         </div>
 
         <div class="flex items-center justify-center bg-yellow-100 dark:bg-yellow-400/10 rounded-full w-10 h-10">
           <i class="pi pi-wallet text-yellow-500 text-lg"></i>
         </div>
+
       </div>
+
       <Button
-      v-if="!showSensitiveInfo"
-      label="Afficher le bénéfice"
-      icon="pi pi-lock"
-      severity="warning"
-      size="small"
-      class="mt-2"
-      @click="openView"
-    />
+        v-if="!showSensitiveInfo"
+        label="Afficher le bénéfice"
+        icon="pi pi-lock"
+        severity="warning"
+        size="small"
+        class="mt-2"
+        @click="openView"
+      />
 
     </div>
 
@@ -868,8 +938,13 @@ onMounted(() => {
         <div class="flex justify-between items-center mb-2">
           <div>
             <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total Entrée</span>
+
             <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
                {{ formatPrice(total_AmountCashInt) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+            </div>
+              Et
+            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
+               {{ formatPrice(total_AmountCashIntUSD) }} USD
             </div>
           </div>
           <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
@@ -914,8 +989,12 @@ onMounted(() => {
       <div class="flex justify-between items-center mb-2">
         <div>
           <span class="block text-red-500 dark:text-gray-400 text-sm font-medium">Total Factures Annulées</span>
+
           <div class="text-red-500 dark:text-gray-100 font-semibold text-xl">
             {{ formatPrice(canceledTotalAmount) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+          </div>
+          <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
+              ({{ exchangeRate(canceledTotalAmount) }})
           </div>
         </div>
 
@@ -930,10 +1009,18 @@ onMounted(() => {
         <div class="flex justify-between items-center mb-2">
           <div>
             <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total TVA valide</span>
+
             <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_tva_valid) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
+               {{ formatPrice(total_tva_valid) }} 
+               {{ selectedUserProfile?.currency_preference || 'N/A' }}
             </div>
+            
+            <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
+              ({{ exchangeRate(total_tva_valid) }})
+            </div>
+
           </div>
+
           <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
             <i class="pi pi-arrow-down-left text-green-900 text-lg"></i>
           </div>
@@ -948,16 +1035,23 @@ onMounted(() => {
         <div class="flex justify-between items-center mb-2">
           <div>
             <span class="block text-red-500 dark:text-red-400 text-sm font-medium">Total dépassé</span>
+
             <div class="text-red-600 dark:text-red-400 font-semibold text-xl">
                {{ formatPrice(total_AmountCashOut) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
             </div>
+              Et
+            <div class="text-red-600 dark:text-red-400 font-semibold text-xl">
+               {{ formatPrice(total_AmountCashoutUSD) }} USD
+            </div>
+
           </div>
+
           <div class="flex items-center justify-center bg-red-100 dark:bg-red-400/10 rounded-full w-10 h-10">
             <i class="pi pi-arrow-up-right text-red-500 text-lg"></i>
           </div>
         </div>
         <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto">
-          <span>{{ todaysCashoutCount }}</span>
+          <span>{{ todaysCashoutCount}}</span>
           <span>Nombres des dépasses</span>
         </div>
       </div>
