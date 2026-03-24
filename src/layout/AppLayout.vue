@@ -1,4 +1,6 @@
 <script setup>
+import { useGlobalAlert } from './composables/useGlobalAlert';
+
 import { useLayout } from '@/layout/composables/layout';
 import { computed, ref, watch } from 'vue';
 import AppFooter from './AppFooter.vue';
@@ -8,6 +10,7 @@ import AppTopbar from './AppTopbar.vue';
 const { layoutConfig, layoutState, isSidebarActive, resetMenu } = useLayout();
 
 const outsideClickListener = ref(null);
+const { alertMessage, alertType } = useGlobalAlert()
 
 watch(isSidebarActive, (newVal) => {
     if (newVal) {
@@ -58,7 +61,20 @@ function isOutsideClicked(event) {
         <app-topbar></app-topbar>
         <app-sidebar></app-sidebar>
         <div class="layout-main-container">
+            <div
+            v-if="alertMessage"
+            class="px-4 py-3 mb-3 rounded border"
+            :class="{
+            'bg-yellow-100 border-yellow-400 text-yellow-800': alertType === 'warning',
+            'bg-red-100 border-red-400 text-red-800': alertType === 'danger',
+            'bg-green-100 border-green-400 text-green-800': alertType === 'success'
+            }"
+        >
+            {{ alertMessage }}
+        </div>
+
             <div class="layout-main">
+                
                 <router-view></router-view>
             </div>
             <app-footer></app-footer>

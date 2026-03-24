@@ -138,6 +138,7 @@ async function fetchedUser() {
     if (isCurrentUserSuperuser === 'true') {
       
       fechedUsers = await getUsersCreatedByMe()
+      
       fechedUsers = fechedUsers.filter(user => String(user.id) !== String(currentUserId));
     } else {
       

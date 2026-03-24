@@ -408,8 +408,8 @@ export async function fetchInvoicesAllUsers() {
     }
    return allInvoices;
 }
-// afficher les utilisateur qui sont de la corbeille 
 
+// afficher les utilisateur qui sont de la corbeille 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
     let INVOICE_URL = `${API_BASE}invoicesView/`;
     if (onlyChildren) {
@@ -967,7 +967,7 @@ export async function fecthSubscriptionByUserId(userId){
         throw error;
      }
 }
-// fonction pour reativé l'abonnement 
+// fonction pour reactivé l'abonnement 
 export async function reactivateSubscription(userId){
    const REACTIVATE_URL = `${API_BASE}subscription/reactivate/${userId}/`;
 
@@ -983,6 +983,14 @@ export async function reactivateSubscription(userId){
    }catch(error){
       console.log('Error reativating subscription: ',error.response?.data || error );
    }
+}
+
+export const fetchSubscriptionByEmail = async (email) => {
+    const URL_PAY =  `${API_BASE}subscription-by-email/`;
+    const response = await axios.post(URL_PAY, {
+        email:email
+    })
+    return response.data;
 }
 
 // functon to fetch to all cashout for all user
@@ -1169,3 +1177,28 @@ export  async function deleteEntryNote(entryNoteId){
     }
 }
 // fin du bloc pour les notes d'entrées
+
+// function pour le payement MaishPay
+export const paySubscription = async (data) => {
+    const URL_PAY_MAISHA = `${API_BASE}pay/`;
+    const response = await axios.post(URL_PAY_MAISHA, data);
+    return response.data
+}
+
+// function to fetch payement trans
+export async function fetchPayements(){
+   
+    const  URL_PAY_LIST =  `${API_BASE}pay/list/`;
+
+    try{
+        const response = await axios.get(URL_PAY_LIST, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data.results;
+    }catch(error){
+        console.error('errer', error);
+    }
+
+}

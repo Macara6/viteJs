@@ -67,6 +67,7 @@ import { useRouter } from 'vue-router';
         }
         
     }
+    
 onMounted(async () => {
     await fetchUserProfil();
 })

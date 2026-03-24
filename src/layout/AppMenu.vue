@@ -59,7 +59,7 @@ const model = computed(() => {
         label: 'GESTION CLIENT',
         items: [
           { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
-          { label: 'Abonnements', icon: 'pi pi-money-bill', to: '/pages/Subscription' }
+          { label: 'Abonnements', icon: 'pi pi-server', to: '/pages/Subscription' }
         ]
       },
       {
@@ -68,7 +68,9 @@ const model = computed(() => {
           { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
           { label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
           { label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
-          { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' }
+          { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+          { label: "Paiement Collectés", icon:'pi pi-database', to:'/pages/PaymentList'},
+          { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
         ]
       }
     ];
@@ -82,14 +84,17 @@ const model = computed(() => {
               { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
               { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
               { label: 'Clients', icon: 'pi pi-id-card', to:'/pages/Customer'},
+
               { label: 'Gestion Stock', icon: 'pi pi-shopping-bag', to: '/pages/Produit' },
               { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
               { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
               { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },
+
         
               { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
               {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
               { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
+             
               { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
             // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
               {

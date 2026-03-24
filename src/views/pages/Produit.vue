@@ -39,6 +39,7 @@ const selectedProducts = ref([]);
 const userProfile = ref(null);
 
 const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
+
 const filetersHistoy = ref({global: {value: null, matchMode: FilterMatchMode.CONTAINS}});
 
 const submitted = ref(false);
@@ -935,12 +936,8 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             <span v-else>Filtrer par utilisateur</span>
           </template>
         </Select>
-
-
-
-
-              <!-- Filtre catégorie -->
-              <Select
+            <!-- Filtre catégorie -->
+            <Select
                 v-model="selectedCategoryFilter"
                 :options="[{ id: 'all', name: 'Tous' }, ...categorys]"
                 optionLabel="name"

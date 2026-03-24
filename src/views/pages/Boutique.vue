@@ -2,6 +2,7 @@
 
 
 <script setup>
+import { useGlobalAlert } from '@/layout/composables/useGlobalAlert';
 import {
   changePassword,
   checkSecretKeyStatus, createOrUpdateSecretKey,
@@ -14,7 +15,6 @@ import {
 import { formatDate } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
-
 
 const userProfile = ref(null);
 const user = ref(null);
@@ -38,6 +38,9 @@ const userId = localStorage.getItem('id');
 
 const showChangePasswordDialog = ref(false);
 
+const { showAlert } = useGlobalAlert()
+
+
 const passwordForm = ref({
   old_password: '',
   new_password: '',
@@ -54,6 +57,7 @@ onMounted(async () => {
     await fetchUser();
     await fetchUserSubscription();
     await checkSecretKey();
+     
 
 });
 
@@ -361,7 +365,7 @@ const progressPercent = computed(()=> {
             {{ userProfile?.exchange_rate || 'Non défini' }}
           </span>
         </div>
-        
+
         <div><strong> Type d'activicté : {{ userProfile?.type_of_activity || 'Non défini' }}</strong> </div>
 
       </div>

@@ -86,7 +86,7 @@ const router = createRouter({
                     path:'/pages/invoice',
                     name:'Invoice',
                     component:() => import('@/views/pages/Invoice.vue'),
-                     meta: { requiresAuth: true }
+                    meta: { requiresAuth: true }
                 },
 
                 {
@@ -106,6 +106,7 @@ const router = createRouter({
                     path:'/pages/Customer',
                     name:'Customer',
                     component:() => import('@/views/pages/Customers.vue'),
+                    meta:{requiresAuth:true}
                 },
 
                 {
@@ -126,7 +127,8 @@ const router = createRouter({
                 {
                     path:'/pages/depotProduct',
                     name:'DepotProduct',
-                    component:()=> import('@/views/pages/DepotProduct.vue')
+                    component:()=> import('@/views/pages/DepotProduct.vue'),
+                    meta :{ requiresAuth: true}
                 },
                 
                 {
@@ -149,7 +151,8 @@ const router = createRouter({
                 {
                     path:'/pages/subscription/',
                     name:'Subscription',
-                    component: () => import('@/views/pages/Subscription.vue')
+                    component: () => import('@/views/pages/Subscription.vue'),
+                    meta:{ requiresAuth: true}
                 },
 
                 {
@@ -195,11 +198,18 @@ const router = createRouter({
                    meta: { requiresAuth: true }
                 },
                 {
+                    path:'/pages/PaymentList',
+                    name:'PaymentList',
+                    component:() => import('@/views/pages/PayementList.vue')
+                },
+
+                {
                     path:'/pages/Corbeille',
                     name:'Corbeille',
                     component:() => import('@/views/pages/Corbeille.vue'),
                     meta: {requiresAuth: true}
-                }
+                },
+
 
               
                 
@@ -227,11 +237,19 @@ const router = createRouter({
             name:'signup',
             component:() => import('@/views/pages/auth/Signup.vue')
         },
+
+        {
+         path:'/Payment',
+         name:'Payment',
+         component: () => import('@/views/pages/Payment.vue')
+        },
+
         {
           path:'/reset',
           name:'reset',
           component: () => import('@/views/pages/ResetPassword.vue'),
         },
+        
 
         {
             path: '/auth/access',

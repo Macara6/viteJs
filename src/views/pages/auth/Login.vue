@@ -2,15 +2,17 @@
 
 import { fecthSubscriptionByUserId, login } from '@/service/Api';
 
+import { useGlobalAlert } from '@/layout/composables/useGlobalAlert';
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-
 const router = useRouter();
 
 const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const loading = ref(false);
+
+const { showAlert } = useGlobalAlert()
 
 const handleLogin = async() => {
     errorMessage.value = '';
@@ -21,7 +23,6 @@ const handleLogin = async() => {
     }
 
     loading.value = true; 
-
     
     try {
 
@@ -31,10 +32,31 @@ const handleLogin = async() => {
           let subscription = null;
             try{
               subscription = await fecthSubscriptionByUserId(userData.id)
+
+              if( subscription && subscription.end_date){
+                const today = new  Date();
+                const endDate = new Date(subscription.end_date);
+                const diffTime = endDate - today
+                const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if(subscription.is_free_frial){
+                  if(daysRemaining > 0 && daysRemaining <= 10){
+                    showAlert(`⚠️ Votre période d'essai expire dans ${daysRemaining} jour(s)`, "warning")
+                  }
+                }
+                if(daysRemaining <= 5 && daysRemaining > 0){
+                  showAlert(`⚠️ Votre abonnement expire dans ${daysRemaining} jour(s)`, "warning")
+                }
+                if(daysRemaining <= 0){
+                   showAlert(" Votre abonnement est expiré. Veuillez renouveler.", "danger")
+                   router.push('/Payment')
+                   return
+                }
+                
+              }
             }catch(error){
               console.log('Aucun abonnement trouvé pour cet utilisateur');
             }
-
             if(subscription && subscription.subscription_type ==='BASIC'){
             errorMessage.value = "Votre abonnement BASIC ne permet pas l'accès à cette application";
             return;
@@ -60,7 +82,7 @@ const handleLogin = async() => {
             default:
                 errorMessage.value = "Impossible de déterminer la page d'accueil.";
          }
-  
+
        }else{
         throw new Error('Login failed: No user data returned');
        }
@@ -153,9 +175,17 @@ const handleLogin = async() => {
             Mot de passe oublié ?
           </RouterLink>
         </div>
+     
+        <div class="text-center mt-4">
+          <RouterLink to="/Payment" class="text-sm text-[#7BB661] hover:underline transition-colors">
+            paymet
+          </RouterLink>
+        </div>
+
         <h3 class="text-center 2xl sm:text-3xl font-extrabold text-[#7BB661]">2026</h3>
 
       </div>
+     
     </div>
   </div>
 </template>

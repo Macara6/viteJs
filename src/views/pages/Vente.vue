@@ -372,7 +372,7 @@ function addToInvoice(product) {
         return;
     }
 
-    const existing = invoiceItems.value.find(item => item.product.id === product.id);
+    const existing = invoiceItems.value.find(item => item.product.id === product.id && !item.is_gift)
 
     if (existing) {
         // Vérifier que la quantité totale n'excède pas le stock
@@ -438,6 +438,8 @@ function addGiftToInvoice(product){
   }
   updateTotal();
 }
+
+
 
 function updateTotal(){
     totalAmount.value = invoiceItems.value.reduce((sum, item) => {
