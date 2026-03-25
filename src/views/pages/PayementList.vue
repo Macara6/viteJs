@@ -47,7 +47,7 @@ function filterByDate(payments, filter){
     const now = new Date();
     
     return payments.filter(py => {
-        if( py.status !== 'SUCCESS') return false;
+        
         const paymentsDate = new Date(py.created_at);
 
         if(filter === 'today'){
@@ -101,7 +101,7 @@ const getProviderLogo = (provider) => {
         return "https://upload.wikimedia.org/wikipedia/commons/0/03/M-pesa-logo.png"
     }
     if(provider.includes("visa")){
-        return "https://upload.wikimedia.org/wikipedia/commons/0/03/M-pesa-logo.png"
+        return "https://www.reussir-mon-ecommerce.fr/wp-content/uploads/2016/03/ancien-logo-visa-1-1024x389.png"
     }
     if(provider.includes("airtel")){
         return "https://upload.wikimedia.org/wikipedia/commons/3/3a/Airtel_logo-01.png"
@@ -339,7 +339,7 @@ const getProviderLogo = (provider) => {
         </div>
 
         <div class="text-gray-400 text-xs">
-         <i class="pi pi-phone"></i> {{ p.phone }}
+          {{ p.phone }}
         </div>
 
         </td>
@@ -350,11 +350,18 @@ const getProviderLogo = (provider) => {
 
         <td class="p-3">
 
-        <span
+        <span v-if="p.status ==='SUCCESS'"
         class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-lg"
         >
         {{ p.status }}
         </span>
+        <span v-else
+        class="px-2 py-1 text-xs bg-orange-500 text-green-700 rounded-lg"
+        >
+        {{ p.status }}
+        </span>
+
+
 
         </td>
 

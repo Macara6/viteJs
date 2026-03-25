@@ -1,7 +1,7 @@
 <script setup>
 import { fetchSubscriptionByEmail, paySubscription } from "@/service/Api"
 import { useToast } from 'primevue/usetoast'
-import { computed, ref } from "vue"
+import { computed, ref, watch } from "vue"
 const toast = useToast()
 const step = ref(1)
 const email = ref("")
@@ -14,6 +14,8 @@ const cardNumber = ref("")
 const cardName = ref("")
 const cardExpiry = ref("")
 const cardCvv = ref("")
+const cardProvider = ref("");
+const localProvider = ref("");
 
 const errorMessage = ref("");
 const successMessage = ref("");
@@ -24,6 +26,51 @@ const isCardPayment = computed(()=>{
   return paymentMethod.value === "visa"
 })
 
+
+
+function formatExpiry(e){
+  let value = e.target.value.replace(/\D/g, "");
+  if(value.length >= 3){
+    value = value.slice(0, 2) + "/" + value.slice(2, 4);
+
+  }
+  cardExpiry.value = value.slice(0, 5);
+}
+
+const detectCardProvider = (number) => {
+
+  const clean = number.replace(/\D/g, "")
+  if(/^4/.test(clean)) return 'visa';
+  if (/^(5[1-5]|2(2[2-9]|[3-6][0-9]|7[01]|720))/.test(clean)) return "mastercard"
+
+  return "";
+
+}
+
+const detectLocalProvider = (brand, digits) => {
+  if(!brand) return "";
+
+  const first = digits.slice(0, 4)
+  if(brand === "visa"){
+    
+    if (["4585","0200"].includes(first)) return "Mpesa" 
+  }
+  return "";
+
+} 
+const formatCardNumber = (value) =>{
+  return value
+      .replace(/\D/g, "")
+      .replace(/(.{4})/g, "$1 ")
+      .trim()
+}
+
+watch(cardNumber, (val) => {
+  cardProvider.value = detectCardProvider(val)
+  cardNumber.value = formatCardNumber(val)
+  localProvider.value = detectLocalProvider(cardProvider.value, val)
+  
+})
 const getSubscription = async () => {
 
   if(!email.value){
@@ -49,6 +96,9 @@ const choosePayment = (method)=>{
   paymentMethod.value = method
 }
 
+
+
+
 const confirmPayment = async ()=>{
 
   if(!paymentMethod.value){
@@ -60,19 +110,34 @@ const confirmPayment = async ()=>{
      paymentLoading.value = true;
 
      const data = {
-      phone: phone.value,
+      phone: "+243" + phone.value,
       amount: subscription.value.amount,
       provider: paymentMethod.value,
-      email:email.value
+      email:email.value,
+      
+      cardNumber: cardNumber.value,
+      cardName: cardName.value,
+      cardExpiry: cardExpiry.value,
+      cardCvv: cardCvv.value
     }
+
     const response = await paySubscription(data);
     
+    if(response.paymentPage){
+      window.location.href = response.paymentPage;
+      return
+    }
+  
     console.log("Réponse paiement :", response)
     successMessage.value = "Demande envoyée. Confirmez sur votre téléphone."
-   
+    
   }catch(error){
     console.log(error)
-    errorMessage.value = "Paiement échoué"
+    let backendError =
+    error.response?.data?.errors?.message ||
+    error.response?.data.message ||
+    "Paiement échoué. Réessayez.";
+    errorMessage.value = backendError;
     alert("Erreur paiement")
   }finally{
      
@@ -81,6 +146,8 @@ const confirmPayment = async ()=>{
 
   
 }
+
+
 </script>
 <template>
 
@@ -212,7 +279,7 @@ Choisissez un moyen de paiement
 :class="paymentMethod==='visa'?'payment active':'payment'"
 >
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Visa_Inc._logo_%281999%E2%80%932005%29.svg/1920px-Visa_Inc._logo_%281999%E2%80%932005%29.svg.png?_=20161007021834" class="h-8 mx-auto">
+<img src="https://www.reussir-mon-ecommerce.fr/wp-content/uploads/2016/03/ancien-logo-visa-1-1024x389.png" class="h-8 mx-auto">
 
 <p class="text-xs mt-2">Carte bancaire</p>
 
@@ -255,13 +322,30 @@ Choisissez un moyen de paiement
 
 <!-- MOBILE MONEY FORM -->
 
-<div v-if="['mpesa','airtel','orange'].includes(paymentMethod)" class="space-y-3">
+<div
+  v-if="['mpesa', 'airtel', 'orange'].includes(paymentMethod)"
+  class="space-y-3"
+>
 
-<input
-v-model="phone"
-placeholder="Numéro téléphone (243...)"
-class="input"
-/>
+  <label class="block text-sm font-medium text-gray-700">
+    Numéro de téléphone
+  </label>
+
+  <div class="flex items-center border rounded-lg px-3 py-2 bg-white shadow-sm">
+    <span class="mr-2 font-semibold text-gray-700">+243</span>
+
+    <input
+      v-model="phone"
+      class="flex-1 outline-none text-gray-900 placeholder-gray-400"
+      placeholder="812 345 678"
+      maxlength="9"
+      inputmode="numeric"
+    />
+  </div>
+
+  <p class="text-xs text-gray-500">
+    Entrez uniquement les 9 chiffres après l’indicatif (+243)
+  </p>
 
 </div>
 
@@ -270,23 +354,44 @@ class="input"
 <div v-if="paymentMethod==='visa'" class="space-y-3">
 
 <input
+v-model="cardName"
 placeholder="Nom sur la carte"
 class="input"
 />
 
-<input
-placeholder="Numéro de carte"
-class="input"
-/>
+<div class="input flex items-center bg-white justify-between">
+
+  <input
+    v-model="cardNumber"
+    class="flex-1 outline-none text-gray-900"
+    placeholder="Numéro de carte"
+  />
+
+  <!-- Affichage du fournisseur -->
+  <div class="ml-2 text-rigth">
+    <div v-if="cardProvider" class="ml-2 font-semibold text-blue-600">
+      {{ cardProvider }}
+    </div>
+
+    <div v-if="localProvider && localProvider !== ''" class="text-sm text-green-600">
+      {{ localProvider }}
+    </div>
+  </div>
+
+</div>
 
 <div class="grid grid-cols-2 gap-3">
 
 <input
-placeholder="MM/YY"
-class="input"
+  v-model="cardExpiry"
+  @input="formatExpiry"
+  placeholder="MM/YY"
+  class="input"
+  maxlength="5"
 />
 
 <input
+v-model="cardCvv"
 placeholder="CVV"
 class="input"
 />
