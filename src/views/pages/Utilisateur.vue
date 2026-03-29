@@ -421,14 +421,14 @@ function hideDialog(){
             >
 
             
-                <Column field="id" header="ID" sortable style="min-width: 2rem"></Column>
+                <Column field="custom_account_id" header="ID Compte" sortable style="min-width: 2rem"></Column>
                 <Column field="username" header="NON UTILISATEUR"  ></Column>
                 <Column field="first_name" header="NOM " >
                   <template #body="slotProps">
                         {{ slotProps?.data.first_name || 'N/A' }} {{ slotProps?.data.last_name }}
                   </template>
                 </Column>
-                <Column field="email" header="EMAIL" sortable style="min-width: 8rem"></Column>
+                <Column field="email" header="EMAIL" sortable style="min-width: 5rem"></Column>
 
                 <Column field="status" header="STATUS" sortable style="min-width: 8rem">
                   <template #body="slotProps">
@@ -446,8 +446,7 @@ function hideDialog(){
                     </span>
                   </template>
                 </Column>
-                
-                <Column field="date_joined" header=" CREATION " sortable style="min-width: 12rem">
+                <Column field="date_joined" header=" CREATION " sortable style="min-width: 8rem">
                    <template #body="slotProps">
                     {{ formatDate(slotProps.data.date_joined)}}
                    </template>

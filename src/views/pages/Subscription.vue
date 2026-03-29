@@ -135,9 +135,9 @@ function clearFilter() {
             </div>
         </template>
 
-        <Column field="user_name" header="CLIENT" style="min-width: 12rem"></Column>
+        <Column field="user_name" header="CLIENT" style="min-width: 8rem"></Column>
 
-        <Column field="start_date" header="DATE D'ACTIVATION">
+        <Column field="start_date" header="DATE D'ACTIVATION" style="min-width: 8rem">
             <template #body="slotProps">
                 {{ formatDate(slotProps.data.start_date) }}
             </template>
@@ -149,13 +149,14 @@ function clearFilter() {
             </template>
         </Column>
 
-        <Column field="amount" header="DEVISE">
+        <Column field="amount" header="DEVISE" style="min-width: 4rem">
             <template #body="slotProps">
                 {{ formaPrice(slotProps.data.amount) }} USD
             </template>
         </Column>
+        <Column field="custom_account_id" header="ID Compte"></Column>
 
-        <Column field="end_date" header="STATUS" style="min-width: 50px">
+        <Column field="end_date" header="STATUS" style="min-width: 20px">
             <template #body="slotProps">
                 <span :class="getStatusClass(slotProps.data.end_date)">
                     {{ getStatus(slotProps.data.end_date) }}
