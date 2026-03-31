@@ -178,7 +178,7 @@ const handleLogin = async() => {
      
         <div class="text-center mt-4">
           <RouterLink to="/Payment" class="text-sm text-[#7BB661] hover:underline transition-colors">
-            paymet
+            Réabonnement
           </RouterLink>
         </div>
 

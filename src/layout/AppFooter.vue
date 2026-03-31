@@ -2,7 +2,7 @@
 
 <template>
     <div class="layout-footer">
-       BilaTech Solution V 1.8.4
+       By BilaTech RDC
         
     </div>
 </template>

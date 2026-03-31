@@ -1,14 +1,11 @@
 <script setup>
+
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 
-
-function smoothScroll(id) {
-    document.body.click();
-    document.querySelector(id).scrollIntoView({
-        behavior: 'smooth'
-    });
-}
 const downloading = ref(false);
 const downloadCount = ref(0);
 function downloadApp() {
@@ -27,6 +24,23 @@ function downloadApp() {
     }, 1000);
 }
 
+const isMobileMenuOpen = ref(false);
+
+const toggleMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+};
+
+const smoothScroll = (id) => {
+  document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
+  isMobileMenuOpen.value = false; // ferme le menu après choix
+};
+
+function payment(){
+  router.push("/Payment")
+}
+
+
+
 
 
 
@@ -35,55 +49,68 @@ function downloadApp() {
 <template>
      <div class="bg-gray-900 text-gray-200 font-sans">
 
-        <div id="home" class="landing-wrapper overflow-hidden">
+        <div id="home" class="landing-wrapper overflow-hidden" >
 
-        <div class="py-4 px-6 lg:px-20 flex items-center justify-between relative lg:static bg-gray-900/90 backdrop-blur-md shadow-lg rounded-b-xl z-50">
-        <!-- Logo -->
-        <a class="flex items-center" href="#">
-          <img src="/demo/bilatechblanc.png" alt="BilaTech Logo" class="h-44 md:h-56 lg:h-64 mx-auto" />
-        </a>
+<div class="py-4 px-6 lg:px-20 flex items-center justify-between relative lg:static bg-gray-900/90 backdrop-blur-md shadow-lg rounded-b-xl z-50">
 
-        <!-- Mobile Menu Button -->
-        <Button class="lg:!hidden text-[#7BB661]" text severity="secondary" rounded>
-          <i class="pi pi-bars !text-3xl"></i>
-        </Button>
+  <!-- Logo -->
+  <a class="flex items-center" href="#">
+    <img src="/demo/bilatechblanc.png" alt="BilaTech Logo" class="h-44 md:h-56 lg:h-64 mx-auto" />
+  </a>
 
-        <!-- Desktop Menu -->
-        <div class="items-center grow justify-between hidden lg:flex absolute lg:static w-full left-0 top-full px-12 lg:px-0 z-20 rounded-b-xl bg-gray-900/90 backdrop-blur-md shadow-lg">
-          <ul class="list-none p-0 m-0 flex lg:items-center select-none flex-col lg:flex-row cursor-pointer gap-10">
-            <li><a @click="smoothScroll('#hero')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Home</a></li>
-            <li><a @click="smoothScroll('#features')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Services</a></li>
-            <li><a @click="smoothScroll('#highlights')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">POS</a></li>
-            <li><a @click="smoothScroll('#pricing')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Fonctionnalités</a></li>
-          </ul>
+  <!-- Mobile Menu Button -->
+  <Button 
+      class="lg:!hidden text-[#7BB661]" 
+      text severity="secondary" 
+      rounded
+      @click="toggleMenu"
+    >
+      <i class="pi pi-bars !text-3xl"></i>
+  </Button>
 
-          <!-- Bouton Se connecter -->
-          <div class="flex border-t lg:border-t-0 border-gray-700 py-4 lg:py-0 mt-4 lg:mt-0 gap-2">
+  <!-- Menu (mobile + desktop) -->
+  <div
+    class="items-center grow justify-between 
+           absolute lg:static w-full left-0 top-full px-12 lg:px-0 z-20 
+           rounded-b-xl bg-gray-900/90 backdrop-blur-md shadow-lg
+           flex-col lg:flex-row transition-all duration-300"
+    :class="isMobileMenuOpen ? 'flex' : 'hidden lg:flex'"
+  >
 
-            <Button
-                label="Créer un compte"
-                icon="pi pi-user-plus"
-                class="!text-xl mt-4 !px-6 !py-3 bg-indigo-600 text-white shadow-xl"
-                as="router-link"
-                to="/signup"
-              />
+    <!-- Liens -->
+    <ul class="list-none p-0 m-0 flex lg:items-center select-none flex-col lg:flex-row cursor-pointer gap-10">
+      <li><a @click="smoothScroll('#hero')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Home</a></li>
+      <li><a @click="smoothScroll('#features')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Services</a></li>
+      <li><a @click="smoothScroll('#highlights')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">POS</a></li>
+      <li><a @click="smoothScroll('#pricing')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Fonctionnalités</a></li>
+       <li><a @click="payment" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Réabonnement</a></li>
+    </ul>
 
-            <Button 
-              label="Se connecter" 
-              text 
-              as="router-link" 
-              to="/login" 
-              rounded 
-              class="!px-8 !py-3 text-lg bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-        </div>
-      </div>
+    <!-- Boutons Connexion -->
+    <div class="flex border-t lg:border-t-0 border-gray-700 py-4 lg:py-0 mt-4 lg:mt-0 gap-2">
+
+      <Button
+          label="Créer un compte"
+          icon="pi pi-user-plus"
+          class="!text-xl mt-4 !px-6 !py-3 bg-indigo-600 text-white shadow-xl"
+          as="router-link"
+          to="/signup"
+        />
+
+      <Button 
+        label="Se connecter" 
+        text 
+        as="router-link" 
+        to="/login" 
+        rounded 
+        class="!px-8 !py-3 text-lg bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-300"
+      />
+    </div>
+  </div>
+</div>
 
 
-      <div class="w-full text-center py-2 bg-gradient-to-r from-[#004D4A] to-[#7BB661] text-white font-semibold tracking-wide">
-        ✨ Toute l’équipe BilaTech vous souhaite une excellente année 2026 🎊
-      </div>
+      
 
 
             <!-- HERO -->
@@ -218,23 +245,39 @@ function downloadApp() {
     <!-- BASIC -->
     <div class="col-span-12 lg:col-span-4">
       <div class="relative h-full p-8 rounded-2xl bg-gray-800 border border-[#7BB661]/50 shadow-lg hover:shadow-2xl transition-transform transform hover:-translate-y-1">
+        
+        <!-- Badge -->
         <span class="absolute -top-4 left-6 bg-[#7BB661] text-white text-xs px-3 py-1 rounded-full shadow-md">
           ESSENTIEL
         </span>
 
+        <!-- Title -->
         <h3 class="text-center text-2xl font-semibold mb-4 text-[#7BB661]">BASIC</h3>
 
+        <!-- Price -->
         <div class="text-center mb-6">
           <span class="text-gray-400 line-through text-lg">$19.99</span>
           <div class="text-4xl font-bold text-white">$9.99</div>
           <span class="text-gray-400">/ mois</span>
         </div>
 
-        <ul class="space-y-3 text-gray-300">
+        <!-- Features -->
+        <ul class="space-y-3 text-gray-300 mb-8">
           <li>✔ Gestion des ventes</li>
           <li>✔ Gestion des stocks</li>
           <li>✔ Rapports journaliers</li>
         </ul>
+
+        <!-- Button -->
+        <div class="flex justify-center">
+          <Button
+            label="Commencer"
+            class="!px-8 !py-3 bg-[#7BB661] text-white text-lg rounded-xl shadow-md hover:shadow-xl hover:scale-105 transition duration-300"
+            as="router-link"
+            to="/signup"
+          />
+        </div>
+
       </div>
     </div>
 
@@ -253,12 +296,22 @@ function downloadApp() {
           <span class="text-gray-300">/ mois</span>
         </div>
 
-        <ul class="space-y-3 text-gray-200">
+        <ul class="space-y-3 text-gray-200 mb-8">
           <li>✔ Gestion avancée des ventes</li>
           <li>✔ Stock en temps réel</li>
           <li>✔ Statistiques & rapports</li>
           <li>✔ Support prioritaire</li>
         </ul>
+
+
+        <div class="flex justify-center">
+          <Button
+            label="Commencer"
+            class="!px-8 !py-3 bg-[#7BB661] text-white text-lg rounded-xl shadow-md hover:shadow-xl hover:scale-105 transition duration-300"
+            as="router-link"
+            to="/signup"
+          />
+        </div>
       </div>
     </div>
 
@@ -277,12 +330,21 @@ function downloadApp() {
           <span class="text-gray-400">/ mois</span>
         </div>
 
-        <ul class="space-y-3 text-gray-300">
+        <ul class="space-y-3 text-gray-300 mb-8">
           <li>✔ Toutes les fonctionnalités Medium</li>
           <li>✔ Historique complet</li>
           <li>✔ Multi-points de vente</li>
           <li>✔ Assistance prioritaire</li>
         </ul>
+
+       <div class="flex justify-center">
+          <Button
+            label="Commencer"
+            class="!px-8 !py-3 bg-[#7BB661] text-white text-lg rounded-xl shadow-md hover:shadow-xl hover:scale-105 transition duration-300"
+            as="router-link"
+            to="/signup"
+          />
+        </div>
       </div>
     </div>
 
