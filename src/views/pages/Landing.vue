@@ -49,65 +49,69 @@ function payment(){
 <template>
      <div class="bg-gray-900 text-gray-200 font-sans">
 
-        <div id="home" class="landing-wrapper overflow-hidden" >
+      <div id="home" class="landing-wrapper overflow-visible">
 
-<div class="py-4 px-6 lg:px-20 flex items-center justify-between relative lg:static bg-gray-900/90 backdrop-blur-md shadow-lg rounded-b-xl z-50">
+      <div 
+          class="py-4 px-6 lg:px-20 flex items-center justify-between
+                bg-gray-900/90 backdrop-blur-md shadow-xl
+                sticky top-0 left-0 w-full z-50"
+        >
 
-  <!-- Logo -->
-  <a class="flex items-center" href="#">
-    <img src="/demo/bilatechblanc.png" alt="BilaTech Logo" class="h-44 md:h-56 lg:h-64 mx-auto" />
-  </a>
+        <!-- Logo -->
+        <a class="flex items-center" href="#">
+          <img src="/demo/bilatechblanc.png" alt="BilaTech Logo" class="h-44 md:h-56 lg:h-64 mx-auto" />
+        </a>
 
-  <!-- Mobile Menu Button -->
-  <Button 
-      class="lg:!hidden text-[#7BB661]" 
-      text severity="secondary" 
-      rounded
-      @click="toggleMenu"
-    >
-      <i class="pi pi-bars !text-3xl"></i>
-  </Button>
+        <!-- Mobile Menu Button -->
+        <Button 
+            class="lg:!hidden text-[#7BB661]" 
+            text severity="secondary" 
+            rounded
+            @click="toggleMenu"
+          >
+            <i class="pi pi-bars !text-3xl"></i>
+        </Button>
 
-  <!-- Menu (mobile + desktop) -->
-  <div
-    class="items-center grow justify-between 
-           absolute lg:static w-full left-0 top-full px-12 lg:px-0 z-20 
-           rounded-b-xl bg-gray-900/90 backdrop-blur-md shadow-lg
-           flex-col lg:flex-row transition-all duration-300"
-    :class="isMobileMenuOpen ? 'flex' : 'hidden lg:flex'"
-  >
+        <!-- Menu (mobile + desktop) -->
+        <div
+          class="items-center grow justify-between 
+                absolute lg:static w-full left-0 top-full px-12 lg:px-0 z-20 
+                rounded-b-xl bg-gray-900/90 backdrop-blur-md shadow-lg
+                flex-col lg:flex-row transition-all duration-300"
+          :class="isMobileMenuOpen ? 'flex' : 'hidden lg:flex'"
+        >
 
-    <!-- Liens -->
-    <ul class="list-none p-0 m-0 flex lg:items-center select-none flex-col lg:flex-row cursor-pointer gap-10">
-      <li><a @click="smoothScroll('#hero')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Home</a></li>
-      <li><a @click="smoothScroll('#features')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Services</a></li>
-      <li><a @click="smoothScroll('#highlights')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">POS</a></li>
-      <li><a @click="smoothScroll('#pricing')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Fonctionnalités</a></li>
-       <li><a @click="payment" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Réabonnement</a></li>
-    </ul>
+          <!-- Liens -->
+          <ul class="list-none p-0 m-0 flex lg:items-center select-none flex-col lg:flex-row cursor-pointer gap-10">
+            <li><a @click="smoothScroll('#hero')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Home</a></li>
+            <li><a @click="smoothScroll('#features')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Services</a></li>
+            <li><a @click="smoothScroll('#highlights')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">POS</a></li>
+            <li><a @click="smoothScroll('#pricing')" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Fonctionnalités</a></li>
+            <li><a @click="payment" class="px-0 py-4 font-semibold text-lg text-gray-100 hover:text-[#F9A825] transition-colors duration-300">Réabonnement</a></li>
+          </ul>
 
-    <!-- Boutons Connexion -->
-    <div class="flex border-t lg:border-t-0 border-gray-700 py-4 lg:py-0 mt-4 lg:mt-0 gap-2">
+          <!-- Boutons Connexion -->
+          <div class="flex border-t lg:border-t-0 border-gray-700 py-4 lg:py-0 mt-4 lg:mt-0 gap-2">
 
-      <Button
-          label="Créer un compte"
-          icon="pi pi-user-plus"
-          class="!text-xl mt-4 !px-6 !py-3 bg-indigo-600 text-white shadow-xl"
-          as="router-link"
-          to="/signup"
-        />
+            <Button
+                label="Créer un compte"
+                icon="pi pi-user-plus"
+                class="!text-xl mt-4 !px-6 !py-3 bg-indigo-600 text-white shadow-xl"
+                as="router-link"
+                to="/signup"
+              />
 
-      <Button 
-        label="Se connecter" 
-        text 
-        as="router-link" 
-        to="/login" 
-        rounded 
-        class="!px-8 !py-3 text-lg bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-300"
-      />
-    </div>
-  </div>
-</div>
+            <Button 
+              label="Se connecter" 
+              text 
+              as="router-link" 
+              to="/login" 
+              rounded 
+              class="!px-8 !py-3 text-lg bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-md hover:shadow-xl hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        </div>
+      </div>
 
 
       
