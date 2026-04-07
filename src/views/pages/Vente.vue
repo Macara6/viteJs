@@ -106,6 +106,7 @@ function exchangeRate(value){
     return value;
 }
 
+
 async function searchCustomerByPhone(){
   if(!clientPhone.value) return
   try{

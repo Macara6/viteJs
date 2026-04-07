@@ -1,6 +1,6 @@
 
 <script setup>
-import { createCustomer, downloadCard, fetchCustomer, fetchUserProfilById } from '@/service/Api';
+import { createCustomer, deleteCustomerAPI, downloadCard, fetchCustomer, fetchUserProfilById } from '@/service/Api';
 import { formatDate, formatLoyaltyCard } from '@/utils/formatters';
 import { FilterMatchMode } from '@primevue/core/api';
 import { useToast } from 'primevue/usetoast';
@@ -12,6 +12,8 @@ const customer = ref({});
 const customerDialog = ref(false);
 const submitted = ref(false);
 const userProfile = ref(null);
+const deleteClient = ref(false);
+const deleteMode = ref("");
 
 const filters = ref({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
 
@@ -35,15 +37,30 @@ async function getCustomer(){
 }
 
 async function fetchUserProfl(){
-      const userId = localStorage.getItem('id');
-      try{
-        const result = await fetchUserProfilById(userId);
-        userProfile.value = Array.isArray(result) ? result[0] : result;
-      } catch(error){
-        console.error('Erreur lors du chargement du profile utilisateur', error);
-      }
+    const userId = localStorage.getItem('id');
+    try{
+      const result = await fetchUserProfilById(userId);
+      userProfile.value = Array.isArray(result) ? result[0] : result;
+    } catch(error){
+      console.error('Erreur lors du chargement du profile utilisateur', error);
+    }
 }
 
+async function deleteCustomer(){
+  try{
+    await deleteCustomerAPI(customer.value.id);
+    await getCustomer();
+    toast.add({ severity: 'success', summary: 'Successful', detail: 'Client supprimée', life: 3000 });
+    deleteClient.value = false;
+  }catch(error){
+    console.error('error to delete customer:', error);
+  }
+}
+
+async function confirmDelete(custo){
+  customer.value = custo;
+  deleteClient.value = true;
+}
 
 function openNew(){
     submitted.value = false;
@@ -54,6 +71,7 @@ function hideDialog(){
     customerDialog.value = false;
     submitted.value = false;
 }
+
 async function saveCustomer(){
     submitted.value = true;
     const { name,last_name, phone_number, email, sexe } = customer.value;
@@ -178,7 +196,7 @@ async function saveCustomer(){
               icon="pi pi-trash"
               class="p-button-sm"
               severity="danger"
-              
+              @click="confirmDelete(data)"
             />
           </template>
         </Column>
@@ -231,6 +249,17 @@ async function saveCustomer(){
       </template>
     </Dialog>
 
+
+    <Dialog v-model:visible="deleteClient" :style="{ width: '90%', maxWidth: '450px' }" header="Confirm" :modal="true">
+      <div class="flex items-center gap-4">
+        <i class="pi pi-exclamation-triangle !text-3xl" />
+        <span>Are you sure you want to delete <b>{{ customer.name }}</b>?</span>
+      </div>
+      <template #footer>
+        <Button label="No" icon="pi pi-times" text @click="deleteProductDialog = false" />
+        <Button label="Yes" icon="pi pi-check" @click="deleteCustomer" />
+      </template>
+    </Dialog>
 
 </div>
 

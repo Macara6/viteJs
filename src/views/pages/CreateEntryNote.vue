@@ -48,7 +48,7 @@ const handleCreateEntryNote = async ()=>{
         currency:selectedCurrency.value,
         total_amount:total,
         detail_inputs:details.value
-    };
+    }; 
 
     try{
         await createEntryNote(payload);

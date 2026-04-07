@@ -755,6 +755,20 @@ export async function fetchCustomer(){
         console.error('error to fetching customer',error);
     }
 }
+// function pour supprimer le client 
+export async function deleteCustomerAPI(customerId){
+    const DELETE_CUSTOMER = `${API_BASE}customer/delete/${customerId}/`;
+    try{
+        const response = await axios.delete(DELETE_CUSTOMER, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        return response.data;
+    }catch(error){
+        console.error('error :', error);
+    }
+}
 
 
 // fonction pour creer une facture 

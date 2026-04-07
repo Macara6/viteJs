@@ -9,7 +9,7 @@ const router = useRouter();
 const downloading = ref(false);
 const downloadCount = ref(0);
 function downloadApp() {
-    const fileUrl = '/demo/apk/app-bilasol.apk'; // renommer Url en fileUrl
+    const fileUrl = 'https://pos.bilatech.org/media/app/app-release.apk'; // renommer Url en fileUrl
     const link = document.createElement('a');
     link.href = fileUrl;        // ok maintenant
     link.download = 'bila-sol.apk';

@@ -1,7 +1,8 @@
 <script setup>
-import { fetchSubscriptionByEmail, paySubscription } from "@/service/Api"
-import { useToast } from 'primevue/usetoast'
-import { computed, ref, watch } from "vue"
+import { fetchSubscriptionByEmail, paySubscription } from "@/service/Api";
+import { useToast } from 'primevue/usetoast';
+import { computed, ref, watch } from "vue";
+import { useRouter } from 'vue-router';
 const toast = useToast()
 const step = ref(1)
 const email = ref("")
@@ -22,6 +23,7 @@ const successMessage = ref("");
 
 const paymentLoading = ref(false)
 
+const router = useRouter();
 const isCardPayment = computed(()=>{
   return paymentMethod.value === "visa"
 })
@@ -71,6 +73,7 @@ watch(cardNumber, (val) => {
   localProvider.value = detectLocalProvider(cardProvider.value, val)
   
 })
+
 const getSubscription = async () => {
 
   if(!email.value){
@@ -123,13 +126,15 @@ const confirmPayment = async ()=>{
 
     const response = await paySubscription(data);
     
-    if(response.paymentPage){
-      window.location.href = response.paymentPage;
-      return
+    if (response.status === 200) {
+
+      successMessage.value = "Inscription réussie ! Redirection...";
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+      return;
     }
-  
-    console.log("Réponse paiement :", response)
-    successMessage.value = "Demande envoyée. Confirmez sur votre téléphone."
     
   }catch(error){
     console.log(error)

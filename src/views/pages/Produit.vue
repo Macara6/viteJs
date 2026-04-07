@@ -172,6 +172,7 @@ async function loadProducts(userId) {
 }
 
 
+
 // helper: charger categories + produits pour un utilisateur donné
 async function loadCategoriesAndProductsForUser(userId) {
 
@@ -251,7 +252,6 @@ function resetDates(){
 
 async function openHistoryDialog() {
 const userId = selectedUserFilter.value || localStorage.getItem('id');
-
 // Charger le cache existant
 let cacheHistory = loadCache('historyStock') || [];
 try{
@@ -464,28 +464,33 @@ const filteredProducts = computed(() => {
 });
 
 // force forceRefrech
+async function forceRefresh() {
+  try {
 
-async function forceRefresh(){
-  try{
-    const userId =  user.value?.id || localStorage.getItem('id');
-    if(!userId){
-        toast.add({severity: 'warn',summary: 'Utilisateur non identifié',detail: 'Veuillez vous reconnecter.',life: 3000
+   const userId = Number( localStorage.getItem('id'));
+
+    if (!userId) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Utilisateur non identifié',
+        detail: 'Veuillez vous reconnecter.',
+        life: 3000
       });
       return;
     }
-   clearAllCache();
 
-    products.value = [];
-    categorys.value = [];
+    clearAllCache();
+    localStorage.removeItem('products');
+    localStorage.removeItem('categories');
 
-    await Promise.all([
-      loadUserProfile(userId),
-      loadCategories(userId),
-      loadProducts(userId),
-      getUserChildren()
-    ]);
+    products.value.length = 0;
+    categorys.value.length = 0;
+
+    await loadUserProfile(userId);
+    await loadCategories(userId);
+    await loadProducts(userId);
+
     selectedUserProfile.value = userProfile.value;
-   
 
     toast.add({
       severity: 'success',
@@ -494,8 +499,8 @@ async function forceRefresh(){
       life: 3000
     });
 
-  }catch(error){
-    console.error("Erreur lors de l'atualisation :", error);
+  } catch (error) {
+    console.error("Erreur lors de l'actualisation :", error);
 
     toast.add({
       severity: 'error',
@@ -572,6 +577,15 @@ async function saveProduct() {
       return;
     }
   }
+  if(name){
+    const nameExists = products.value.some(p => p.name === name && p.id !== id);
+    if(nameExists){
+      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Ce nom est déjà utilisé.', life: 3000 });
+      return;
+    }
+   
+  }
+
 
   try {
     const userCreated = localStorage.getItem('id');
@@ -591,11 +605,11 @@ async function saveProduct() {
       toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Updated', life: 3000 });
     } else {
       const createdProduct = await createProductAPI(productData);
-      products.value.unshift(createdProduct);
-
+      const category_name = categorys.value.find(c => c.id === createdProduct.category)?.name || 'Unknow';
+      products.value.unshift({ ...createdProduct, category_name});
       toast.add({ severity: 'success', summary: 'Successful', detail: 'Product Created', life: 3000 });
     }
-
+  
     saveCache('products', products.value);
     hideDialog();
   } catch (error) {
@@ -603,6 +617,9 @@ async function saveProduct() {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to save product', life: 3000 });
   }
 }
+
+
+
 
 function onExpirationChange(e) { product.value.expiration_date = e.value ? e.value.toISOString().split('T')[0] : null; }
 
