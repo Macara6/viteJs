@@ -55,6 +55,7 @@ export async function refreshToken(){
     }
 
 }
+
 // fonction pour verifier le code secrete
 export async function verifySecretKey(key){
     const VERIFY_KEY_URL =`${API_BASE}secret_key/verify/`;
@@ -499,6 +500,21 @@ export async function fetchUsers(){
         return await response.data.results;
     }catch (error){
         console.error('error fetching invoices',error);
+        throw error;
+    }
+}
+export async function fetchUserForId(userId){
+    const URL_USERFORID = `${API_BASE}users/views/`;
+    try{
+        const response = await axios.get(URL_USERFORID,{
+            params:{user_id:userId},
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data.results;
+    }catch(error){
+        console.error('error to fetching invoices', error);
         throw error;
     }
 }

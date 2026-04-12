@@ -1,16 +1,54 @@
 <script setup>
 import { fetchPayements } from "@/service/Api";
 import { formatDate } from "@/utils/formatters";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+
 
 
 const payments = ref([])
 const totol_collected = ref(0);
 const total_collected_balance = ref(0);
 const total_colletected_today = ref(0);
+const total_collected_mpessa = ref(0);
+const total_collected_aitel = ref(0);
+const total_collected_orange=ref(0);
 const today = new Date().toISOString().split('T')[0]
 const selectedFilter = ref('today');
 const fileteredPayments = ref([]);
+const searchQuery= ref("");
+// pagination 
+const currentPage = ref(1);
+const itemsPerPage= ref(6);
+
+
+const paginatedPatements = computed(() => {
+    const start = (currentPage.value - 1 ) * itemsPerPage.value;
+    const end = start + itemsPerPage.value;
+    return searchPayments.value.slice(start, end);
+})
+
+const totalPages = computed(() => 
+ Math.ceil(searchPayments.value.length / itemsPerPage.value)
+)
+
+function nextPage(){
+    if(currentPage.value < totalPages.value) currentPage.value ++;
+}
+function prevPage(){
+    if(currentPage.value > 1) currentPage.value --;
+}
+
+// fin du systeme de pagination
+const searchPayments = computed(() => {
+    const query = searchQuery.value.trim().toLowerCase();
+    if(!query) return fileteredPayments.value;
+
+    return fileteredPayments.value.filter(py => 
+        String(py.id).includes(query) ||
+        py.phone?.toLowerCase().includes(query)||
+        py.transaction_reference?.toLowerCase().includes(query)
+    );
+});
 
 async function getPayments(){
     const response = await fetchPayements();
@@ -31,17 +69,20 @@ async function getPayments(){
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
     )
-    total_collected_balance.value = filterPayments.reduce(
+    total_collected_balance.value = parseFloat(filterPayments.reduce(
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
+        ).toFixed(2)
     )
     
-    total_colletected_today.value = paymentToDay.reduce(
+    total_colletected_today.value = parseFloat(paymentToDay.reduce(
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
+        ).toFixed(2)
     )
 
 }
+
 
 function filterByDate(payments, filter){
     const now = new Date();
@@ -72,21 +113,17 @@ function filterByDate(payments, filter){
 }
 
 
-
 function applyFilter(){
     const filtered = filterByDate(payments.value, selectedFilter.value);
     fileteredPayments.value = filterByDate(payments.value, selectedFilter.value);
 
-    total_colletected_today.value = filtered.reduce(
+    total_colletected_today.value = parseFloat(filtered.reduce(
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
+      ).toFixed(2)
     )
  
 }
-
-
-
-
 
 
 onMounted(() => {
@@ -191,6 +228,7 @@ const getProviderLogo = (provider) => {
         </div>
 
         <input
+        v-model="searchQuery"
         type="text"
         placeholder="Rechercher : ID, Téléphone, Nom..."
         class="border rounded-lg px-3 py-2 w-72"
@@ -213,15 +251,15 @@ const getProviderLogo = (provider) => {
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
 
         <span class="px-3 py-1 rounded-lg bg-green-100 text-green-700">
-        MPESA : 0 USD
+       
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-red-100 text-red-600">
-        AIRTEL : 0 USD
+        
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-orange-100 text-orange-600">
-        ORANGE : USD
+        
         </span>
 
         </div>
@@ -310,7 +348,7 @@ const getProviderLogo = (provider) => {
         <tbody>
 
         <tr
-            v-for="p in fileteredPayments"
+            v-for="p in paginatedPatements"
             :key="p.id"
             class="border-t hover:bg-gray-50"
             >
@@ -392,6 +430,32 @@ const getProviderLogo = (provider) => {
         </tbody>
 
         </table>
+        <div class="flex justify-between items-center mt-4 px-4 py-3 bg-white rounded-xl shadow">
+
+        <!-- Bouton précédent -->
+        <button
+            @click="prevPage"
+            :disabled="currentPage === 1"
+            class="px-3 py-1 border rounded disabled:opacity-40"
+        >
+            Précédent
+        </button>
+
+        <!-- Infos de pagination -->
+        <div class="text-sm text-gray-600">
+            Page {{ currentPage }} / {{ totalPages }}
+        </div>
+
+        <!-- Bouton suivant -->
+        <button
+            @click="nextPage"
+            :disabled="currentPage === totalPages"
+            class="px-3 py-1 border rounded disabled:opacity-40"
+        >
+            Suivant
+        </button>
+
+        </div>
 
         </div>
 

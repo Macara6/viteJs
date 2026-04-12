@@ -1,6 +1,14 @@
 vue
 <script setup>
-import { createdSubscription, fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById, updateSubscription } from '@/service/Api';
+import {
+  createdSubscription,
+  fecthSubscriptionByUserId,
+  fetchUserById,
+  fetchUserForId,
+  fetchUserProfilById,
+  updateSubscription
+} from '@/service/Api';
+import { statusCheck } from '@/utils/formatters';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -9,6 +17,7 @@ const user = ref(null);
 const subscription = ref(null); 
 const isEditMode = ref(false);
 const userProfile = ref(null);
+const usersforMyIds = ref([]); 
 
 const subscriptionTypes =[
     {label: 'Basic', value: 'BASIC'},
@@ -17,7 +26,6 @@ const subscriptionTypes =[
     {label: 'Platinum', value:'PLATINUM'},
     {label: 'Diamond', value:'DIAMOND'},
 ]
-
 
 const subscriptionData = ref({
     user:null,
@@ -35,6 +43,7 @@ onMounted(async () => {
     userRouter();
     fetchUserSubscription();
     fetchUserProfile();
+    fetchUserForMyId();
 
 });
 
@@ -51,7 +60,16 @@ async function fetchUserProfile(){
         userProfile.value = null;
     }
 }
-
+async function fetchUserForMyId(){
+  const userId = route.params.id;
+  try{
+    const  response = await fetchUserForId(userId);
+    usersforMyIds.value = response
+    console.log('Les utilisateur de ce client :', usersforMyIds.value);
+  }catch(error){
+     
+  }
+}
 
 async  function fetchUserSubscription(){
     try {
@@ -59,8 +77,6 @@ async  function fetchUserSubscription(){
         const result = await fecthSubscriptionByUserId(userId);
         subscription.value = result;
         console.log('Abonnement :', result);
-
-
         if (result){
             subscriptionData.value = {
             user: result.user,
@@ -163,7 +179,6 @@ async function saveSubscription(){
 
       </div>
 
-
     <Fluid>
         <div class="flex mt-8">
             <div class="card flex flex-col gap-4 w-full">
@@ -231,6 +246,60 @@ async function saveSubscription(){
             </div>
         </div>
     </Fluid>
+
+    <div class="bg-white rounded-xl shadow overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600">
+            <tr>
+              <th class="p-3 text-left"> ID Compte</th>
+              <th class="p-3 text-left">Nom d'utilisateur</th>
+              <th class="p-3 text-left">Nom & Post-Nom</th>
+              <th class="p-3 text-left">email</th>
+              <th class="p-3 text-left">Rôle</th>
+              <th class="p-3 text-left">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr
+          v-for="u in usersforMyIds"
+          :key="u.id"
+          class="border-t hover:bg-gray-50"
+        >
+          <td class="p-3 text-blue-600 font-semibold">
+            {{ u.custom_account_id }}
+          </td>
+          
+           <td class="p-3 flex items-center gap-2">
+              {{ u.username }}
+           </td>
+          <td class="p-3 font-semibold text-blue-600">
+            {{ u.first_name }} {{ u.last_name }} 
+          </td>
+          
+          <td class="p-3 font-semibold text-blue-600">
+            {{ u.email }} 
+          </td>
+          <td class="p-3 font-semibold text-blue-600">
+            {{ u.status }} 
+          </td>
+          
+          <td class="p-3 font-semibold text-green-500">
+            {{ statusCheck( u.is_deleted )}} 
+          </td>
+
+        </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+
+
+
+
+
+
+
       <!-- Dialog pour l'abonnement -->
       <Dialog v-model:visible="subscriptionDialog" :style="{ width: '500px' }" header="Recharge Abonnement" :modal="true" class="p-4">
         <div class="flex flex-col gap-5">

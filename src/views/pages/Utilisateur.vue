@@ -12,10 +12,11 @@ import {
   updateUserProfile,
   verifySecretKey
 } from '@/service/Api';
+import { statusCheck } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
- 
+
 const toast = useToast();
 const dt  = ref();
 const users = ref([]);
@@ -430,7 +431,7 @@ function hideDialog(){
                 </Column>
                 <Column field="email" header="EMAIL" sortable style="min-width: 5rem"></Column>
 
-                <Column field="status" header="STATUS" sortable style="min-width: 8rem">
+                <Column field="status" header="RÔLE" sortable style="min-width: 8rem">
                   <template #body="slotProps">
                     <span
                       :class="[
@@ -446,6 +447,20 @@ function hideDialog(){
                     </span>
                   </template>
                 </Column>
+                 <Column field="status" header="STATUT" sortable style="min-width: 8rem">
+                  <template #body="slotProps">
+                    <span 
+                      :class="[
+                       'px-2 py-1 rounded text-white text-sm font-semibold',
+                       {
+                        'bg-emerald-800': slotProps.data.is_deleted === false,
+                       }
+                      ]"
+                    >
+                     {{ statusCheck(slotProps.data.is_deleted) }}
+                     </span>
+                  </template>
+                 </Column>
                 <Column field="date_joined" header=" CREATION " sortable style="min-width: 8rem">
                    <template #body="slotProps">
                     {{ formatDate(slotProps.data.date_joined)}}

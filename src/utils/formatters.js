@@ -15,10 +15,15 @@ export  function formatDate (value ){
  );
 }
 
+
 export function formatLoyaltyCard(number){
   if (!number) return '';
 
   const cleanNumber = number.toString();
   if(cleanNumber.length !==6) return cleanNumber;
   return cleanNumber.slice(0, 3) + '-' + cleanNumber.slice(3);
+}
+
+export function statusCheck(is_delete){
+  return is_delete ? "INACTIF" : "ACTIF";
 }
