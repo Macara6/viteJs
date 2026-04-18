@@ -47,10 +47,12 @@ const startDate = ref(null);
 const endDate = ref(null);
 
 
+
 onMounted(async () => {
   await getUserChildren();
   selectedUserFilter.value = userId; // par défaut, utilisateur connecté
   await refreshUserData(); // charge profil + cashouts
+   
 });
 
 
@@ -65,6 +67,20 @@ const filterdCashOut = computed(() => {
     return true;
   })
 })
+
+const totalAmountCDF = computed(() => {
+  return filterdCashOut.value
+    .filter(cas => cas.currency === 'CDF')
+    .reduce((sum, cas) => sum + parseFloat(cas.total_amount || 0), 0)
+    .toFixed(2);
+});
+
+const totalAmountUSD = computed(() => {
+  return filterdCashOut.value
+    .filter(cas => cas.currency === 'USD')
+    .reduce((sum, cas) => sum + parseFloat(cas.total_amount || 0), 0)
+    .toFixed(2);
+});
 
 function resetDates(){
   startDate.value =null;
@@ -296,6 +312,17 @@ const findUser = (id) => {
             </span>
 
 
+            </div>
+
+
+          </div>
+          <div class="mt-4 space-y-2">
+            <div class="text-lg font-semibold text-green-600">
+              Total CDF : {{ totalAmountCDF }}
+            </div>
+
+            <div class="text-lg font-semibold text-blue-600">
+              Total USD : {{ totalAmountUSD }}
             </div>
           </div>
         </template>

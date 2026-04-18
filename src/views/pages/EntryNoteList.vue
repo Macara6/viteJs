@@ -42,7 +42,6 @@ import { computed, onMounted, ref, watch } from 'vue';
    })
 
    const filterdEntryNote = computed(() => {
-
     return EntryNoteList.value.filter(item => {
       const created = new Date(item.created_at);
       const start = startDate.value? new Date(startDate.value): null;
@@ -53,6 +52,21 @@ import { computed, onMounted, ref, watch } from 'vue';
       return true;
      })
    })
+
+const totalAmountCDF = computed(() => {
+  return filterdEntryNote.value
+      .filter(ent => ent.currency ==='CDF')
+      .reduce((sum, ent) => sum + parseFloat(ent.total_amount || 0), 0)
+      .toFixed(2);
+})
+
+const totalAmountUSD = computed(() => {
+  return filterdEntryNote.value
+      .filter(ent => ent.currency ==='USD')
+      .reduce((sum, ent) => sum + parseFloat(ent.total_amount || 0), 0)
+      .toFixed(2);
+})
+
 
 function resetDates(){
   startDate.value =null;
@@ -320,6 +334,16 @@ async function downloadPDF() {
                     class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
                   />
                 </span>
+                  </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                  <div class="text-lg font-semibold text-green-600">
+                    Total CDF : {{ totalAmountCDF }}
+                  </div>
+
+                  <div class="text-lg font-semibold text-blue-600">
+                    Total USD : {{ totalAmountUSD }}
                   </div>
                 </div>
               </template>

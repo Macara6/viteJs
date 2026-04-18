@@ -528,12 +528,12 @@ function hideDialog(){
                     </div>
 
                   <div v-if="!isSuperUser" class="col-span-6">
-                      <label class="block font-bold mb-2">STATUS</label>
+                      <label class="block font-bold mb-2">RÔLE</label>
                       <Select v-model="user.status"
                       :options="userStatusType"
                        optionLabel="label" 
                        optionValue="value"
-                       placeholder="STATAUS" fluid />
+                       placeholder="RÔLE" fluid />
                    </div>
 
                 </div>

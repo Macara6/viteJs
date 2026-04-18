@@ -2,7 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchUserById } from '@/service/Api';
+import { fetchUserById, logoutAPI } from '@/service/Api';
 import { usePrimeVue } from 'primevue/config';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -24,14 +24,9 @@ const username = ref(localStorage.getItem('username') || '');
 const isSuperUser = ref(localStorage.getItem('is_superuser') === 'true');
 
 
-const logout = () => {
+const logout = async () => {
     // Supprimer les infos du localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('id');
-    localStorage.removeItem('is_superuser');
-    localStorage.removeItem('status');
-
+     await logoutAPI();
     // Rediriger vers la page login
     router.push({ name: 'login' });
 };

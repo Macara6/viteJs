@@ -80,7 +80,6 @@ async function getPayments(){
         0
         ).toFixed(2)
     )
-
 }
 
 
@@ -325,7 +324,7 @@ const getProviderLogo = (provider) => {
         </div>
 
         <!-- TABLE -->
-        <div class="bg-white rounded-xl shadow overflow-hidden">
+        <div class="bg-white rounded-xl shadow overflow-hidden" >
 
         <table class="w-full text-sm">
 

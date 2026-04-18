@@ -3,17 +3,21 @@ import axios from "axios";
 
 const API_BASE = 'https://pos.bilatech.org/';
 
+const tokenAccess = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-export async function login(usernam, password) {
+export async function login(usernam, password, rememberMe) {
     const LOGIN_URL = `${API_BASE}login/`;
     try {
         const response = await axios.post(LOGIN_URL, {
             username: usernam,
-            password: password
+            password: password,
+            remember_me: rememberMe
         });
         const { id, username, email, token, refresh , is_superuser, status} = response.data;
-        localStorage.setItem('token',token);
-        localStorage.setItem('refresh_token',refresh);
+        
+          localStorage.setItem('token',token);
+          localStorage.setItem('refresh_token',refresh);
+       
         localStorage.setItem('id',id);
         localStorage.setItem('username',usernam);
         localStorage.setItem('email',email);
@@ -26,6 +30,25 @@ export async function login(usernam, password) {
     } catch (error) {
         console.error('Error logging in:', error);
         throw error;
+    }
+}
+
+// fonction pour la déconnexion 
+export async function logoutAPI(){
+    const LOGOUT_URL = `${API_BASE}logout/`;
+    const refresh = localStorage.getItem('token')
+    try{
+        await axios.post(LOGOUT_URL, {
+            refresh: refresh,
+        },{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        localStorage.clear();
+
+    }catch(error){
+        console.error('error to logout', error)
     }
 }
 

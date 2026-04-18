@@ -11,6 +11,7 @@ const username = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const loading = ref(false);
+const rememberMe = ref(false);
 
 const { showAlert } = useGlobalAlert()
 
@@ -26,7 +27,7 @@ const handleLogin = async() => {
     
     try {
 
-       const userData = await login(username.value, password.value); 
+       const userData = await login(username.value, password.value, rememberMe.value); 
 
        if (userData && userData.token){
           let subscription = null;
@@ -169,6 +170,10 @@ const handleLogin = async() => {
           <i v-if="loading" class="pi pi-spin pi-spinner text-white"></i>
           <span v-else>Se connecter</span>
         </Button>
+        <div class="flex items-center gap-2">
+          <input type="checkbox" v-model="rememberMe" id="remember" />
+          <label for="remember" class="text-sm text-[#7BB661]">Se souvenir de moi</label>
+        </div>
 
         <div class="text-center mt-4">
           <RouterLink to="/reset" class="text-sm text-[#7BB661] hover:underline transition-colors">

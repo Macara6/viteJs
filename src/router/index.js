@@ -265,19 +265,32 @@ const router = createRouter({
 });
 
 
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token') // récupère le JWT du localStorage
 
   // Si la route nécessite une authentification
   if (to.meta.requiresAuth) {
-    if (token) {
+    if (token && !isTokenExpired(token)) {
       next() // autorisé
     } else {
+        localStorage.removeItem('token')
       next({ name: 'login', query: { redirect: to.fullPath } }) // redirige vers login
     }
   } else {
     next() // route publique
   }
 })
+
+function isTokenExpired(token){
+    try{
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Date.now() / 1000;
+
+        return payload.exp < now;
+    }catch(error){
+        return(true);
+    }
+}
 
 export default router;
