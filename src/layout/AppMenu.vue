@@ -59,7 +59,8 @@ const model = computed(() => {
         label: 'GESTION CLIENT',
         items: [
           { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
-          { label: 'Abonnements', icon: 'pi pi-server', to: '/pages/Subscription' }
+          { label: 'Abonnements', icon: 'pi pi-server', to: '/pages/Subscription' },
+          { label:'Activites', icon: 'pi pi-calendar-minus', to:'/pages/UsersOnline'},
         ]
       },
       {

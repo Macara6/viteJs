@@ -432,6 +432,8 @@ export async function fetchInvoicesAllUsers() {
     }
    return allInvoices;
 }
+// fetch users online
+
 
 // afficher les utilisateur qui sont de la corbeille 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
@@ -526,6 +528,20 @@ export async function fetchUsers(){
         throw error;
     }
 }
+export async function fetchUsersOnlineAPI(){
+    const URL_ONLINE_USERS = `${API_BASE}online/users/`;
+    try{
+        const response = await axios.get(URL_ONLINE_USERS, {
+           headers:{
+            'Authorization':`Bearer ${localStorage.getItem('token')}`
+           }
+        });
+        return response.data;
+    }catch(error){
+       console.error('error to fetch online users :', error)
+    }
+}
+
 export async function fetchUserForId(userId){
     const URL_USERFORID = `${API_BASE}users/views/`;
     try{

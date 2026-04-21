@@ -360,12 +360,6 @@ const pdfUserName =
 }
 
 
-
-
-
-
-
-
 // 1 watcher unique pour selectedUserFilter
 watch(selectedUserFilter, async (newUserId) => {
 

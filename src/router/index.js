@@ -209,6 +209,12 @@ const router = createRouter({
                     component:() => import('@/views/pages/Corbeille.vue'),
                     meta: {requiresAuth: true}
                 },
+                {
+                    path:'/pages/UsersOnline',
+                    name:'UsersOnline',
+                    component:() => import('@/views/pages/UsersOnline.vue'),
+                    meta:{ requiresAuth: true}
+                }
 
 
               
