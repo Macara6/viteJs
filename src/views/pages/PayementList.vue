@@ -9,9 +9,17 @@ const payments = ref([])
 const totol_collected = ref(0);
 const total_collected_balance = ref(0);
 const total_colletected_today = ref(0);
+
+const total_collected_aitel_today = ref(0);
+const total_collected_mpessa_today = ref(0);
+const total_collected_orange_today = ref(0);
+
 const total_collected_mpessa = ref(0);
 const total_collected_aitel = ref(0);
 const total_collected_orange=ref(0);
+
+
+const total_colleted_pending = ref(0);
 const today = new Date().toISOString().split('T')[0]
 const selectedFilter = ref('today');
 const fileteredPayments = ref([]);
@@ -20,6 +28,74 @@ const searchQuery= ref("");
 const currentPage = ref(1);
 const itemsPerPage= ref(6);
 
+onMounted(() => {
+    getPayments();
+   
+})
+
+// chart
+const chartData = computed(() => {
+  const filtered = filterByDate(searchPayments.value, selectedFilter.value);
+
+  const providers = [...new Set(filtered.map(p => p.provider))];
+
+  const successData = [];
+  const pendingData = [];
+
+  providers.forEach(provider => {
+    let success = 0;
+    let pending = 0;
+
+    filtered.forEach(p => {
+      if (p.provider === provider) {
+        if (p.status === 'SUCCESS') {
+          success += Number(p.amount || 0);
+        } else {
+          pending += Number(p.amount || 0);
+        }
+      }
+    });
+
+    successData.push(success);
+    pendingData.push(pending);
+  });
+
+  return {
+    labels: providers,
+    datasets: [
+      {
+        label: "Succès",
+        data: successData,
+        backgroundColor: "#22c55e" // vert
+      },
+      {
+        label: "En attente",
+        data: pendingData,
+        backgroundColor: "#86efac" // vert clair
+      }
+    ]
+  };
+});
+
+const chartOptions = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: 'top'
+    }
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false
+      }
+    },
+    y: {
+      beginAtZero: true
+    }
+  }
+};
+// fin du chart
 
 const paginatedPatements = computed(() => {
     const start = (currentPage.value - 1 ) * itemsPerPage.value;
@@ -58,13 +134,13 @@ async function getPayments(){
     const filterPayments = payments.value.filter(
         py => py.status ==='SUCCESS'
     )
-
-    const  paymentToDay = payments.value.filter(
-        py => new Date(py.created_at).toISOString().split('T')[0] ===  today &&
-        py.status  ==='SUCCESS'
+   
+    const  paymentToDay = filterPayments.filter(
+        py => new Date(py.created_at).toISOString().split('T')[0] ===  today  
     )
 
-    console.log('payments to days :', paymentToDay)
+   
+
     totol_collected.value = filterPayments.reduce(
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
@@ -80,6 +156,36 @@ async function getPayments(){
         0
         ).toFixed(2)
     )
+    // operateurs
+   total_collected_mpessa.value = filterPayments
+            .filter(py => py.provider === 'mpesa')
+            .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0),0)
+            .toFixed(2)
+    total_collected_aitel.value = filterPayments
+            .filter(py => py.provider ==='airtel')
+            .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0),0)
+            .toFixed(2)
+    total_collected_orange.value = filterPayments
+            .filter(py => py.provider === 'orange')
+            .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0), 0)
+            .toFixed(2)
+    // opeateurs today
+    total_collected_mpessa_today.value = parseFloat(paymentToDay.filter(
+        py => py.provider ==='mpesa'
+       ).reduce(
+        (sum, pymt) => sum + parseFloat(pymt.amount || 0),
+        0
+        ).toFixed(2)
+    )
+    total_collected_aitel_today.value = paymentToDay
+            .filter(py => py.provider ==='airtel')
+            .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0), 0)
+            .toFixed(2)
+
+    total_collected_orange_today.value = paymentToDay
+            .filter(py => py.provider === 'orange')
+            .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0),0)
+            .toFixed(2)
 }
 
 
@@ -116,18 +222,26 @@ function applyFilter(){
     const filtered = filterByDate(payments.value, selectedFilter.value);
     fileteredPayments.value = filterByDate(payments.value, selectedFilter.value);
 
-    total_colletected_today.value = parseFloat(filtered.reduce(
+    total_colletected_today.value = parseFloat(filtered.filter(py => py.status ==='SUCCESS').reduce(
         (sum, pymt) => sum + parseFloat(pymt.amount || 0),
         0
       ).toFixed(2)
     )
- 
+
+    total_colleted_pending.value = parseFloat(filtered.filter(py => py.status ==='PENDING').reduce(
+        (sum, pymt) => sum +parseFloat(pymt.amount || 0),
+        0
+    ).toFixed(2)
+  )
 }
 
 
-onMounted(() => {
-    getPayments();
-})
+
+
+
+
+
+
 
 
 const getProviderLogo = (provider) => {
@@ -219,17 +333,17 @@ const getProviderLogo = (provider) => {
             class="px-3 py-1 border rounded-lg">
             Tout
         </button>
-
+   <!--
         <button class="px-3 py-1 border rounded-lg">
         Personnalisé
         </button>
-
+    --->
         </div>
 
         <input
         v-model="searchQuery"
         type="text"
-        placeholder="Rechercher : ID, Téléphone, Nom..."
+        placeholder="Rechercher : ID, Téléphone"
         class="border rounded-lg px-3 py-2 w-72"
         />
 
@@ -250,15 +364,15 @@ const getProviderLogo = (provider) => {
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
 
         <span class="px-3 py-1 rounded-lg bg-green-100 text-green-700">
-       
+         MPESA : {{ total_collected_mpessa }} USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-red-100 text-red-600">
-        
+        AIRTEL : {{ total_collected_aitel }}  USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-orange-100 text-orange-600">
-        
+         ORANGE : {{ total_collected_orange }} USD
         </span>
 
         </div>
@@ -278,15 +392,15 @@ const getProviderLogo = (provider) => {
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
 
         <span class="px-3 py-1 rounded-lg bg-green-100 text-green-700">
-        MPESA :  USD
+        MPESA : {{ total_collected_mpessa }} USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-red-100 text-red-600">
-        AIRTEL :  USD
+        AIRTEL : {{ total_collected_aitel }}  USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-orange-100 text-orange-600">
-        ORANGE : USD
+        ORANGE : {{ total_collected_orange }} USD
         </span>
 
         </div>
@@ -299,22 +413,28 @@ const getProviderLogo = (provider) => {
 
         <h3 class="text-green-600 text-sm">Transactions Réussies : {{ formatDate(today) }}</h3>
 
-        <p class="text-2xl font-bold text-green-700 mt-2">
-        {{ total_colletected_today }} USD
-        </p>
+            <p class="text-2xl font-semibold mt-2">
+            <span class="text-green-700">
+                {{ total_colletected_today }} USD
+            </span>
+            <span class="mx-2 text-gray-400">|</span>
+            <span class="text-yellow-600">
+                {{ total_colleted_pending }} USD
+            </span>
+            </p>
 
         <div class="mt-4 flex flex-wrap gap-2 text-xs font-medium">
 
         <span class="px-3 py-1 rounded-lg bg-green-200 text-green-800">
-        MPESA :  USD
+        MPESA : {{ total_collected_mpessa_today }} USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-green-200 text-green-800">
-        AIRTEL :  USD
+        AIRTEL : {{ total_collected_aitel_today }} USD
         </span>
 
         <span class="px-3 py-1 rounded-lg bg-green-200 text-green-800">
-        ORANGE : USD
+        ORANGE : {{ total_collected_orange_today }} USD
         </span>
 
         </div>
@@ -455,7 +575,20 @@ const getProviderLogo = (provider) => {
         </button>
 
         </div>
+        </div>
 
+        <div class="col-span-12 xl:col-span-6">
+            <div class="card">
+                <div class="font-semibold text-xl mb-4">
+                Paiements par opérateur
+                </div>
+
+                <Chart 
+                type="bar" 
+                :data="chartData" 
+                :options="chartOptions" 
+                />
+            </div>
         </div>
 
         </div>

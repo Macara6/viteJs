@@ -3,8 +3,6 @@ import axios from "axios";
 
 const API_BASE = 'https://pos.bilatech.org/';
 
-const tokenAccess = localStorage.getItem('token') || sessionStorage.getItem('token');
-
 export async function login(usernam, password, rememberMe) {
     const LOGIN_URL = `${API_BASE}login/`;
     try {
@@ -24,7 +22,6 @@ export async function login(usernam, password, rememberMe) {
         
         localStorage.setItem('is_superuser', is_superuser);
         localStorage.setItem('status', status)
-
         return { id, username, email, token ,is_superuser, status};
 
     } catch (error) {

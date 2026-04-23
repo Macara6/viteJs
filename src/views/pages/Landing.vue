@@ -120,23 +120,49 @@ function payment(){
             <!-- HERO -->
       <div id="hero" class="flex flex-col lg:flex-row items-center pt-12 px-6 lg:px-20 overflow-hidden relative bg-gray-900 rounded-b-3xl">
         <!-- Texte -->
-        <div class="flex-1 mx-6 md:mx-20 mt-0 md:mt-6">
-          <h1 class="text-5xl md:text-6xl font-extrabold leading-tight text-white">
-            <span class="font-light block text-gray-300">Bienvenue sur</span>
-            <span class="block bg-clip-text text-transparent bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825]">Bilatech Solution</span>
-          </h1>
-          <p class="font-normal text-xl md:text-2xl leading-relaxed text-gray-300 mt-4">
-            Une plateforme <span class="text-[#F9A825] font-semibold">technologique innovante</span> pour la <span class="text-[#7BB661] font-semibold">gestion d’entreprise</span>, la <span class="text-[#004D4A] font-semibold">facturation</span> et le <span class="text-[#F9A825] font-semibold">suivi des performances</span>. Simple, rapide et accessible.
-          </p>
+      <div class="flex-1 mx-6 md:mx-20 mt-6">
+        
+        <!-- Titre -->
+        <h1 class="text-4xl md:text-6xl font-semibold leading-tight text-white tracking-tight">
+          <span class="block text-gray-300 font-light mb-2">
+            Tout votre business sur une plateforme
+          </span>
+
+          <span class="block bg-clip-text text-transparent bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] font-bold">
+            BilaSol
+          </span>
+        </h1>
+
+        <!-- Description -->
+        <p class="text-lg md:text-xl text-gray-400 mt-6 leading-relaxed max-w-2xl">
+          Simple, 
+          <span class="text-[#F9A825] font-medium"> efficace</span>, 
+          et 
+          <span class="text-[#7BB661] font-medium"> abordable</span>.  
+          Lancez-vous gratuitement pour 30 jours  dès maintenant.
+        </p>
+
+        <!-- Boutons -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mt-8">
+          
+          <Button
+            label="Commencer"
+            class="!px-8 !py-3 bg-[#7BB661] text-white text-lg rounded-lg shadow-sm hover:shadow-md hover:scale-[1.02] transition duration-300"
+            as="router-link"
+            to="/signup"
+          />
 
           <Button 
             label="Se connecter" 
             as="router-link" 
             to="/login" 
             rounded 
-            class="!text-xl mt-8 !px-6 !py-3 bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-xl transition duration-500 transform hover:scale-105 hover:shadow-2xl"
+            class="!text-lg !px-6 !py-3 border border-gray-500 text-gray-300 hover:bg-gray-800 transition duration-300"
           />
+
         </div>
+
+      </div>
 
         <!-- Halo Image -->
         <div class="flex justify-center md:justify-end mt-8 lg:mt-0 flex-1 relative">

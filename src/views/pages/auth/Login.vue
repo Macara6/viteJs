@@ -119,8 +119,8 @@ const handleLogin = async() => {
       <!-- Halo subtil derrière le card -->
       <div class="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-tr from-[#7BB661]/40 via-[#004D4A]/30 to-[#F9A825]/20 rounded-full blur-3xl animate-pulse-slow"></div>
 
-      <div class="text-center mb-8 relative z-10">
-        <img src="/demo/bilatechblanc.png" alt="Logo BilaTech" class="h-32 sm:h-40 mx-auto mb-4" />
+      <div class="text-center mb-6 relative z-10">
+        <img src="/demo/bilatechblanc.png" alt="Logo BilaTech" class="h-32 sm:h-40 mx-auto mb-2" />
          
         <h2 class="text-2xl sm:text-3xl font-extrabold text-[#7BB661]">Connexion</h2>
         <p class="text-gray-300 text-sm sm:text-base">Connectez-vous à votre compte</p>
@@ -160,6 +160,10 @@ const handleLogin = async() => {
           />
         </div>
 
+        <div class="flex items-center gap-2">
+          <input type="checkbox" v-model="rememberMe" id="remember" />
+          <label for="remember" class="text-sm text-[#7BB661]">Se souvenir de moi</label>
+        </div>
         <!-- Bouton -->
         <Button
           label="Se connecter"
@@ -170,14 +174,16 @@ const handleLogin = async() => {
           <i v-if="loading" class="pi pi-spin pi-spinner text-white"></i>
           <span v-else>Se connecter</span>
         </Button>
-        <div class="flex items-center gap-2">
-          <input type="checkbox" v-model="rememberMe" id="remember" />
-          <label for="remember" class="text-sm text-[#7BB661]">Se souvenir de moi</label>
-        </div>
 
         <div class="text-center mt-4">
           <RouterLink to="/reset" class="text-sm text-[#7BB661] hover:underline transition-colors">
             Mot de passe oublié ?
+          </RouterLink>
+        </div>
+
+        <div class="text-center mt-2">
+          <RouterLink to="/signup" class="text-sm text-[#7BB661] hover:underline transition-colors">
+            Créer un nouveau compte
           </RouterLink>
         </div>
      

@@ -325,6 +325,7 @@ const findUser = (id) => {
               Total USD : {{ totalAmountUSD }}
             </div>
           </div>
+          
         </template>
         <Column field="id" header="Id" style="min-width: 100px"></Column>
 
