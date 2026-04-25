@@ -2,12 +2,14 @@
 
 <script setup>
 import {
+  blokedUserApi,
   checkSecretKeyStatus,
   checkSubsrictionStatus,
   createUserAPI,
   deleteUserAPI,
   fetchUserProfilById,
   getUsersCreatedByMe,
+  unblockedUserApi,
   updateUserAPI,
   updateUserProfile,
   verifySecretKey
@@ -26,7 +28,11 @@ const submitted =  ref(false);
 const router = useRouter();
 const isSuperuser = localStorage.getItem('is_superuser') === 'true';
 const deleteDialog = ref(false);
+const blockedDilog  = ref(false);
+const unblockedDialog = ref(false);
+
 const userToDelete = ref(null);
+const userToBlocked = ref(null);
 
 const selectedUser = ref({});
 const userProfile = ref({});
@@ -108,6 +114,10 @@ async function verifySecret(){
       secretKey.value = "";
       if(deleteMode.value ==="DELETE"){
         deleteUser();
+      }else if (deleteMode.value ==="BLOCKED"){
+        blockedUser();
+      }else if (deleteMode.value ==="UNBLOCKED"){
+        unblockedUser();
       }
     }else{
        toast.add({ severity:'error', summary:'Erreur', detail:'Code secret invalide', life:3000 });
@@ -154,12 +164,24 @@ async function fetchedUser() {
   }
 }
 
+// fonction pour supprimer l'utilisatuer 
 function confirmDeleteUser(user){
    userToDelete.value = user;
    deleteDialog.value = true
 
 }
+// fuction to blocked user
+function confirmBlocked(user){
+  userToBlocked.value = user;
+  blockedDilog.value  = true;
+}
 
+function confirmUnblocked(user){
+  userToBlocked.value = user;
+  unblockedDialog.value = true;
+}
+
+//  check function  secret code for delete user
 function askSecretForDelete(){
   deleteDialog.value = false;
   if(hasSecretKey.value == true){
@@ -168,6 +190,28 @@ function askSecretForDelete(){
   }else{
     deleteDialog.value = true;
     deleteUser();
+  }
+}
+
+function askSecretForBlocked(){
+  blockedDilog.value = false;
+  if(hasSecretKey.value == true){
+    deleteMode.value ="BLOCKED";
+    secretDialog.value = true;
+  }else{
+    blockedDilog.value = true;
+    blockedUser();
+  }
+}
+//
+function askSecretForUnBlocked(){
+  unblockedDialog.value = false;
+  if(hasSecretKey.value == true){
+    deleteMode.value ="UNBLOCKED";
+    secretDialog.value = true;
+  } else{
+    unblockedDialog.value = true;
+    unblockedUser();
   }
 }
 
@@ -255,6 +299,43 @@ async function deleteUser(){
       userToDelete.value=null;
     }
 }
+
+async function blockedUser() {
+  if (!userToBlocked.value) return;
+  try{
+    const result =  await blokedUserApi(userToBlocked.value.id);
+    const index = users.value.findIndex(u => u.id == userToBlocked.value.id);
+    if (index !== -1) {
+      users.value[index].is_blocked = true;
+    }
+    fetchedUser();
+    toast.add({ severity :'success', summary:'Bloquée', detail: result.message, life: 3000});
+  }catch(error){
+    console.error('Erreur lors du bloquege de l\'utilisateur', error);
+  }finally{
+    blockedDilog.value =false;
+    userToBlocked.value = null;
+  }
+}
+
+ async function unblockedUser(){
+     if(!userToBlocked.value) return;
+     try{
+        const result = await unblockedUserApi(userToBlocked.value.id);
+        const index = users.value.findIndex(u => u.id == userToBlocked.value.id)
+        if(index !== -1){
+          users.value[index].is_blocked = false;
+        }
+         toast.add({ severity :'success', summary:' Débloqué', detail: result.message, life: 3000});
+        fetchedUser();
+     }catch(error){
+      console.error('error lors du debloquage de l\'utilisateur', error);
+     }finally{
+      unblockedDialog.value = false;
+      userToBlocked.value = null;
+     }
+ }
+
 
 
 // function pour sauvegarder l'utilisateur 
@@ -453,11 +534,12 @@ function hideDialog(){
                       :class="[
                        'px-2 py-1 rounded text-white text-sm font-semibold',
                        {
-                        'bg-emerald-800': slotProps.data.is_deleted === false,
+                        'bg-emerald-800': slotProps.data.is_blocked === false,
+                        'bg-orange-600' : slotProps.data.is_blocked === true
                        }
                       ]"
                     >
-                     {{ statusCheck(slotProps.data.is_deleted) }}
+                     {{ statusCheck(slotProps.data.is_blocked) }}
                      </span>
                   </template>
                  </Column>
@@ -473,7 +555,7 @@ function hideDialog(){
                         <Button 
                         v-if="isSuperuser"
                         icon="pi pi-eye" 
-                        label="voir" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
+                        label="" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
 
                         <Button 
                         v-if="!isSuperuser"
@@ -488,11 +570,29 @@ function hideDialog(){
                         <Button 
                           icon="pi pi-trash" 
                           severity="danger" 
+                          class="mr-2"
                           rounded 
                           outlined 
                           @click="confirmDeleteUser(slotProps.data)" 
                       />
-                      
+
+                        <Button
+                          v-if="slotProps.data.is_blocked == false"
+                          icon="pi pi-unlock"
+                          severity="info"
+                          rounded
+                          @click="confirmBlocked(slotProps.data)"
+                        />
+
+                        <Button
+                          v-if="slotProps.data.is_blocked == true"
+                          icon="pi pi-ban"
+                          severity="warn"
+                          rounded
+                          @click="confirmUnblocked(slotProps.data)"
+                        />
+                        
+                    
                     </template> 
                 </Column>
 
@@ -751,14 +851,29 @@ function hideDialog(){
       </Dialog>
 
 
-
-      
-        <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
+    <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
         <span>Voulez-vous vraiment supprimer l'utilisateur <strong>{{ userToDelete?.username }}</strong> ?</span>
         <template #footer>
             <Button label="Non" icon="pi pi-times" text @click="deleteDialog = false" />
             <Button label="Oui" icon="pi pi-check" severity="danger" @click="askSecretForDelete" />
         </template>
     </Dialog>
+  
+    <Dialog v-model:visible="blockedDilog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
+        <span>Voulez-vous vraiment bloqué l'utilisateur <strong>{{ userToBlocked?.username }}</strong> ?</span>
+        <template #footer>
+            <Button label="Non" icon="pi pi-times" text @click="blockedDilog = false" />
+            <Button label="Oui" icon="pi pi-check" severity="danger" @click="askSecretForBlocked" />
+        </template>
+    </Dialog>
+
+    <Dialog v-model:visible="unblockedDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
+        <span>Voulez-vous  débloqué l'utilisateur <strong>{{ userToBlocked?.username }}</strong> ?</span>
+        <template #footer>
+            <Button label="Non" icon="pi pi-times" text @click="blockedDilog = false" />
+            <Button label="Oui" icon="pi pi-check" severity="danger" @click="askSecretForUnBlocked" />
+        </template>
+    </Dialog>
+   
 
 </template>

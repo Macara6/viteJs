@@ -254,6 +254,7 @@ async function saveSubscription(){
               <th class="p-3 text-left"> ID Compte</th>
               <th class="p-3 text-left">Nom d'utilisateur</th>
               <th class="p-3 text-left">Nom & Post-Nom</th>
+              <th class="p-3 text-left">Crée par</th>
               <th class="p-3 text-left">email</th>
               <th class="p-3 text-left">Rôle</th>
               <th class="p-3 text-left">Status</th>
@@ -275,7 +276,9 @@ async function saveSubscription(){
           <td class="p-3 font-semibold text-blue-600">
             {{ u.first_name }} {{ u.last_name }} 
           </td>
-          
+          <td class="p-3 font-semibold text-green-600">
+            {{ u.user_created_name }}  
+          </td>
           <td class="p-3 font-semibold text-blue-600">
             {{ u.email }} 
           </td>
@@ -283,8 +286,15 @@ async function saveSubscription(){
             {{ u.status }} 
           </td>
           
-          <td class="p-3 font-semibold text-green-500">
-            {{ statusCheck( u.is_deleted )}} 
+          <td class="p-3 font-semibold ">
+            <div :class="[
+               {
+               'text-green-500':u.is_blocked === false,
+               'text-orange-600':u.is_blocked ===true
+               }
+            ]">
+             {{ statusCheck( u.is_blocked )}}
+            </div>
           </td>
 
         </tr>

@@ -170,13 +170,11 @@ async function getPayments(){
             .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0), 0)
             .toFixed(2)
     // opeateurs today
-    total_collected_mpessa_today.value = parseFloat(paymentToDay.filter(
-        py => py.provider ==='mpesa'
-       ).reduce(
-        (sum, pymt) => sum + parseFloat(pymt.amount || 0),
-        0
-        ).toFixed(2)
-    )
+    total_collected_mpessa_today.value = paymentToDay
+        .filter( py => py.provider ==='mpesa')
+        .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0),0)
+        .toFixed(2)
+
     total_collected_aitel_today.value = paymentToDay
             .filter(py => py.provider ==='airtel')
             .reduce((sum, pymt) => sum + parseFloat(pymt.amount || 0), 0)

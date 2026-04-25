@@ -24,6 +24,6 @@ export function formatLoyaltyCard(number){
   return cleanNumber.slice(0, 3) + '-' + cleanNumber.slice(3);
 }
 
-export function statusCheck(is_delete){
-  return is_delete ? "INACTIF" : "ACTIF";
+export function statusCheck(is_blocked){
+  return is_blocked ? "BLOCKED" : "ACTIF";
 }

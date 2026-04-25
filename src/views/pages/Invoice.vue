@@ -456,7 +456,6 @@ async function refreshInvoices() {
   try {
     clearAllCache();
     await loadUserProfileAndChildren();
-    
     toast.add({ severity: 'success', summary: 'Actualisé', detail: 'Les factures ont été rechargées', life: 3000 });
   } catch(err) {
     console.error(err);

@@ -513,7 +513,7 @@ export async function deleteProductAPI(productId){
     }
 }
 
-
+// APi pours les utlisateur 
 export async function fetchUsers(){
     const USER_URL = `${API_BASE}usersView/`;
     try{
@@ -652,6 +652,43 @@ export async function restoreUser(userId) {
             data: error.response?.data || null
         };
     }
+}
+// fnction pour bloqué l'utilisateur 
+export async function blokedUserApi(userId) {
+    const BLOCKED_USER_URL = `${API_BASE}user/blocked/${userId}/`;
+    try{
+        const response = await axios.post(BLOCKED_USER_URL,{},{
+            headers: {
+                 'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        return {
+            error:false,
+            status: response.status,
+            data : response.data,
+            message:response.data.message
+        }
+
+    }catch(error){
+        console.error('error to blocked user :', error);
+    }
+    
+}
+// 
+export async function unblockedUserApi(userId) {
+    const UNBLOCKED_USR_URL = `${API_BASE}user/unblocked/${userId}/`;
+    try{
+        const response = await axios.post(UNBLOCKED_USR_URL, {},{
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        return response.data;
+    }catch(error){
+        console.error('error to unblocked user :', error);
+    }
+    
 }
 
 // suprression dans la corbeille
