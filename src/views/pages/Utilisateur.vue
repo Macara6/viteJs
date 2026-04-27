@@ -383,8 +383,8 @@ async function saveUser() {
         const result = await createUserAPI(userData);
 
         if (result.error) {
-          if (result.status === 403) {
-            toast.add({ severity: 'warn', summary: 'Limite atteinte', detail: result.data.detail, life: 5000 });
+          if (result.status === 400) {
+            toast.add({ severity: 'warn', summary: 'Limite atteinte', detail: result.data.error, life: 5000 });
           } else if (result.status === 400) {
             const errors = result.data;
             const errorMessages = Object.values(errors).flat().join(' ');
