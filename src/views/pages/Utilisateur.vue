@@ -511,7 +511,7 @@ function hideDialog(){
                   </template>
                 </Column>
                 <Column field="email" header="EMAIL" sortable style="min-width: 5rem"></Column>
-
+               
                 <Column field="status" header="RÔLE" sortable style="min-width: 8rem">
                   <template #body="slotProps">
                     <span

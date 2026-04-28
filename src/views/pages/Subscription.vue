@@ -155,7 +155,7 @@ function clearFilter() {
             </template>
         </Column>
         <Column field="custom_account_id" header="ID Compte"></Column>
-
+       
         <Column field="end_date" header="STATUS" style="min-width: 20px">
             <template #body="slotProps">
                 <span :class="getStatusClass(slotProps.data.end_date)">

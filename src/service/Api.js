@@ -271,7 +271,6 @@ export async function deleteCategorie(categoryId) {
 }
 
 
-
 // fonction pour creer un nouveau produit 
 export async function  createProductAPI(productData){
     const CREATE_PRODUCT_URL= `${API_BASE}productCreate/`;
@@ -429,8 +428,29 @@ export async function fetchInvoicesAllUsers() {
     }
    return allInvoices;
 }
-// fetch users online
 
+// fetch users online
+export async function fetchConnectionHistory(){
+    const LIMIT = 200;
+    let nextUrl = `${API_BASE}online/history/?limit=${LIMIT}`;
+    let allHistorys = [];
+    
+    try {
+        while (nextUrl){
+            const response = await axios.get(nextUrl, {
+                headers:{
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = response.data;
+            allHistorys.push(...data.results);
+            nextUrl = data.next;
+        }
+    }catch(error){
+        console.error('error fetching history :',error)
+    }
+   return allHistorys;
+}
 
 // afficher les utilisateur qui sont de la corbeille 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
@@ -450,6 +470,7 @@ export async function fetchInvoicesAllChildrent(onlyChildren = true) {
         console.error('Error fetching invoices', error);
         throw error;
     }
+
 }
 export async function deleteInvoiceAPI(invoiceId){
     const DELETE_INVOICE = `${API_BASE}invoices/delete/${invoiceId}/`;
