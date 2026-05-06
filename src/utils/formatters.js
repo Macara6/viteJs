@@ -27,3 +27,7 @@ export function formatLoyaltyCard(number){
 export function statusCheck(is_blocked){
   return is_blocked ? "BLOCKED" : "ACTIF";
 }
+
+export function checkSubMod(is_free){
+  return is_free ? "GRATUIT" : "PAIYANT";
+}

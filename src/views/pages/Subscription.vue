@@ -1,5 +1,6 @@
 <script setup>
 import { fetchSubscription, fetchUsers, reactivateSubscription } from '@/service/Api';
+import { checkSubMod } from '@/utils/formatters';
 import { FilterMatchMode } from '@primevue/core';
 import { onMounted, ref } from 'vue';
 
@@ -82,6 +83,7 @@ function getStatus(end_date) {
     return endDate <= today ? 'Expiré' : 'Actif';
 }
 
+
 function getStatusClass(end_date) {
     return getStatus(end_date) === 'Expiré' ? 'text-red-500' : 'text-green-500';
 }
@@ -162,6 +164,21 @@ function clearFilter() {
                     {{ getStatus(slotProps.data.end_date) }}
                 </span>
             </template>
+        </Column>
+        <Column field="is_free_frial" header="MODE" style="min-width: 20px">
+          <template #body="slotProps">
+                <span 
+                  :class=" [
+                     'px-2 py-1 rounded text-white text-sm font-semibold',
+                     {
+                      'bg-pink-500': slotProps.data.is_free_frial === true,
+                      'bg-cyan-500':slotProps.data.is_free_frial ===false
+                     }
+                  ]"
+                >
+                    {{ checkSubMod(slotProps.data.is_free_frial) }}
+                </span>
+          </template>
         </Column>
 
         <Column field="subscription_type" header="TYPE" bodyClass="text-center" style="min-width: 8rem">

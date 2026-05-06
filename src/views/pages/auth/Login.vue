@@ -113,122 +113,187 @@ const handleLogin = async() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 px-4 sm:px-6 lg:px-8">
-    
-    <!-- Card connexion -->
-    <div class="w-full max-w-md bg-gray-900 dark:bg-gray-800 rounded-3xl shadow-2xl p-8 sm:p-10 relative overflow-hidden">
-      
-      <!-- Halo subtil derrière le card -->
-      <div class="absolute -top-16 -right-16 w-64 h-64 bg-gradient-to-tr from-[#7BB661]/40 via-[#004D4A]/30 to-[#F9A825]/20 rounded-full blur-3xl animate-pulse-slow"></div>
 
-      <div class="text-center mb-6 relative z-10">
-        <img src="/demo/bilatechblanc.png" alt="Logo BilaTech" class="h-32 sm:h-40 mx-auto mb-2" />
-         
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#7BB661]">Connexion</h2>
-        <p class="text-gray-300 text-sm sm:text-base">Connectez-vous à votre compte</p>
+<div class="min-h-screen flex items-center justify-center bg-[#070A12] px-4 overflow-hidden relative">
+
+  <!-- BACKGROUND GLOW (comme pricing) -->
+  <div class="absolute inset-0 
+              bg-[radial-gradient(circle_at_top,rgba(123,182,97,0.18),transparent_60%)]">
+  </div>
+
+  <!-- FLOATING LIGHTS -->
+  <div class="absolute w-[400px] h-[400px] bg-[#7BB661]/20 blur-[120px] rounded-full animate-float1"></div>
+  <div class="absolute right-0 bottom-0 w-[400px] h-[400px] bg-[#F9A825]/20 blur-[120px] rounded-full animate-float2"></div>
+
+  <!-- CARD -->
+  <div class="relative w-full max-w-md z-10">
+
+    <div class="p-8 sm:p-10 rounded-3xl 
+                bg-white/10 backdrop-blur-3xl 
+                border border-white/20 
+                shadow-[0_20px_80px_rgba(0,0,0,0.6)]
+                transition-all duration-500">
+
+      <!-- LOGO -->
+      <div class="text-center mb-6">
+
+        <img src="/demo/bilatechblanc.png"
+             class="h-20 mx-auto mb-3 
+                    drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
+
+        <h2 class="text-2xl font-semibold text-white tracking-tight">
+          Connexion
+        </h2>
+
+        <p class="text-gray-400 text-sm mt-1">
+          Accédez à votre espace BilaTech
+        </p>
+
       </div>
 
-      <div v-if="errorMessage" class="text-red-500 text-center mb-4 text-sm sm:text-base relative z-10">
+      <!-- ERROR -->
+      <div v-if="errorMessage"
+           class="text-red-400 text-center mb-4 text-sm">
         {{ errorMessage }}
       </div>
 
-      <div class="space-y-6 relative z-10">
-        <!-- Nom d’utilisateur -->
+      <!-- FORM -->
+      <div class="space-y-5">
+
+        <!-- USERNAME -->
         <div>
-          <label for="username" class="block text-gray-200 text-sm font-medium mb-2">
+          <label class="text-gray-300 text-sm mb-1 block">
             Nom d’utilisateur
           </label>
+
           <InputText
-            id="username"
             v-model="username"
             placeholder="Nom d’utilisateur"
-            class="w-full h-12 text-base rounded-xl bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661] transition-all"
+            class="input-ios"
           />
         </div>
 
-        <!-- Mot de passe -->
+        <!-- PASSWORD -->
         <div>
-          <label for="password" class="block text-gray-200 text-sm font-medium mb-2">
+          <label class="text-gray-300 text-sm mb-1 block">
             Mot de passe
           </label>
+
           <Password
-            id="password"
             v-model="password"
-            placeholder="Mot de passe"
             :toggleMask="true"
-            class="custom-password w-full rounded-xl bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661] transition-all"
-            inputClass="w-full h-12 text-base"
             :feedback="false"
+            placeholder="mot de passe"
+            class="input-ios"
+            inputClass="w-full h-12 text-white bg-transparent border-none outline-none"
           />
+
         </div>
 
-        <div class="flex items-center gap-2">
-          <input type="checkbox" v-model="rememberMe" id="remember" />
-          <label for="remember" class="text-sm text-[#7BB661]">Se souvenir de moi</label>
+        <!-- REMEMBER -->
+        <div class="flex items-center gap-2 text-sm text-gray-300">
+          <input type="checkbox" v-model="rememberMe" />
+          Se souvenir de moi
         </div>
-        <!-- Bouton -->
-        <Button
-          label="Se connecter"
-          class="w-full py-3 text-base font-semibold rounded-xl flex justify-center items-center gap-2 bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] text-white shadow-xl hover:scale-105 hover:shadow-2xl transition-transform duration-300"
+
+        <!-- BUTTON -->
+        <button
           @click="handleLogin"
           :disabled="loading"
+          class="
+            w-full py-3 rounded-2xl 
+            bg-white/10 backdrop-blur-xl 
+            border border-white/20
+            text-white font-medium
+            flex justify-center items-center gap-2
+            transition-all duration-300
+            hover:bg-white/20 hover:scale-[1.02]
+            active:scale-[0.97]
+          "
         >
-          <i v-if="loading" class="pi pi-spin pi-spinner text-white"></i>
-          <span v-else>Se connecter</span>
-        </Button>
+          <i v-if="loading" class="pi pi-spin pi-spinner"></i>
+          <span>{{ loading ? 'Connexion...' : 'Se connecter' }}</span>
+        </button>
 
-        <div class="text-center mt-4">
-          <RouterLink to="/reset" class="text-sm text-[#7BB661] hover:underline transition-colors">
+        <!-- LINKS -->
+        <div class="text-center text-sm text-gray-400 space-y-2 mt-4">
+
+          <RouterLink to="/reset" class="link-ios">
             Mot de passe oublié ?
           </RouterLink>
-        </div>
 
-        <div class="text-center mt-2">
-          <RouterLink to="/signup" class="text-sm text-[#7BB661] hover:underline transition-colors">
-            Créer un nouveau compte
+          <RouterLink to="/signup" class="link-ios block">
+            Créer un compte
           </RouterLink>
-        </div>
-     
-        <div class="text-center mt-4">
-          <RouterLink to="/Payment" class="text-sm text-[#7BB661] hover:underline transition-colors">
+
+          <RouterLink to="/Payment" class="link-ios block">
             Réabonnement
           </RouterLink>
+
         </div>
 
-        <h3 class="text-center 2xl sm:text-3xl font-extrabold text-[#7BB661]">2026</h3>
+        <!-- FOOT -->
+        <p class="text-center text-xs text-gray-500 mt-6">
+          © 2026 BilaTech
+        </p>
 
       </div>
-     
+
     </div>
+
   </div>
+
+</div>
+
 </template>
 
 <style scoped>
-/* Ajuste la taille du champ mot de passe pour correspondre au champ texte */
-.custom-password :deep(input) {
-  height: 3rem !important;
-  width: 100% !important;
-  font-size: 1rem;
-  border-radius: 0.75rem;
+
+/* INPUT */
+.input-ios {
+  @apply w-full rounded-xl 
+         bg-white/5 backdrop-blur-xl 
+         border border-white/10 
+         text-white placeholder-gray-400
+         focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661]
+         transition-all duration-300;
 }
 
-/* Ajustement icônes œil */
-.pi-eye,
-.pi-eye-slash {
-  transform: scale(1.3);
-  margin-right: 0.75rem;
+ .p-password .p-inputtext {
+  background: transparent !important;
+  color: white !important;
 }
 
-/* Responsive: petits écrans */
-@media (max-width: 640px) {
-  .p-inputtext,
-  .p-password-input {
-    font-size: 0.9rem !important;
+ .p-password,
+.p-password input {
+  background: transparent !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+  /* LINKS */
+  .link-ios {
+    @apply text-[#7BB661] hover:text-white transition;
   }
 
-  .p-button {
-    font-size: 0.95rem !important;
-    padding: 0.75rem !important;
+  /* FLOAT ANIMATIONS */
+  @keyframes float1 {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(20px, -20px); }
   }
-}
+
+  @keyframes float2 {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(-20px, 20px); }
+  }
+
+  .animate-float1 {
+    animation: float1 12s ease-in-out infinite;
+  }
+
+  .animate-float2 {
+    animation: float2 14s ease-in-out infinite;
+  }
+
 </style>

@@ -451,6 +451,57 @@ export async function fetchConnectionHistory(){
     }
    return allHistorys;
 }
+// fuction to fetch comments
+export async function fetchCommentsAPI(){
+    const LIMIT = 200;
+    let nextUrl = `${API_BASE}send-comment/?limit=${LIMIT}`;
+    let allComments = []
+    
+    try{
+        while(nextUrl){
+            const response = await axios.get(nextUrl, {
+                headers:{
+                    'Authorization' :`Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = response.data;
+            allComments.push(...data.results);
+            nextUrl = data.next
+        }
+    }catch(error){
+        console.error('error to fetching comments :', error)
+    }
+    return allComments;
+}
+
+export async function fetchCommentDetail(commentId){
+    const URL_COMMENT_DETAIL =`${API_BASE}comment/${commentId}/`
+    try{
+        const response = await axios.get(URL_COMMENT_DETAIL,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error to fetching comment detail :', error)
+    }
+}
+
+export async function sendCommentAPI(commentData) {
+    const SEND_COMMENT_URL = `${API_BASE}send-comment/`;
+    try{
+        const response = await axios.post(SEND_COMMENT_URL, commentData,{
+            headers:{
+                'Content-Type': 'application/json',
+            }
+        });
+        return response.data
+    }catch(error){
+        console.error('error to send comments :', error)
+    }
+    
+}
 
 // afficher les utilisateur qui sont de la corbeille 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {

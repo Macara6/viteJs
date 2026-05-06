@@ -71,7 +71,7 @@ async function getOnlineHistory() {
     try{
         const response = await fetchConnectionHistory();
         onlineHistorys.value = response;
-        console.log('historique de connexion :', onlineHistorys.value)
+        
     }catch(error){
         console.error('error to fetch history connection :', error)
     }
@@ -218,7 +218,7 @@ onMounted(async () => {
 
              </div>
 
-          
+    
             <DataTable
             :value="fileterdHistory"
             paginator

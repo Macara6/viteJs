@@ -1,5 +1,5 @@
 <script setup>
-import { fetchProduits, fetchTrashedUser } from '@/service/Api';
+import { fetchCommentsAPI, fetchProduits, fetchTrashedUser } from '@/service/Api';
 import { computed, onMounted, ref } from 'vue';
 import AppMenuItem from './AppMenuItem.vue';
 
@@ -7,6 +7,7 @@ const isSuperUser = localStorage.getItem('is_superuser') === 'true';
 const isUserStatus = localStorage.getItem('status');
 const lowStockCount = ref(0);
 const userDeletedCount = ref(0);
+const commentsIsRead = ref(0);
 const userId = localStorage.getItem('id');
 
 const loadUserIsDeleted = async () => {
@@ -42,12 +43,23 @@ const loadLowStock = async () => {
   }
 
 };
+const loadComment = async () =>{
+    try{
+      const response = await fetchCommentsAPI();
+       const commentsIsNonRead = response.filter(c => c.is_read == false);
+       commentsIsRead.value = commentsIsNonRead.length;
+       console.log('le nombres de commentaire non lie :', commentsIsRead.value)
+    }catch(error){
+      console.error('error lors du compte des commentaites :',error)
+    }
+}
 
 onMounted(() => {
   loadLowStock();
   loadUserIsDeleted();
   setInterval(loadLowStock, 3000);
   setInterval(loadUserIsDeleted, 3000);
+  setInterval(loadComment, 3000);
 
 });
 
@@ -71,7 +83,10 @@ const model = computed(() => {
           //{ label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
           { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
           { label: "Paiement Collectés", icon:'pi pi-database', to:'/pages/PaymentList'},
+          { label: "commentaires",icon:"pi pi-comments", to:"/pages/Comments",badge:commentsIsRead},
+      
           { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
+
         ]
       }
     ];

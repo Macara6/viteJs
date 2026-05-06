@@ -214,10 +214,13 @@ const router = createRouter({
                     name:'UsersOnline',
                     component:() => import('@/views/pages/UsersOnline.vue'),
                     meta:{ requiresAuth: true}
+                },
+                {
+                    path:'/pages/Comments',
+                    name:'Comments',
+                    component:() => import('@/views/pages/Comments.vue'),
+                    meta:{ requiresAuth: true}
                 }
-
-
-              
                 
             ]
         },
