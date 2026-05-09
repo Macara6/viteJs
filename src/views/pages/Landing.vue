@@ -1,7 +1,7 @@
 <script setup>
 
 import { sendCommentAPI } from '@/service/Api';
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -65,22 +65,27 @@ async function sendComment() {
 
 }
 
-onMounted(() =>{
-  let index = 0;
-const slides = document.querySelectorAll(".bg-slide");
 
-function showSlide(i) {
-  slides.forEach((slide, idx) => {
-    slide.classList.remove("active");
-    if (idx === i) slide.classList.add("active");
-  });
-}
+const slides = [
+  "/demo/medium-shot.jpg",
+  "/demo/modern.jpg",
+  "/demo/Photos-inf.png"
+];
 
-  setInterval(() => {
-    index = (index + 1) % slides.length;
-    showSlide(index);
-  }, 7000);
-})
+const currentIndex = ref(0);
+let interval = null;
+
+const nextSlide = () => {
+  currentIndex.value = (currentIndex.value + 1) % slides.length;
+};
+
+onMounted(() => {
+  interval = setInterval(nextSlide, 6000);
+});
+
+onBeforeUnmount(() => {
+  clearInterval(interval);
+});
 
 
 
@@ -208,82 +213,79 @@ function showSlide(i) {
     </div>
 
 
-      <div id="hero" class="relative h-[90vh] overflow-hidden bg-gray-900 rounded-b-3xl">
+<div id="hero" class="relative h-[90vh] overflow-hidden bg-gray-900 rounded-b-3xl">
 
-      <!-- BACKGROUND SLIDER -->
-      <div class="absolute inset-0 z-0">
-        <img src="/demo/medium-shot.jpg" class="bg-slide active" />
-        <img src="/demo/modern.jpg" class="bg-slide" />
-        <img src="/demo/Photos-inf.png" class="bg-slide" />
-      </div>
+  <!-- BACKGROUND -->
+  <div class="absolute inset-0 z-0">
 
-      <!-- OVERLAY -->
-      <div class="absolute inset-0 bg-black/60 z-10"></div>
+    <img
+      v-for="(slide, index) in slides"
+      :key="index"
+      :src="slide"
+      loading="lazy"
+      class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out"
+      :class="index === currentIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105'"
+    />
 
-      <!-- CONTENU -->
-      <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-20 max-w-6xl">
+  </div>
 
-        <!-- TITRE -->
-        <h1 class="hero-title text-4xl md:text-6xl font-bold text-white leading-tight max-w-3xl">
+  <!-- OVERLAY -->
+  <div class="absolute inset-0 bg-black/60 z-10"></div>
 
-          <span class="block text-gray-300 font-light mb-3 tracking-wide">
-            Tout votre business sur une seule plateforme
-          </span>
+  <!-- CONTENT -->
+  <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-20 max-w-6xl">
 
-         
-            BilaSol.
-          
+    <h1 class="text-4xl md:text-6xl font-bold text-white leading-tight max-w-3xl">
 
-        </h1>
+      <span class="block text-gray-300 font-light mb-3 tracking-wide">
+        Tout votre business sur une seule plateforme
+      </span>
 
-        <!-- DESCRIPTION -->
-        <p class="hero-desc text-lg md:text-xl text-gray-300 mt-6 max-w-2xl leading-relaxed">
-          Une solution simple,
-          <span class="text-yellow-400 font-semibold">rapide</span>,
-          et
-          <span class="text-green-400 font-semibold">abordable</span>
-          pour gérer votre activité sans effort.  
-          Profitez de <span class="text-white font-medium">30 jours gratuits</span> dès aujourd’hui.
-        </p>
+      <span class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent">
+        BilaSol.
+      </span>
 
-        <!-- BUTTONS -->
-        <div class="flex flex-col sm:flex-row gap-4 mt-10">
+    </h1>
 
-          <!-- PRIMARY (iOS glass CTA) -->
-          <button
-          @click="$router.push('/signup')"
-          class="
-            px-8 py-3
-            bg-white/10 backdrop-blur-xl
-            text-white font-medium
-            rounded-2xl
-            border border-white/20
-            hover:bg-white/20 transition
-          "
-        >
-          Commencer gratuitement
-        </button>
-        <button
-          @click="$router.push('/login')"
-          class="
-            px-8 py-3
-            bg-white/10 backdrop-blur-xl
-            text-white font-medium
-            rounded-2xl
-            border border-white/20
-            hover:bg-white/20 transition
-          "
-        >
-         Se connecter
-        </button>
+    <p class="text-lg md:text-xl text-gray-300 mt-6 max-w-2xl leading-relaxed">
+      Une solution simple,
+      <span class="text-yellow-400 font-semibold">rapide</span>,
+      et
+      <span class="text-green-400 font-semibold">abordable</span>
+      pour gérer votre activité sans effort.
+      Profitez de <span class="text-white font-medium">30 jours gratuits</span>.
+    </p>
 
-          <!-- SECONDARY (Apple style minimal) -->
-        
+    <!-- BUTTONS IOS 26 -->
+    <div class="flex flex-col sm:flex-row gap-4 mt-10">
 
-        </div>
+      <button
+        @click="$router.push('/signup')"
+        class="relative px-8 py-3 rounded-2xl
+               bg-white/10 backdrop-blur-xl border border-white/20
+               text-white font-medium
+               overflow-hidden
+               hover:scale-[1.03] transition-all duration-300">
 
-      </div>
+        <span class="absolute inset-0 bg-gradient-to-r from-[#7BB661]/0 via-white/20 to-[#F9A825]/0 opacity-40 animate-pulse"></span>
+        <span class="relative z-10">Commencer gratuitement</span>
+
+      </button>
+
+      <button
+        @click="$router.push('/login')"
+        class="px-8 py-3 rounded-2xl
+               bg-white/5 backdrop-blur-xl border border-white/10
+               text-white font-medium
+               hover:bg-white/10 transition-all">
+        Se connecter
+      </button>
+
     </div>
+
+  </div>
+</div>
+
 <!-- Animation simple via Tailwind CSS -->
 
 
@@ -750,7 +752,7 @@ function showSlide(i) {
       Demander une offre
 
     </a>
-    
+
     </div>
 
   </div>
@@ -804,7 +806,7 @@ function showSlide(i) {
       <i class="pi pi-download text-lg"></i>
 
       <span>
-        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.4.0)' }}
+        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.5.0)' }}
       </span>
     </button>
 
