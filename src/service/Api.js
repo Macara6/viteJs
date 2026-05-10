@@ -473,9 +473,9 @@ export async function fetchCommentsAPI(){
     }
     return allComments;
 }
-
+// function pour afficher les commentaires
 export async function fetchCommentDetail(commentId){
-    const URL_COMMENT_DETAIL =`${API_BASE}comment/${commentId}/`
+    const URL_COMMENT_DETAIL =`${API_BASE}comment/${commentId}/`;
     try{
         const response = await axios.get(URL_COMMENT_DETAIL,{
             headers:{
@@ -487,6 +487,20 @@ export async function fetchCommentDetail(commentId){
         console.error('error to fetching comment detail :', error)
     }
 }
+// supprimer un commentaires
+export async function deleteCommentAPI(commentID){
+    const URL_DELETE_COM = `${API_BASE}comment/${commentID}/`;
+    try{
+        const response = await axios.delete(URL_DELETE_COM,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error to delete comment');
+    }
+}
 
 export async function sendCommentAPI(commentData) {
     const SEND_COMMENT_URL = `${API_BASE}send-comment/`;
@@ -496,11 +510,25 @@ export async function sendCommentAPI(commentData) {
                 'Content-Type': 'application/json',
             }
         });
-        return response.data
+        return response.data;
     }catch(error){
         console.error('error to send comments :', error)
     }
     
+}
+export async function replyGmailAPI(replyData) {
+    const URL_REPLY_GMAIL = `${API_BASE}email-reply/`;
+    try{
+        const response = await axios.post(URL_REPLY_GMAIL,replyData,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type':'application/json'
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error to reply gmail')
+    }
 }
 
 // afficher les utilisateur qui sont de la corbeille 

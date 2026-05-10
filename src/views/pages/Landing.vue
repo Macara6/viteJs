@@ -55,8 +55,9 @@ async function sendComment() {
     email:email.value,
     message:comment.value
   }
-
   const result = await sendCommentAPI(data);
+  email.value ='';
+  comment.value ='';
 
   if(result){
     successMessage.value =`${result.message}`;
@@ -479,7 +480,22 @@ onBeforeUnmount(() => {
     <!-- subtitle -->
     <p class="mt-6 text-gray-400 text-lg max-w-xl mx-auto leading-relaxed">
       Choisissez un plan adapté à votre business.  
-      <span class="text-white/80 font-medium">Sans engagement, évolutif et flexible.</span>
+      <span class="text-white/80 font-medium">
+        Sans engagement, évolutif et flexible.
+      </span>
+
+      <br class="hidden md:block" />
+
+      <span class="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-full
+                  bg-white/5 backdrop-blur-xl border border-white/10
+                  text-sm text-green-300 font-medium shadow-lg">
+
+         Créez votre compte et profitez de 
+        <span class="text-white font-semibold">
+          30 jours gratuits
+        </span>
+
+      </span>
     </p>
 
      <div class="mt-10 flex justify-center">
