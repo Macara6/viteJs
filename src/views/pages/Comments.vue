@@ -1,7 +1,7 @@
 
 
 <script setup>
- import { deleteCommentAPI, fetchCommentDetail, fetchCommentsAPI, replyGmailAPI } from '@/service/Api';
+ import { deleteCommentAPI, fetchCommentDetail, fetchCommentsAPI, replyGmailAPI, replyNoficationAPI } from '@/service/Api';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, ref } from 'vue';
 
@@ -73,8 +73,9 @@ const sendReplyByMail = async () =>{
     loading.value= true;
 
     const data = {
-     email: selectedComment.value.email,
-     message: replyMessage.value,
+      email: selectedComment.value.email,
+      message: replyMessage.value,
+      comment_id:selectedComment.value.id
      }
      
     console.log('data :', data);
@@ -92,10 +93,60 @@ const sendReplyByMail = async () =>{
     loading.value = false;
   }
 
-
-
 }
 
+const sendReplyNotification = async () => {
+
+  if(!replyMessage.value){
+
+     toast.add({
+       severity:'error',
+       summary:'Erreur',
+       detail:'Veuillez écrire une réponse',
+       life:3000
+     });
+
+     return;
+  }
+
+  try{
+
+    loading.value = true;
+
+    const data = {
+      email: selectedComment.value.email,
+      message: replyMessage.value,
+      comment_id: selectedComment.value.id
+    }
+
+    const response = await replyNoficationAPI(data);
+
+    console.log('response :');
+
+    toast.add({
+      severity:'success',
+      summary:'Succès',
+      detail: response.message,
+      life:3000
+    });
+    
+    replyMessage.value = '';
+
+    selectedComment.value.is_answer = true;
+
+  }catch(error){
+      toast.add({
+       severity:'error',
+       summary:'Erreur',
+       detail:`${error.response.data.error}`,
+       life:3000
+     });
+    console.error('error reply notification :', error);
+
+  }finally{
+    loading.value = false;
+  }
+}
 
 
 
@@ -152,8 +203,6 @@ const sendReplyByMail = async () =>{
           </div>
 
         </div>
-
-
     </div>
 
   <!-- RIGHT: DETAIL -->
@@ -196,6 +245,8 @@ const sendReplyByMail = async () =>{
       <label class="font-medium text-gray-700">
         Votre réponse
       </label>
+<!-- SI LE MESSAGE N'EST PAS ENCORE REPONDU -->
+    <div v-if="!selectedComment.is_answer">
 
       <Textarea
         v-model="replyMessage"
@@ -204,30 +255,55 @@ const sendReplyByMail = async () =>{
         placeholder="Écrivez votre réponse ici..."
       />
 
-      <!-- ACTION BUTTONS -->
-      <div class="flex flex-wrap gap-3 justify-end">
+  <!-- ACTION BUTTONS -->
+        <div class="flex flex-wrap gap-3 justify-end mt-4">
 
-        <!-- ENVOYER PAR MAIL -->
-        <Button
-          :disabled="loading"
-          label="Envoyer par Email"
-          icon="pi pi-envelope"
-          severity="danger"
-          class="px-4 py-2"
-          @click="sendReplyByMail"
-        >
-         <span><i class="pi pi-envelope"></i> {{ loading ? 'En cours ...' : ' Envoyer par Email' }}</span>
-        </Button>
+          <!-- ENVOYER PAR MAIL -->
+          <Button
+            :disabled="loading"
+            severity="secondary"
+            class="px-4 py-2"
+            @click="sendReplyByMail"
+          >
+            <span class="flex items-center gap-2">
+              <i
+                :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-envelope'"
+              ></i>
 
-        <!-- ENVOYER DANS APP 
-        <Button
-          label="Répondre dans l'application"
-          icon="pi pi-send"
-          severity="primary"
-          class="px-4 py-2"
-          @click="sendReplyInApp"
+              {{ loading ? 'En cours ...' : 'Envoyer par Email' }}
+            </span>
+          </Button>
+
+          <Button
+           :disabled="loading"
+           severity="info" 
+           class="px-4 py-2"
+           @click="sendReplyNotification"
+          >
+          <span class="flex items-center gap-2">
+              <i
+                :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+              ></i>
+
+              {{ loading ? 'En cours ...' : 'Notification locale' }}
+            </span>
+
+          </Button>
+
+        </div>
+      </div>
+
+      <!-- SI LE MESSAGE EST DEJA REPONDU -->
+      <div
+        v-else
+        class="mt-4 flex justify-end"
+      >
+        <Tag
+          value="Déjà répondu"
+          severity="success"
+          icon="pi pi-check-circle"
+          class="text-sm px-4 py-2"
         />
-          -->
       </div>
 
     </div>

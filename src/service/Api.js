@@ -516,6 +516,7 @@ export async function sendCommentAPI(commentData) {
     }
     
 }
+// reponse par email
 export async function replyGmailAPI(replyData) {
     const URL_REPLY_GMAIL = `${API_BASE}email-reply/`;
     try{
@@ -530,6 +531,24 @@ export async function replyGmailAPI(replyData) {
         console.error('error to reply gmail')
     }
 }
+
+export async function replyNoficationAPI(data){
+    const URL_NOTIF_REPLY = `${API_BASE}notification-reply/`;
+    try{
+        const response = await axios.post(URL_NOTIF_REPLY, data, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type':'application/json'
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error reply notification');
+        throw error;
+    }
+}
+
+
 
 // afficher les utilisateur qui sont de la corbeille 
 export async function fetchInvoicesAllChildrent(onlyChildren = true) {
