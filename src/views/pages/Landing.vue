@@ -1,7 +1,7 @@
 <script setup>
 
 import { sendCommentAPI } from '@/service/Api';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -12,6 +12,8 @@ const successMessage = ref(null);
 
 const downloading = ref(false);
 const downloadCount = ref(0);
+
+
 function downloadApp() {
     const fileUrl = 'https://pos.bilatech.org/media/app/app-release.apk'; // renommer Url en fileUrl
     const link = document.createElement('a');
@@ -30,6 +32,7 @@ function downloadApp() {
 
 const isMobileMenuOpen = ref(false);
 
+// gestion du mesu 
 const toggleMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
 };
@@ -42,10 +45,10 @@ const smoothScroll = (id) => {
 function payment(){
   router.push("/Payment")
 }
-
+/// fin de la gestion menu
 
 async function sendComment() {
-  if(!email.value && !comment.value){
+  if(!email.value || !comment.value){
     errorMessage.value = "Tous les champs sont obligatoires"
     console.log(` error : ${errorMessage.value}`);
     return;
@@ -66,26 +69,99 @@ async function sendComment() {
 
 }
 
+// gestion patie 1  hero
+
+
+const heroRef = ref(null);
 
 const slides = [
   "/demo/medium-shot.jpg",
   "/demo/modern.jpg",
-  "/demo/Photos-inf.png"
+  "/demo/Photos-inf.png",
 ];
 
 const currentIndex = ref(0);
+
+const currentSlide = computed(
+  () => slides[currentIndex.value]
+);
+
+const nextIndex = computed(
+  () => (currentIndex.value + 1) % slides.length
+);
+
 let interval = null;
+let observer = null;
+
+const preloadImage = (src) => {
+  const img = new Image();
+  img.src = src;
+};
 
 const nextSlide = () => {
-  currentIndex.value = (currentIndex.value + 1) % slides.length;
+  currentIndex.value = nextIndex.value;
+
+  preloadImage(
+    slides[(nextIndex.value + 1) % slides.length]
+  );
+};
+
+const startSlider = () => {
+  if (interval) return;
+
+  interval = setInterval(nextSlide, 6000);
+};
+
+const stopSlider = () => {
+  clearInterval(interval);
+  interval = null;
+};
+
+const handleVisibility = () => {
+  if (document.hidden) {
+    stopSlider();
+  } else {
+    startSlider();
+  }
 };
 
 onMounted(() => {
-  interval = setInterval(nextSlide, 6000);
+  preloadImage(slides[1]);
+
+  observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        startSlider();
+      } else {
+        stopSlider();
+      }
+    },
+    {
+      threshold: 0.3,
+    }
+  );
+
+  if (heroRef.value) {
+    observer.observe(heroRef.value);
+  }
+
+  document.addEventListener(
+    "visibilitychange",
+    handleVisibility
+  );
 });
 
 onBeforeUnmount(() => {
-  clearInterval(interval);
+  stopSlider();
+
+  if (observer) {
+    observer.disconnect();
+  }
+
+  document.removeEventListener(
+    "visibilitychange",
+    handleVisibility
+  );
 });
 
 
@@ -213,79 +289,77 @@ onBeforeUnmount(() => {
 
     </div>
 
+    <section
+    ref="heroRef"
+    id="hero"
+    class="relative h-[90vh] overflow-hidden bg-[radial-gradient(circle_at_top,rgba(123,182,97,0.18),transparent_60%)] rounded-b-3xl"
+  >
+    <!-- IMAGE -->
+    <Transition name="fade" mode="out-in">
+      <img
+        :key="currentSlide"
+        :src="currentSlide"
+        fetchpriority="high"
+        decoding="async"
+        alt=""
+        class="absolute inset-0 w-full h-full object-cover will-change-transform"
+      />
+    </Transition>
 
-<div id="hero" class="relative h-[90vh] overflow-hidden bg-gray-900 rounded-b-3xl">
+    <!-- OVERLAY -->
+    <div class="absolute inset-0 bg-black/60 z-10"></div>
 
-  <!-- BACKGROUND -->
-  <div class="absolute inset-0 z-0">
+    <!-- CONTENT -->
+    <div
+      class="relative z-20 flex flex-col justify-center h-full px-6 md:px-20 max-w-6xl"
+    >
+      <h1
+        class="text-4xl md:text-6xl font-bold text-white leading-tight max-w-3xl"
+      >
+        <span
+          class="block text-gray-300 font-light mb-3 tracking-wide"
+        >
+          Tout votre business sur une seule plateforme
+        </span>
 
-    <img
-      v-for="(slide, index) in slides"
-      :key="index"
-      :src="slide"
-      loading="lazy"
-      class="absolute inset-0 w-full h-full object-cover transition-opacity duration-[2000ms] ease-in-out"
-      :class="index === currentIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-105'"
-    />
+        <span
+          class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent"
+        >
+          BilaSol.
+        </span>
+      </h1>
 
-  </div>
+      <p
+        class="text-lg md:text-xl text-gray-300 mt-6 max-w-2xl leading-relaxed"
+      >
+        Une solution simple,
+        <span class="text-yellow-400 font-semibold">
+          rapide
+        </span>,
+        et
+        <span class="text-green-400 font-semibold">
+          abordable
+        </span>
+        pour gérer votre activité sans effort.
+      </p>
 
-  <!-- OVERLAY -->
-  <div class="absolute inset-0 bg-black/60 z-10"></div>
+      <div class="flex flex-col sm:flex-row gap-4 mt-10">
+        <button
+          @click="$router.push('/signup')"
+          class="ios-btn-primary"
+        >
+          Commencer gratuitement
+        </button>
 
-  <!-- CONTENT -->
-  <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-20 max-w-6xl">
-
-    <h1 class="text-4xl md:text-6xl font-bold text-white leading-tight max-w-3xl">
-
-      <span class="block text-gray-300 font-light mb-3 tracking-wide">
-        Tout votre business sur une seule plateforme
-      </span>
-
-      <span class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent">
-        BilaSol.
-      </span>
-
-    </h1>
-
-    <p class="text-lg md:text-xl text-gray-300 mt-6 max-w-2xl leading-relaxed">
-      Une solution simple,
-      <span class="text-yellow-400 font-semibold">rapide</span>,
-      et
-      <span class="text-green-400 font-semibold">abordable</span>
-      pour gérer votre activité sans effort.
-      Profitez de <span class="text-white font-medium">30 jours gratuits</span>.
-    </p>
-
-    <!-- BUTTONS IOS 26 -->
-    <div class="flex flex-col sm:flex-row gap-4 mt-10">
-
-      <button
-        @click="$router.push('/signup')"
-        class="relative px-8 py-3 rounded-2xl
-               bg-white/10 backdrop-blur-xl border border-white/20
-               text-white font-medium
-               overflow-hidden
-               hover:scale-[1.03] transition-all duration-300">
-
-        <span class="absolute inset-0 bg-gradient-to-r from-[#7BB661]/0 via-white/20 to-[#F9A825]/0 opacity-40 animate-pulse"></span>
-        <span class="relative z-10">Commencer gratuitement</span>
-
-      </button>
-
-      <button
-        @click="$router.push('/login')"
-        class="px-8 py-3 rounded-2xl
-               bg-white/5 backdrop-blur-xl border border-white/10
-               text-white font-medium
-               hover:bg-white/10 transition-all">
-        Se connecter
-      </button>
-
+        <button
+          @click="$router.push('/login')"
+          class="ios-btn-secondary"
+        >
+          Se connecter
+        </button>
+      </div>
     </div>
-
-  </div>
-</div>
+  </section>
 
 <!-- Animation simple via Tailwind CSS -->
 
@@ -822,7 +896,7 @@ onBeforeUnmount(() => {
       <i class="pi pi-download text-lg"></i>
 
       <span>
-        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.6.0 Beta)' }}
+        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.7.0)' }}
       </span>
     </button>
 
@@ -1035,20 +1109,49 @@ onBeforeUnmount(() => {
 
 
 <style scoped>
-.nav-link {
-  @apply relative cursor-pointer transition duration-300;
+/*   section hero*/
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 1.2s ease,
+    transform 6s ease;
 }
 
-.nav-link::after {
-  content: "";
-  @apply absolute left-0 -bottom-1 w-0 h-[2px] 
-         bg-gradient-to-r from-[#7BB661] to-[#F9A825] 
-         transition-all duration-300;
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(1.04);
 }
 
-.nav-link:hover::after {
-  @apply w-full;
+.fade-enter-to,
+.fade-leave-from {
+  opacity: 1;
+  transform: scale(1);
 }
+
+.ios-btn-primary {
+  @apply relative px-8 py-3 rounded-2xl
+  bg-white/10 backdrop-blur-xl
+  border border-white/20
+  text-white font-medium
+  overflow-hidden
+  transition-all duration-300
+  hover:scale-[1.03];
+}
+
+.ios-btn-secondary {
+  @apply px-8 py-3 rounded-2xl
+  bg-white/5 backdrop-blur-xl
+  border border-white/10
+  text-white font-medium
+  hover:bg-white/10
+  transition-all;
+}
+
+/** fin de la section hero  */
+
+
+
 
 /* sections nos application  */
 .feature-card {

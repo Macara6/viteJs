@@ -220,6 +220,13 @@ const router = createRouter({
                     name:'Comments',
                     component:() => import('@/views/pages/Comments.vue'),
                     meta:{ requiresAuth: true}
+                },
+
+                {
+                    path:'/pages/NotificationPage',
+                    name:'NotificationPage',
+                    component:() => import('@/views/pages/NotificationPage.vue'),
+                    meta:{ requiresAuth: true }
                 }
                 
             ]

@@ -11,11 +11,13 @@ import { onMounted, ref } from 'vue';
  const selectedComment = ref(null);
  const deleteDialog = ref(false);
  const seletedDelete = ref(null);
+ const loadingChar = ref(null);
 
   const showReplyBox = ref(false)
   const replyMessage = ref('');
   const sendReply = ref('');
   const loading = ref(false);
+  const loadingNot = ref(false);
 
 
 
@@ -24,8 +26,17 @@ onMounted(() =>{
 })
 
  async function getComments() {
+  try{
+    loadingChar.value = true
     const response = await fetchCommentsAPI();
     comments.value = response;
+
+  }catch(error){
+
+  }finally{
+    loadingChar.value = false
+  }
+
  }
 
 
@@ -111,7 +122,7 @@ const sendReplyNotification = async () => {
 
   try{
 
-    loading.value = true;
+    loadingNot.value = true;
 
     const data = {
       email: selectedComment.value.email,
@@ -144,7 +155,7 @@ const sendReplyNotification = async () => {
     console.error('error reply notification :', error);
 
   }finally{
-    loading.value = false;
+    loadingNot.value = false;
   }
 }
 
@@ -152,359 +163,488 @@ const sendReplyNotification = async () => {
 
 
 </script>
-
 <template>
-  <div>
-  <div class="comments-page">
-    
-    <!-- LEFT: LIST -->
-    <div class="comments-list">
-      <h3> Commentaires</h3>
 
-        <div 
-          v-for="comment in comments" 
-          :key="comment.id"
-          class="comment-item"
-          :class="{ active: selectedComment?.id === comment.id }"
-          @click="selectComment(comment)"
+  <div class="min-h-screen bg-slate-100 p-2 sm:p-4">
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- LEFT SIDE -->
+      <div
+        class="
+          col-span-12
+          lg:col-span-4
+          xl:col-span-3
+          h-[400px]
+          lg:h-[calc(100vh-32px)]
+        "
+      >
+
+        <Card
+          class="h-full shadow-xl border-0 rounded-3xl overflow-hidden"
         >
-          
-          <div class="left-section">
-            
-            <div class="avatar">
-              {{ comment.email.charAt(0).toUpperCase() }}
-            </div>
 
-            <div class="info">
-              <div class="email">{{ comment.email }}</div>
+          <template #content>
 
-              <div class="message-preview">
-                {{ comment.message.slice(0, 40) }}...
+            <!-- HEADER -->
+            <div class="flex items-center justify-between mb-5">
+
+              <div>
+
+                <h2 class="text-2xl font-bold text-slate-800">
+                  Commentaires
+                </h2>
+
+                <p class="text-slate-500 mt-1">
+                  Gestion des commentaires
+                </p>
+
               </div>
+
+              <Avatar
+                icon="pi pi-comments"
+                shape="circle"
+                size="large"
+                class="bg-blue-100 text-blue-600"
+              />
+
             </div>
 
-          </div>
-
-          <div class="right-section">
-
-            <div 
-              class="notification-dot" 
-              v-if="!comment.is_read">
-            </div>
-
-            <!-- bouton supprimer -->
-            <button
-              class="delete-btn"
-              @click.stop="openDialog(comment)"
-            >
-              <i class="pi pi-trash"></i>
-            </button>
-
-          </div>
-
-        </div>
-    </div>
-
-  <!-- RIGHT: DETAIL -->
-  <div
-    v-if="selectedComment"
-    class="w-full lg:w-2/3 bg-white rounded-2xl shadow-sm border border-gray-200 p-6"
-  >
-
-    <!-- HEADER -->
-    <div class="flex items-center gap-4 mb-6">
-
-      <div
-        class="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-bold"
-      >
-        {{ selectedComment.email.charAt(0).toUpperCase() }}
-      </div>
-
-      <div>
-        <h3 class="text-xl font-semibold text-gray-800">
-          {{ selectedComment.email }}
-        </h3>
-
-        <p class="text-sm text-gray-500">
-          {{ formatDate(selectedComment.created_by) }}
-        </p>
-      </div>
-
-    </div>
-
-    <!-- MESSAGE CLIENT -->
-    <div
-      class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-gray-700 leading-relaxed mb-6"
-    >
-      {{ selectedComment.message }}
-    </div>
-
-    <!-- REPONSE -->
-    <div class="space-y-4">
-
-      <label class="font-medium text-gray-700">
-        Votre réponse
-      </label>
-<!-- SI LE MESSAGE N'EST PAS ENCORE REPONDU -->
-    <div v-if="!selectedComment.is_answer">
-
-      <Textarea
-        v-model="replyMessage"
-        rows="6"
-        class="w-full"
-        placeholder="Écrivez votre réponse ici..."
-      />
-
-  <!-- ACTION BUTTONS -->
-        <div class="flex flex-wrap gap-3 justify-end mt-4">
-
-          <!-- ENVOYER PAR MAIL -->
-          <Button
-            :disabled="loading"
-            severity="secondary"
-            class="px-4 py-2"
-            @click="sendReplyByMail"
-          >
-            <span class="flex items-center gap-2">
-              <i
-                :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-envelope'"
-              ></i>
-
-              {{ loading ? 'En cours ...' : 'Envoyer par Email' }}
-            </span>
-          </Button>
-
-          <Button
-           :disabled="loading"
-           severity="info" 
-           class="px-4 py-2"
-           @click="sendReplyNotification"
-          >
-          <span class="flex items-center gap-2">
-              <i
-                :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
-              ></i>
-
-              {{ loading ? 'En cours ...' : 'Notification locale' }}
-            </span>
-
-          </Button>
-
-        </div>
-      </div>
-
-      <!-- SI LE MESSAGE EST DEJA REPONDU -->
-      <div
-        v-else
-        class="mt-4 flex justify-end"
-      >
-        <Tag
-          value="Déjà répondu"
-          severity="success"
-          icon="pi pi-check-circle"
-          class="text-sm px-4 py-2"
-        />
-      </div>
-
-    </div>
-  </div>
+            <Divider />
   
+            <!-- COMMENTS -->
+            <ScrollPanel
+              style="height: calc(100vh - 180px)"
+            >
 
-    <div v-else class="no-selection">
-      Sélectionne un commentaire  <i class="pi pi-comments"></i>
+              <div class="space-y-3 pr-2">
+
+                <div
+                  v-for="comment in comments"
+                  :key="comment.id"
+                  @click="selectComment(comment)"
+                  class="group cursor-pointer transition-all duration-300"
+                >
+
+                  <div
+                    class="rounded-2xl border p-4 transition-all duration-300"
+                    :class="[
+                      selectedComment?.id === comment.id
+                        ? 'bg-blue-50 border-blue-500 shadow-md'
+                        : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-sm'
+                    ]"
+                  >
+
+                    <div class="flex items-center justify-between gap-3">
+
+                      <!-- LEFT -->
+                      <div class="flex items-center gap-3 flex-1 min-w-0">
+
+                        <div class="relative">
+
+                          <div
+                            class="
+                              w-12
+                              h-12
+                              rounded-full
+                              bg-gradient-to-r
+                              from-blue-500
+                              to-indigo-500
+                              text-white
+                              flex
+                              items-center
+                              justify-center
+                              font-bold
+                              text-lg
+                            "
+                          >
+                            {{ comment.email.charAt(0).toUpperCase() }}
+                          </div>
+
+                          <span
+                            v-if="!comment.is_read"
+                            class="
+                              absolute
+                              -top-1
+                              -right-1
+                              w-3
+                              h-3
+                              rounded-full
+                              bg-red-500
+                              border-2
+                              border-white
+                            "
+                          ></span>
+
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+
+                          <div
+                            class="font-semibold text-slate-800 truncate"
+                          >
+                            {{ comment.email }}
+                          </div>
+
+                          <div
+                            class="
+                              text-sm
+                              text-slate-500
+                              mt-1
+                              truncate
+                            "
+                          >
+                            {{ comment.message.slice(0, 45) }}...
+                          </div>
+
+                        </div>
+
+                      </div>
+
+                      <!-- RIGHT -->
+                      <div class="flex items-center gap-2">
+
+                        <button
+                          class="
+                            w-9
+                            h-9
+                            rounded-full
+                            bg-red-50
+                            hover:bg-red-500
+                            text-red-500
+                            hover:text-white
+                            transition-all
+                            duration-300
+                            flex
+                            items-center
+                            justify-center
+                          "
+                          @click.stop="openDialog(comment)"
+                        >
+                          <i class="pi pi-trash"></i>
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </ScrollPanel>
+
+          </template>
+
+        </Card>
+
+      </div>
+
+      <!-- RIGHT SIDE -->
+      <div
+        class="
+          col-span-12
+          lg:col-span-8
+          xl:col-span-9
+          h-auto
+          lg:h-[calc(100vh-32px)]
+        "
+      >
+
+        <Card
+          class="h-full shadow-xl border-0 rounded-3xl"
+        >
+
+          <template #content>
+
+            <div
+              v-if="selectedComment"
+              class="h-full flex flex-col"
+            >
+
+              <!-- HEADER -->
+              <div
+                class="
+                  flex
+                  flex-col
+                  sm:flex-row
+                  sm:items-start
+                  justify-between
+                  gap-4
+                "
+              >
+
+                <div
+                  class="
+                    flex
+                    flex-col
+                    sm:flex-row
+                    items-start
+                    sm:items-center
+                    gap-4
+                  "
+                >
+
+                  <div
+                    class="
+                      w-16
+                      h-16
+                      rounded-full
+                      bg-gradient-to-r
+                      from-blue-500
+                      to-indigo-500
+                      text-white
+                      flex
+                      items-center
+                      justify-center
+                      text-2xl
+                      font-bold
+                    "
+                  >
+                    {{ selectedComment.email.charAt(0).toUpperCase() }}
+                  </div>
+
+                  <div>
+
+                    <h1
+                      class="
+                        text-2xl
+                        sm:text-3xl
+                        font-bold
+                        text-slate-800
+                        break-words
+                      "
+                    >
+                      {{ selectedComment.email }}
+                    </h1>
+
+                    <p class="text-slate-500 mt-2">
+                      {{ formatDate(selectedComment.created_by) }}
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <Tag
+                  :value="selectedComment.is_answer ? 'Répondu' : 'En attente'"
+                  :severity="selectedComment.is_answer ? 'success' : 'warning'"
+                  rounded
+                />
+
+              </div>
+
+              <Divider />
+
+              <!-- MESSAGE -->
+              <div class="mt-4">
+
+                <h2
+                  class="text-xl font-semibold text-slate-800 mb-4"
+                >
+                  Message du client
+                </h2>
+
+                <div
+                  class="
+                    bg-slate-50
+                    border
+                    border-slate-200
+                    rounded-3xl
+                    p-4
+                    sm:p-6
+                    lg:p-8
+                    leading-7
+                    text-slate-700
+                    whitespace-pre-line
+                    break-words
+                  "
+                >
+                  {{ selectedComment.message }}
+                </div>
+
+              </div>
+
+              <!-- RESPONSE -->
+              <div class="mt-8">
+
+                <label
+                  class="font-semibold text-slate-700 mb-3 block"
+                >
+                  Votre réponse
+                </label>
+
+                <!-- NOT ANSWERED -->
+                <div v-if="!selectedComment.is_answer">
+
+                  <Textarea
+                    v-model="replyMessage"
+                    rows="6"
+                    class="w-full"
+                    placeholder="Écrivez votre réponse ici..."
+                  />
+
+                  <div
+                    class="
+                      flex
+                      flex-col
+                      sm:flex-row
+                      gap-3
+                      justify-end
+                      mt-5
+                    "
+                  >
+
+                    <!-- EMAIL -->
+                    <Button
+                      :disabled="loading"
+                      severity="secondary"
+                      class="px-4 py-3"
+                      @click="sendReplyByMail"
+                    >
+
+                      <span class="flex items-center gap-2">
+
+                        <i
+                          :class="loading
+                            ? 'pi pi-spin pi-spinner'
+                            : 'pi pi-envelope'"
+                        ></i>
+
+                        {{ loading
+                          ? 'En cours ...'
+                          : 'Envoyer par Email'
+                        }}
+
+                      </span>
+
+                    </Button>
+
+                    <!-- LOCAL NOTIFICATION -->
+                    <Button
+                      :disabled="loadingNot"
+                      severity="info"
+                      class="px-4 py-3"
+                      @click="sendReplyNotification"
+                    >
+
+                      <span class="flex items-center gap-2">
+
+                        <i
+                          :class="loadingNot
+                            ? 'pi pi-spin pi-spinner'
+                            : 'pi pi-send'"
+                        ></i>
+
+                        {{ loadingNot
+                          ? 'En cours ...'
+                          : 'Notification locale'
+                        }}
+
+                      </span>
+
+                    </Button>
+
+                  </div>
+
+                </div>
+
+                <!-- ANSWERED -->
+                <div
+                  v-else
+                  class="mt-4 flex justify-end"
+                >
+
+                  <Tag
+                    value="Déjà répondu"
+                    severity="success"
+                    icon="pi pi-check-circle"
+                    class="text-sm px-4 py-2"
+                  />
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- EMPTY -->
+            <div
+              v-else
+              class="
+                h-full
+                flex
+                flex-col
+                items-center
+                justify-center
+                text-center
+                py-20
+              "
+            >
+
+              <Avatar
+                icon="pi pi-comments"
+                size="xlarge"
+                shape="circle"
+                class="bg-slate-100 text-slate-400 mb-5"
+              />
+
+              <h2
+                class="text-2xl font-bold text-slate-600"
+              >
+                Aucun commentaire sélectionné
+              </h2>
+
+              <p
+                class="text-slate-400 mt-2"
+              >
+                Sélectionnez un commentaire à gauche
+              </p>
+
+            </div>
+
+          </template>
+
+        </Card>
+
+      </div>
+
     </div>
 
-  </div>
-      <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
-        <span>Voulez-vous vraiment supprimer ce commentaire ?</span>
-        <template #footer>
-            <Button label="Non" icon="pi pi-times" text @click="deleteDialog = false" />
-            <Button label="Oui" icon="pi pi-check" severity="danger" @click="selecteDelelete" />
-        </template>
+    <!-- DELETE DIALOG -->
+    <Dialog
+      v-model:visible="deleteDialog"
+      :style="{ width: '350px' }"
+      header="Confirmation"
+      :modal="true"
+    >
+
+      <span>
+        Voulez-vous vraiment supprimer ce commentaire ?
+      </span>
+
+      <template #footer>
+
+        <Button
+          label="Non"
+          icon="pi pi-times"
+          text
+          @click="deleteDialog = false"
+        />
+
+        <Button
+          label="Oui"
+          icon="pi pi-check"
+          severity="danger"
+          @click="selecteDelelete"
+        />
+
+      </template>
+
     </Dialog>
 
   </div>
 
 </template>
-
-<style scoped>
-
-.comments-page {
-  display: flex;
-  height: 90vh;
-  gap: 20px;
-}
-
-/* LEFT PANEL */
-.comments-list {
-  width: 35%;
-  background: #fff;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  overflow-y: auto;
-}
-
-.comment-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border-radius: 12px;
-  transition: 0.2s;
-  cursor: pointer;
-}
-
-/* notification */
-.notification-dot {
-  width: 10px;
-  height: 10px;
-  background: red;
-  border-radius: 50%;
-}
-
-.comment-item:hover {
-  background: #f7f7f7;
-}
-
-.left-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.right-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* bouton supprimer */
-.delete-btn {
-  border: none;
-  background: #ffe5e5;
-  color: #ff3b30;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: 0.2s;
-}
-.delete-btn:hover {
-  background: #ff3b30;
-  color: white;
-  transform: scale(1.05);
-}
-
-.comment-item.active {
-  background: #e8f5e9;
-}
-
-/* RIGHT PANEL */
-.comment-detail {
-  flex: 1;
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-}
-
-.no-selection {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: gray;
-}
-
-/* AVATAR */
-.avatar {
-  width: 40px;
-  height: 40px;
-  background: #4CAF50;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-.avatar.big {
-  width: 70px;
-  height: 70px;
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-
-/* TEXT */
-.email {
-  font-weight: bold;
-}
-
-.message-preview {
-  font-size: 13px;
-  color: gray;
-}
-
-.date {
-  font-size: 12px;
-  color: gray;
-}
-
-.message {
-  margin-top: 15px;
-  line-height: 1.6;
-}
-
-
-/*  section pour repondre au commentaire*/
-
-.actions{
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.gmail-btn,
-.app-btn{
-  padding: 10px 15px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  text-decoration: none;
-  color: white;
-}
-
-.gmail-btn{
-  background: #ea4335;
-}
-
-.app-btn{
-  background: #2563eb;
-}
-
-.reply-box{
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.reply-box textarea{
-  min-height: 120px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.reply-box button{
-  align-self: flex-end;
-  background: #16a34a;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-</style>

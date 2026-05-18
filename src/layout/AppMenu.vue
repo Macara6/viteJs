@@ -84,7 +84,7 @@ const model = computed(() => {
           { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
           { label: "Paiement Collectés", icon:'pi pi-database', to:'/pages/PaymentList'},
           { label: "commentaires",icon:"pi pi-comments", to:"/pages/Comments",badge:commentsIsRead},
-      
+          { label: 'Inbox', icon:'pi pi-inbox', to:'/pages/NotificationPage'},
           { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
 
         ]

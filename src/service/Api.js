@@ -428,6 +428,8 @@ export async function fetchInvoicesAllUsers() {
     }
    return allInvoices;
 }
+// afficher les utilisateur pour les notification 
+
 
 // fetch users online
 export async function fetchConnectionHistory(){
@@ -473,6 +475,30 @@ export async function fetchCommentsAPI(){
     }
     return allComments;
 }
+
+// fonction pour afficher les notification 
+export async function fetchNoticationsAPI(userId) {
+    try {
+        const response = await axios.get(
+            `${API_BASE}notifications-user/?user_id=${userId}`,
+            {
+                headers: {
+                    'Authorization':
+                        `Bearer ${localStorage.getItem('token')}`
+                }
+            }
+        );
+        return response.data;
+
+    } catch (error) {
+
+        console.error('error fetching notifications:', error);
+
+        return [];
+    }
+}
+
+
 // function pour afficher les commentaires
 export async function fetchCommentDetail(commentId){
     const URL_COMMENT_DETAIL =`${API_BASE}comment/${commentId}/`;
@@ -548,6 +574,20 @@ export async function replyNoficationAPI(data){
     }
 }
 
+export async function sendNotification(data){
+    const URL_SEND_NOTIFICATION = `${API_BASE}send_notification/`;
+    try{
+        const response = await axios.post(URL_SEND_NOTIFICATION,data,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+                'Content-Type':'application/json'
+            }
+        });
+        return response.data
+    }catch(errer){
+        console.error('error to send notification ', errer);
+    }
+}
 
 
 // afficher les utilisateur qui sont de la corbeille 
@@ -741,6 +781,30 @@ export async function fetchTrashedUser(){
         return allUsers;
     }catch(error){
         console.log('error lors de la recuperations des utilisateur dans le corbeille', error);
+    }
+}
+// fonction pour afficher les utilisateur notication 
+
+export async function fetchUsersForNotification() {
+    const LIMIT = 200;
+    let nextUrl = `${API_BASE}users-notification/?limit=${LIMIT}`;
+    let allUsers = [];
+
+    try{
+        while(nextUrl){
+            const response = await axios.get(nextUrl, {
+                headers :{
+                    'Authorization':`Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const data = response.data;
+            allUsers.push(...data.results);
+            nextUrl = data.next;
+        }
+        return allUsers;
+            
+    }catch(error){
+        console.error('error lors la recuperation des utilisateur', error)
     }
 }
 
