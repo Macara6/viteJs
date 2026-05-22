@@ -896,7 +896,7 @@ onBeforeUnmount(() => {
       <i class="pi pi-download text-lg"></i>
 
       <span>
-        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.7.0)' }}
+        {{ downloading ? 'Téléchargement...' : 'Télécharger (v1.7.3)' }}
       </span>
     </button>
 
