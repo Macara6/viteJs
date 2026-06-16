@@ -29,6 +29,7 @@ const loadLowStock = async () => {
     
     const now = new Date();
     const twoDayslater = new Date();
+    
     twoDayslater.setDate(now.getDate()+30);
 
     const expiringSoonProducts = products.filter((p) =>{
@@ -75,6 +76,7 @@ const model = computed(() => {
           { label:'Activites', icon: 'pi pi-calendar-minus', to:'/pages/UsersOnline'},
         ]
       },
+
       {
         label: 'ADMINISTRATION',
         items: [
@@ -90,6 +92,7 @@ const model = computed(() => {
         ]
       }
     ];
+
   } else {
     if(isUserStatus ==='ADMIN'){
         return [

@@ -21,6 +21,7 @@ watchEffect(() => {
 });
 </script>
 
+
 <template>
   <li>
 
@@ -28,10 +29,7 @@ watchEffect(() => {
   v-if="props.item.to"
   :to="props.item.to"
   class="flex items-center gap-2 p-2 rounded-md relative"
-  :class="{
-    'bg-green-500 text-white': isActive,
-    'hover:bg-gray-100 hover:text-gray-900': !isActive
-  }"
+   :class="isActive ? 'menu-item--active' : ''"
 >
   <!-- Wrapper icône pour positionner le badge -->
   <div class="relative">
@@ -46,7 +44,7 @@ watchEffect(() => {
 
   <!-- Label -->
   <span class="ml-2">{{ props.item.label }}</span>
-</router-link>
+ </router-link>
 
 
     <!-- Sous-menu -->
@@ -67,5 +65,28 @@ watchEffect(() => {
 .-top-1 { top: -0.25rem; }
 .-right-1 { right: -0.25rem; }
 .text-xl { font-size: 1.25rem; }
+
+.menu-item--active {
+    background-color: rgba(0, 77, 74, 0.08);
+    color: #004D4A;
+    font-weight: 700;
+}
+
+.menu-item--active:hover {
+    background-color: rgba(0, 77, 74, 0.12);
+    color: #004D4A;
+}
+
+/* Barre indicateur à gauche pour l'item actif */
+.menu-item-active-bar {
+    position: absolute;
+    left: -0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background-color: #004D4A;
+    border-radius: 0 4px 4px 0;
+}
 </style>
 

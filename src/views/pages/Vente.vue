@@ -547,7 +547,8 @@ async function createInvoice(){
 
             client_name :clientName.value,
 
-            total_amount:totalAmount.value,
+            total_amount:finalTotal,
+
             amount_paid:amountPaid.value,
             cashier:localStorage.getItem('id'),
             change:change.value,

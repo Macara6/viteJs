@@ -829,282 +829,304 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
 
 <template>
+<div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-slate-50">
 
- <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-100 dark:bg-gray-900">
-    <!-- === TOOLBAR PRINCIPALE === -->
-    <div class="card mb-6 shadow-sm rounded-xl bg-white dark:bg-gray-800">
-      <Toolbar class="flex flex-wrap justify-between items-center gap-4 p-4">
+  <!-- === TOOLBAR PRINCIPALE === -->
+  <div class="toolbar-card mb-5">
+    <Toolbar class="flex flex-wrap justify-between items-center gap-4 p-4 border-none bg-transparent">
 
-        <!-- Boutons de gauche -->
-        <template #start>
-          <div class="flex flex-wrap gap-2">
-            <Button label="Nouveau Produit" icon="pi pi-plus" severity="success" @click="openNew" />
-            <Button label="Nouvelle Catégorie" icon="pi pi-folder-plus" severity="info" @click="categoryDialog = true" />
+      <!-- Boutons de gauche -->
+      <template #start>
+        <div class="flex flex-wrap gap-2">
+          <Button
+            label="Nouveau Produit"
+            icon="pi pi-plus"
+            class="btn-teal"
+            @click="openNew"
+          />
+          <Button
+            label="Nouvelle Catégorie"
+            icon="pi pi-folder-plus"
+            outlined
+            class="btn-outline-teal"
+            @click="categoryDialog = true"
+          />
+          <Button
+            label="Effacer"
+            icon="pi pi-trash"
+            severity="danger"
+            outlined
+            :disabled="!selectedProducts || !selectedProducts.length"
+            @click="confirmDeleteSelected"
+          />
+        </div>
+      </template>
+
+      <!-- Boutons de droite -->
+      <template #end>
+        <div class="flex flex-wrap gap-2 justify-end">
+          <Button
+            icon="pi pi-refresh"
+            label="Actualiser"
+            outlined
+            severity="secondary"
+            @click="forceRefresh"
+          />
+          <Button
+            label="Télécharger PDF"
+            icon="pi pi-file-pdf"
+            class="btn-teal"
+            @click="downloadPDFProduct"
+          />
+          <Button
+            v-if="userStatus != 'GESTIONNAIRE_STOCK'"
+            label="Prix d'achat & Bénéfice"
+            icon="pi pi-lock"
+            severity="warning"
+            outlined
+            @click="openView"
+          />
+        </div>
+      </template>
+
+    </Toolbar>
+  </div>
+
+  <!-- === LOADING === -->
+  <div v-if="isLoading" class="loading-state">
+    <i class="pi pi-spin pi-spinner text-[#004D4A]" style="font-size: 2rem"></i>
+    <p class="text-sm text-slate-400 mt-3 font-medium">Chargement des produits...</p>
+  </div>
+
+  <!-- === DATATABLE === -->
+  <div v-else class="table-card">
+    <DataTable
+      ref="dt"
+      v-model:selection="selectedProducts"
+      :value="filteredProducts"
+      dataKey="id"
+      :paginator="true"
+      :rows="10"
+      :filters="filters"
+      responsiveLayout="scroll"
+      :rowsPerPageOptions="[5, 10, 25]"
+      currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} produits"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+      class="custom-datatable"
+    >
+
+      <!-- === HEADER (Filtres + Recherche) === -->
+      <template #header>
+        <div class="flex flex-col gap-4">
+
+          <!-- Titre -->
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-[#004D4A]/8 flex items-center justify-center">
+              <i class="pi pi-box text-[#004D4A] text-sm"></i>
+            </div>
+            <h4 class="text-base sm:text-lg font-bold text-slate-800 m-0">
+              Table des Produits
+            </h4>
+          </div>
+
+          <!-- Filtres -->
+          <div class="flex flex-wrap gap-3 items-center">
+
             <Button
-              label="Effacer"
-              icon="pi pi-trash"
-              severity="danger"
-              :disabled="!selectedProducts || !selectedProducts.length"
-              @click="confirmDeleteSelected"
+              label="Historique de stock"
+              icon="pi pi-history"
+              outlined
+              severity="secondary"
+              size="small"
             />
-          </div>
-        </template>
 
-        <!-- Boutons de droite -->
-        <template #end>
-          <div class="flex flex-wrap gap-2 justify-end"> 
-            <Button
-                icon="pi pi-refresh"
-                label="Actualiser"
-                class="p-button-outlined p-button-secondary"
-                @click="forceRefresh"
-              />
-           <Button label="Télécharger PDF"  severity="info" icon="pi pi-file-pdf " class="p-button-success" @click="downloadPDFProduct" />
-            <Button v-if="userStatus !='GESTIONNAIRE_STOCK'" label="Prix d'achat & Bénéfice" icon="pi pi-lock" severity="warning" @click="openView" />
-          </div>
-        </template>
+            <!-- Filtre utilisateur -->
+            <Select
+              v-model="selectedUserFilter"
+              :options="allUsers.filter(u => u.status !== 'CAISSIER')"
+              optionLabel="username"
+              optionValue="id"
+              placeholder="Filtrer par utilisateur"
+              class="w-full sm:w-56"
+              showClear
+            >
+              <template #option="slotProps">
+                <div class="flex items-center justify-between w-full">
+                  <span>{{ slotProps.option.username }}</span>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    :class="{
+                      'bg-emerald-50 text-emerald-600': slotProps.option.status === 'ADMIN',
+                      'bg-teal-50 text-[#004D4A]': slotProps.option.status === 'CAISSIER',
+                      'bg-slate-100 text-slate-500': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                    }"
+                  >
+                    {{ slotProps.option.status }}
+                  </span>
+                </div>
+              </template>
 
-      </Toolbar>
-    </div>
+              <template #selecteItem="slotProps">
+                <div v-if="slotProps.value" class="flex items-center gap-2">
+                  <span>{{ slotProps.value.username }}</span>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    :class="{
+                      'bg-emerald-50 text-emerald-600': slotProps.value.status === 'admin',
+                      'bg-teal-50 text-[#004D4A]': slotProps.value.status === 'user',
+                    }"
+                  >
+                    {{ slotProps.value.status }}
+                  </span>
+                </div>
+                <span v-else>Filtrer par utilisateur</span>
+              </template>
+            </Select>
 
-    <div v-if="isLoading" class="text-center py-8 text-gray-500">
-      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-    </div>
-
-    <!-- === DATATABLE === -->
-    <div v-else class="card shadow-md rounded-xl overflow-x-auto bg-white dark:bg-gray-800 p-4">
-      <DataTable
-        ref="dt"
-        v-model:selection="selectedProducts"
-        :value="filteredProducts"
-        dataKey="id"
-        :paginator="true"
-        :rows="10"
-        :filters="filters"
-        responsiveLayout="scroll"
-        :rowsPerPageOptions="[5, 10, 25]"
-        currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} produits"
-        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      >
-
-        <!-- === HEADER (Filtres + Recherche) === -->
-        <template #header>
-          <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-
-            <h4 class="text-lg sm:text-xl font-semibold text-[#004D4A] m-0">Table des Produits</h4>
-
-            <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
-              <Button 
-                label="historique de stock"
-                icon="pi pi-history"
-                severity="info"
-                @click="openHistoryDialog"
-              />
-
-              <!-- Filtre utilisateur -->
-        <Select
-          v-model="selectedUserFilter"
-          :options="allUsers.filter(u => u.status !=='CAISSIER')"
-          optionLabel="username"
-          optionValue="id"
-          placeholder="Filtrer par utilisateur"
-          class="w-full sm:w-56"
-          showClear
-        >
-        
-          <template #option="slotProps">
-            <div class="flex items-center justify-between w-full">
-              <span>{{ slotProps.option.username }}</span>
-
-              <span
-                class="px-2 py-1 rounded text-xs"
-                :class="{
-                  'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
-                  'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-                  'bg-gray-200 text-gray-700': slotProps.option.status == 'GESTIONNAIRE_STOCK'
-                }"
-              >
-                {{ slotProps.option.status }}
-              </span>
-            </div>
-
-          </template>
-
-          <template #selecteItem="slotProps">
-            <div v-if="slotProps.value" class="flex items-center gap-2">
-              
-              <span>   {{ slotProps.value.username }}</span>
-              <span
-                class="px-2 py-1 rounded text-xs"
-                :class="{
-                  'bg-green-100 text-green-700': slotProps.value.status === 'admin',
-                  'bg-blue-100 text-blue-700': slotProps.value.status === 'user',
-                }"
-              >
-                {{ slotProps.value.status }}
-              </span>
-            </div>
-            <span v-else>Filtrer par utilisateur</span>
-          </template>
-        </Select>
             <!-- Filtre catégorie -->
             <Select
-                v-model="selectedCategoryFilter"
-                :options="[{ id: 'all', name: 'Tous' }, ...categorys]"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="Filtrer par catégorie"
-                class="w-full sm:w-56"
-                showClear
-              />
+              v-model="selectedCategoryFilter"
+              :options="[{ id: 'all', name: 'Tous' }, ...categorys]"
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Filtrer par catégorie"
+              class="w-full sm:w-56"
+              showClear
+            />
 
-              <!-- Recherche globale -->
-            <span class="relative flex items-center w-full sm:w-64">
-              <i
-                v-if="!filters['global'].value"
-                class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
-              ></i>
-
+            <!-- Recherche globale -->
+            <span class="relative flex items-center w-full sm:w-64 ml-auto">
+              <i class="pi pi-search absolute left-3 text-slate-400 text-sm pointer-events-none"></i>
               <InputText
                 v-model="filters['global'].value"
-                placeholder="     Rechercher..."
-                class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
+                placeholder="Rechercher un produit..."
+                class="w-full !pl-9 !py-2.5 !text-sm !rounded-xl !border-slate-200
+                       focus:!border-[#004D4A] focus:!ring-[#004D4A]/10"
               />
             </span>
 
-
-            </div>
           </div>
-        </template>
+        </div>
+      </template>
 
-        <!-- === COLONNES === -->
-        <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
+      <!-- === COLONNES === -->
+      <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
 
-        <Column field="id" header="ID" sortable style="min-width: 5rem" />
+      <Column field="id" header="ID" sortable style="min-width: 5rem" />
 
-        <Column field="name" header="Nom produit" sortable style="min-width: 12rem" />
-
-        <Column field="price" header="Prix vente" sortable style="min-width: 8rem">
-          <template #body="slotProps">{{ formatPrice(slotProps.data.price) }}</template>
-        </Column>
-
-        <Column
-          v-if="isSecretValidatedForView"
-          field="purchase_price"
-          header="Prix achat"
-          sortable
-          style="min-width: 8rem"
-        >
-          <template #body="slotProps">{{ formatPrice(slotProps.data.purchase_price) }}</template>
-        </Column>
-
-        <Column field="currency" header="Devise" style="min-width: 6rem; text-align: center;">
-          <template #body>
-            {{ selectedUserProfile?.currency_preference || userProfile?.currency_preference || 'N/D' }}
-          </template>
-        </Column>
-
-
-        <Column
-          v-if="isSecretValidatedForView"
-          field=""
-          header="Bénéfice"
-          style="min-width: 6rem"
-        >
-          <template #body="slotProps">
-            {{ calculateDenfice(slotProps.data.price, slotProps.data.purchase_price) }}%
-          </template>
-        </Column>
-
-        <Column field="stock" header="Stock" sortable style="min-width: 6rem" >
-        <template #body="{data}">
-          <span 
-            class="px-2 py-1 text-white text-sm font-bold rounded"
-            :class="data.stock < 10 ? 'bg-red-500' : 'bg-green-500'"
-          >
-          {{ data.stock }}
-          </span>
-        </template>
-        
-        </Column>
-        
-      
-        <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
-          <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
-        </Column>
-        
-        <Column field="expiration_date" header="Date Exp" sortable style="min-width: 10rem">
-          <template #body="slotProps">
-            {{ formatDate(slotProps.data.expiration_date ) }}
-          </template>
-        </Column>
-        <Column field="tva" header="TVA 16 %" sortable style="min-width: 10rem">
-          <template #body="slotProps">
-            <span
-              :class="[
-                'px-3 py-1 rounded-full text-white text-sm font-semibold',
-                slotProps.data.tva ? 'bg-green-500' : 'bg-yellow-500'
-              ]"
-            >
-              {{ slotProps.data.tva ? 'Avec' : 'Sans' }}
-            </span>
-          </template>
-        </Column>
-
-      <Column header="Catégorie" sortable style="min-width: 10rem">
+      <Column field="name" header="Nom produit" sortable style="min-width: 12rem">
         <template #body="slotProps">
-          {{ slotProps.data.category_name || 'Aucune' }}
+          <span class="font-semibold text-slate-800">{{ slotProps.data.name }}</span>
         </template>
       </Column>
 
+      <Column field="price" header="Prix vente" sortable style="min-width: 8rem">
+        <template #body="slotProps">
+          <span class="font-semibold text-[#004D4A]">{{ formatPrice(slotProps.data.price) }}</span>
+        </template>
+      </Column>
 
+      <Column
+        v-if="isSecretValidatedForView"
+        field="purchase_price"
+        header="Prix achat"
+        sortable
+        style="min-width: 8rem"
+      >
+        <template #body="slotProps">{{ formatPrice(slotProps.data.purchase_price) }}</template>
+      </Column>
 
+      <Column field="currency" header="Devise" style="min-width: 6rem; text-align: center;">
+        <template #body>
+          <span class="text-xs font-semibold text-slate-500">
+            {{ selectedUserProfile?.currency_preference || userProfile?.currency_preference || 'N/D' }}
+          </span>
+        </template>
+      </Column>
 
-        <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
-          <template #body="slotProps">{{ slotProps?.data.barcode || 'N/A' }}</template>
-        </Column>
+      <Column
+        v-if="isSecretValidatedForView"
+        field=""
+        header="Bénéfice"
+        style="min-width: 6rem"
+      >
+        <template #body="slotProps">
+          <span class="text-emerald-600 font-semibold">
+            {{ calculateDenfice(slotProps.data.price, slotProps.data.purchase_price) }}%
+          </span>
+        </template>
+      </Column>
 
-        <!-- === Actions === -->
-        <Column header="Actions" style="min-width: 8rem">
-          <template #body="slotProps">
-            <div class="flex justify-center gap-1"> <!-- gap réduit -->
-              <Button 
-                icon="pi pi-pencil" 
-                rounded 
-                outlined 
-                class="p-1 text-xs h-7 w-7" 
-                @click="editProduct(slotProps.data)" 
-              />
+      <Column field="stock" header="Stock" sortable style="min-width: 6rem">
+        <template #body="{ data }">
+          <span
+            class="stock-badge"
+            :class="data.stock < 10 ? 'stock-badge--low' : 'stock-badge--ok'"
+          >
+            <i :class="data.stock < 10 ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle'" class="text-[10px]"></i>
+            {{ data.stock }}
+          </span>
+        </template>
+      </Column>
 
-              <Button
-                icon="pi pi-trash"
-                rounded
-                outlined
-                severity="danger"
-                class="p-1 text-xs h-7 w-7"
-                @click="confirmDeleteProduct(slotProps.data)"
-              />
+      <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
+        <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
+      </Column>
 
-              <Button 
-                icon="pi pi-plus" 
-                severity="success"
-                class="p-1 text-xs h-7 w-7"
-                @click="openAjoutStock(slotProps.data)" 
-              />
+      <Column field="expiration_date" header="Date Exp" sortable style="min-width: 10rem">
+        <template #body="slotProps">
+          {{ formatDate(slotProps.data.expiration_date) }}
+        </template>
+      </Column>
 
-              <Button 
-                icon="pi pi-minus" 
-                severity="warn"
-                class="p-1 text-xs h-7 w-7"
-                @click="openSortieStock(slotProps.data)" 
-              />
-            </div>
-          </template>
-        </Column>
+      <Column field="tva" header="TVA 16 %" sortable style="min-width: 10rem">
+        <template #body="slotProps">
+          <span
+            class="tva-badge"
+            :class="slotProps.data.tva ? 'tva-badge--with' : 'tva-badge--without'"
+          >
+            {{ slotProps.data.tva ? 'Avec' : 'Sans' }}
+          </span>
+        </template>
+      </Column>
 
+      <Column header="Catégorie" sortable style="min-width: 10rem">
+        <template #body="slotProps">
+          <span class="text-slate-600">{{ slotProps.data.category_name || 'Aucune' }}</span>
+        </template>
+      </Column>
 
-      </DataTable>
-    </div>
+      <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
+        <template #body="slotProps">
+          <span class="font-mono text-xs text-slate-500">{{ slotProps?.data.barcode || 'N/A' }}</span>
+        </template>
+      </Column>
+
+      <!-- === Actions === -->
+      <Column header="Actions" style="min-width: 9rem">
+        <template #body="slotProps">
+          <div class="flex justify-center gap-1.5">
+            <button class="action-btn action-btn--edit" @click="editProduct(slotProps.data)" title="Modifier">
+              <i class="pi pi-pencil text-xs"></i>
+            </button>
+
+            <button class="action-btn action-btn--delete" @click="confirmDeleteProduct(slotProps.data)" title="Supprimer">
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+
+            <button class="action-btn action-btn--add" @click="openAjoutStock(slotProps.data)" title="Ajouter stock">
+              <i class="pi pi-plus text-xs"></i>
+            </button>
+
+            <button class="action-btn action-btn--remove" @click="openSortieStock(slotProps.data)" title="Retirer stock">
+              <i class="pi pi-minus text-xs"></i>
+            </button>
+          </div>
+        </template>
+      </Column>
+
+    </DataTable>
+  </div>
 
     <!-- Dialogs -->
     <Dialog v-model:visible="productDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Product Details" :modal="true">
@@ -1392,7 +1414,9 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
         <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
       </div>
+      
     </div>
+
   </template>
 
   <template #loading>
@@ -1466,6 +1490,175 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 </template>
 
 <style scoped>
+
+
+.toolbar-card {
+    background-color: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #f1f5f9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.table-card {
+    background-color: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #f1f5f9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    padding: 1.25rem;
+    overflow-x: auto;
+}
+
+/* Boutons custom */
+.btn-teal {
+    background-color: #004D4A !important;
+    border-color: #004D4A !important;
+}
+.btn-teal:hover {
+    background-color: #006660 !important;
+    border-color: #006660 !important;
+}
+
+.btn-outline-teal {
+    color: #004D4A !important;
+    border-color: #004D4A !important;
+}
+.btn-outline-teal:hover {
+    background-color: rgba(0, 77, 74, 0.06) !important;
+}
+
+/* Stock badge */
+.stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.stock-badge--ok {
+    background-color: #ecfdf5;
+    color: #059669;
+}
+
+.stock-badge--low {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+/* TVA badge */
+.tva-badge {
+    display: inline-flex;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.tva-badge--with {
+    background-color: #ecfdf5;
+    color: #059669;
+}
+
+.tva-badge--without {
+    background-color: #fffbeb;
+    color: #d97706;
+}
+
+/* Action buttons */
+.action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.action-btn--edit {
+    background-color: #f0faf9;
+    color: #004D4A;
+    border-color: rgba(0, 77, 74, 0.15);
+}
+.action-btn--edit:hover {
+    background-color: #004D4A;
+    color: #fff;
+}
+
+.action-btn--delete {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.action-btn--delete:hover {
+    background-color: #dc2626;
+    color: #fff;
+}
+
+.action-btn--add {
+    background-color: #ecfdf5;
+    color: #059669;
+    border-color: #a7f3d0;
+}
+.action-btn--add:hover {
+    background-color: #059669;
+    color: #fff;
+}
+
+.action-btn--remove {
+    background-color: #fffbeb;
+    color: #d97706;
+    border-color: #fde68a;
+}
+.action-btn--remove:hover {
+    background-color: #d97706;
+    color: #fff;
+}
+
+/* DataTable header/cells refinement */
+.custom-datatable :deep(.p-datatable-thead > tr > th) {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-color: #f1f5f9;
+}
+
+.custom-datatable :deep(.p-datatable-tbody > tr) {
+    border-bottom: 1px solid #f8fafc;
+}
+
+.custom-datatable :deep(.p-datatable-tbody > tr:hover) {
+    background-color: #f8fafc;
+}
+
+.custom-datatable :deep(.p-paginator) {
+    background-color: transparent;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+}
+
+
+
+
+
+
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .p-button {

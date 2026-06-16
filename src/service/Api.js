@@ -476,7 +476,7 @@ export async function fetchCommentsAPI(){
     return allComments;
 }
 
-// fonction pour afficher les notification 
+// fonction pour afficher les notification  avec les vues
 export async function fetchNoticationsAPI(userId) {
     try {
         const response = await axios.get(
@@ -498,6 +498,22 @@ export async function fetchNoticationsAPI(userId) {
     }
 }
 
+export async function fetchNotificationForUserAPI(userId){
+    const NOTIFICATION_USER_URL = `${API_BASE}notifications-user/?user_id=${userId}`;
+    try{
+        const response = await axios.get(NOTIFICATION_USER_URL, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data
+    }catch(error){
+        console.errer('error lors de la requiperation des notifications', error);
+    }
+}
+
+
+
 
 // function pour afficher les commentaires
 export async function fetchCommentDetail(commentId){
@@ -513,6 +529,7 @@ export async function fetchCommentDetail(commentId){
         console.error('error to fetching comment detail :', error)
     }
 }
+
 // supprimer un commentaires
 export async function deleteCommentAPI(commentID){
     const URL_DELETE_COM = `${API_BASE}comment/${commentID}/`;

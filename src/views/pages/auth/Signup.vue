@@ -96,242 +96,535 @@ const prevStep = () => {
 }
 
 const progress = computed(() => (step.value - 1) / (totalSteps - 1) * 100)
+
+
+
+
 </script>
-
 <template>
+<div class="min-h-screen flex items-center justify-center bg-white px-4 relative overflow-hidden">
 
-<div class="min-h-screen flex items-center justify-center bg-[#070A12] px-4 relative overflow-hidden text-white">
+  <!-- Décorations fond -->
+  <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
+              bg-[#004D4A]/5 blur-3xl translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+  <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full
+              bg-[#004D4A]/5 blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
-  <!-- BACKGROUND (same pricing style) -->
-  <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(123,182,97,0.18),transparent_60%)]"></div>
+  <!-- LAYOUT -->
+  <div class="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10 py-12">
 
-  <div class="absolute w-[500px] h-[500px] bg-[#7BB661]/20 blur-[120px] rounded-full"></div>
-  <div class="absolute right-0 bottom-0 w-[400px] h-[400px] bg-[#F9A825]/20 blur-[120px] rounded-full"></div>
+    <!-- GAUCHE : IMAGE -->
+    <div class="hidden lg:flex flex-col justify-center gap-8">
 
-  <!-- SPLIT CARD -->
-  <div class="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-10">
-
-    <!-- 🖼️ LEFT IMAGE (NEW ONLY DESIGN) -->
-    <div class="hidden lg:flex items-center justify-center">
-
-      <div class="relative">
-
-        <div class="absolute inset-0 bg-gradient-to-tr from-[#7BB661]/20 via-[#004D4A]/10 to-[#F9A825]/20 blur-3xl rounded-3xl"></div>
-
+      <div class="relative rounded-3xl overflow-hidden
+                  shadow-[0_16px_50px_rgba(0,77,74,0.12)]
+                  border border-slate-100">
         <img
           src="/demo/modern.jpg"
-          class="relative w-[420px] rounded-3xl
-                 border border-white/10
-                 shadow-[0_30px_100px_rgba(0,0,0,0.6)]"
+          class="w-full h-[480px] object-cover"
+          alt="BilaTech POS"
         />
+        <!-- Overlay dégradé bas -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#004D4A]/60 via-transparent to-transparent"></div>
 
+        <!-- Badge flottant -->
+        <div class="absolute bottom-6 left-6 right-6">
+          <div class="bg-white/90 backdrop-blur-sm rounded-2xl px-5 py-4
+                      shadow-lg border border-white">
+            <p class="text-[#004D4A] font-bold text-sm">Bila-Sol POS</p>
+            <p class="text-slate-500 text-xs mt-0.5">Plateforme de gestion intelligente</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Texte sous image -->
+      <div class="flex items-center gap-3 px-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
+        <p class="text-slate-500 text-sm">
+          Rejoignez plus de <span class="font-bold text-[#004D4A]">500+ entreprises</span> qui font confiance à BilaTech
+        </p>
       </div>
 
     </div>
 
-    <!-- 🧊 RIGHT FORM (YOUR CODE PRESERVED) -->
-    <div class="p-8 sm:p-10 rounded-3xl 
-                bg-white/10 backdrop-blur-3xl 
-                border border-white/20 
-                shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+    <!-- DROITE : FORMULAIRE -->
+    <div class="bg-white rounded-3xl border border-slate-100
+                shadow-[0_8px_40px_rgba(0,77,74,0.08)]
+                p-8 sm:p-10">
 
-<!-- TITLE (iOS 26 PRO MAX) -->
-    <div class="text-center mb-8 relative z-10">
-
-      <!-- glow background subtil -->
-      <div class="absolute inset-0 flex justify-center">
-        <div class="w-40 h-40 bg-gradient-to-r from-[#7BB661]/20 via-[#004D4A]/20 to-[#F9A825]/20 blur-3xl rounded-full"></div>
+      <!-- HEADER -->
+      <div class="text-center mb-8">
+        <img
+          src="/demo/bilatechslogan.png"
+          class="h-12 mx-auto mb-4 object-contain"
+          alt="BilaTech"
+        />
+        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">
+          Créer votre compte
+        </h2>
+        <p class="text-slate-500 text-sm mt-1">
+          30 jours d'essai gratuit · Sans engagement
+        </p>
       </div>
 
-      <h1 class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825] bg-clip-text text-transparent drop-shadow-lg">
-        Bilatech26
-      </h1>
+      <!-- PROGRESS BAR -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-semibold text-[#004D4A]">Étape {{ step }} sur 5</span>
+          <span class="text-xs text-slate-400">{{ progress }}%</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+          <div
+            class="h-full rounded-full bg-[#004D4A] transition-all duration-500 ease-out"
+            :style="{ width: progress + '%' }"
+          ></div>
+        </div>
+      </div>
 
-      <p class="text-gray-300 mt-2 text-sm md:text-base font-light">
-        Créer votre compte
-      </p>
-    </div>
-
-    <!-- PROGRESS (iOS 26 GLASS BAR) -->
-    <div class="mb-10 relative z-10">
-
-      <!-- glass container -->
-      <div class="h-3 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 overflow-hidden shadow-inner">
-
-        <!-- animated glow line -->
+      <!-- STEP INDICATORS -->
+      <div class="flex justify-between mb-8">
         <div
-          class="h-full rounded-full relative overflow-hidden transition-all duration-500"
-          :style="{ width: progress + '%' }"
+          v-for="(label, index) in ['Infos', 'Sécurité', 'Boutique', 'Abonnement', 'Validation']"
+          :key="index"
+          class="flex flex-col items-center gap-1"
         >
-
-          <!-- gradient main -->
-          <div class="absolute inset-0 bg-gradient-to-r from-[#7BB661] via-[#004D4A] to-[#F9A825]"></div>
-
-          <!-- shine effect -->
-          <div class="absolute inset-0 bg-white/20 blur-sm animate-pulse"></div>
-
+          <div
+            class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300"
+            :class="step > index + 1
+              ? 'bg-[#004D4A] text-white'
+              : step === index + 1
+              ? 'bg-[#004D4A] text-white ring-4 ring-[#004D4A]/20'
+              : 'bg-slate-100 text-slate-400'"
+          >
+            <i v-if="step > index + 1" class="pi pi-check text-[10px]"></i>
+            <span v-else>{{ index + 1 }}</span>
+          </div>
+          <span
+            class="text-[10px] font-semibold hidden sm:block"
+            :class="step >= index + 1 ? 'text-[#004D4A]' : 'text-slate-400'"
+          >
+            {{ label }}
+          </span>
         </div>
       </div>
 
-      <!-- subtle reflection line -->
-      <div class="mt-2 h-[1px] w-1/2 mx-auto bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-    </div>
+      <!-- STEP 1 : INFOS -->
+      <div v-if="step === 1" class="space-y-4">
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-user text-xs text-[#004D4A]"></i>
+            Nom d'utilisateur
+          </label>
+          <input v-model="form.username" placeholder="Entrez votre nom d'utilisateur" class="signup-input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="signup-field">
+            <label class="signup-label">
+              <i class="pi pi-id-card text-xs text-[#004D4A]"></i>
+              Nom
+            </label>
+            <input v-model="form.first_name" placeholder="Nom" class="signup-input" />
+          </div>
+          <div class="signup-field">
+            <label class="signup-label">
+              <i class="pi pi-id-card text-xs text-[#004D4A]"></i>
+              Post-nom
+            </label>
+            <input v-model="form.last_name" placeholder="Post-nom" class="signup-input" />
+          </div>
+        </div>
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-envelope text-xs text-[#004D4A]"></i>
+            Email
+          </label>
+          <input v-model="form.email" type="email" placeholder="exemple@email.com" class="signup-input" />
+        </div>
 
-      <!-- STEP INDICATORS (STYLE ONLY) -->
-      <div class="flex justify-between mb-8 text-xs">
-        <span :class="step>=1?'text-[#7BB661]':'text-gray-500'">Infos</span>
-        <span :class="step>=2?'text-[#7BB661]':'text-gray-500'">Sécurité</span>
-        <span :class="step>=3?'text-[#7BB661]':'text-gray-500'">Boutique</span>
-        <span :class="step>=4?'text-[#7BB661]':'text-gray-500'">Abonnement</span>
-        <span :class="step>=5?'text-[#7BB661]':'text-gray-500'">Validation</span>
+        <div v-if="errorMessage" class="signup-error">
+          <i class="pi pi-exclamation-triangle text-xs flex-shrink-0"></i>
+          {{ errorMessage }}
+        </div>
+
+        <button class="signup-btn-primary w-full" @click="nextStep">
+          Continuer
+          <i class="pi pi-arrow-right text-xs"></i>
+        </button>
       </div>
 
-      <!-- STEP 1 (NO CHANGE LOGIC) -->
-      <div v-if="step===1" class="space-y-4">
+      <!-- STEP 2 : SÉCURITÉ -->
+      <div v-if="step === 2" class="space-y-4">
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-lock text-xs text-[#004D4A]"></i>
+            Mot de passe
+          </label>
+          <input v-model="form.password" type="password" placeholder="Minimum 6 caractères" class="signup-input" />
+        </div>
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-lock text-xs text-[#004D4A]"></i>
+            Confirmer le mot de passe
+          </label>
+          <input v-model="form.confirmPassword" type="password" placeholder="Répétez votre mot de passe" class="signup-input" />
+        </div>
 
-        <input v-model="form.username" placeholder="Nom d'utilisateur" class="input-ios" />
-        <input v-model="form.first_name" placeholder="Nom" class="input-ios" />
-        <input v-model="form.last_name" placeholder="Post-nom" class="input-ios" />
-        <input v-model="form.email" type="email" placeholder="Email" class="input-ios" />
-
-        <p v-if="errorMessage" class="text-red-400 text-sm">
+        <div v-if="errorMessage" class="signup-error">
+          <i class="pi pi-exclamation-triangle text-xs flex-shrink-0"></i>
           {{ errorMessage }}
-        </p>
+        </div>
 
-        <button class="btn-ios w-full" @click="nextStep">
-          Continuer →
+        <div class="grid grid-cols-2 gap-3">
+          <button class="signup-btn-secondary" @click="prevStep">
+            <i class="pi pi-arrow-left text-xs"></i>
+            Retour
+          </button>
+          <button class="signup-btn-primary" @click="nextStep">
+            Continuer
+            <i class="pi pi-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3 : BOUTIQUE -->
+      <div v-if="step === 3" class="space-y-4">
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-store text-xs text-[#004D4A]"></i>
+            Nom du point de vente
+          </label>
+          <input v-model="form.store_name" placeholder="Ma boutique" class="signup-input" />
+        </div>
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-map-marker text-xs text-[#004D4A]"></i>
+            Adresse
+          </label>
+          <input v-model="form.store_address" placeholder="Adresse complète" class="signup-input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="signup-field">
+            <label class="signup-label">
+              <i class="pi pi-phone text-xs text-[#004D4A]"></i>
+              Téléphone
+            </label>
+            <input v-model="form.store_phone" placeholder="+243 ..." class="signup-input" />
+          </div>
+          <div class="signup-field">
+            <label class="signup-label">
+              <i class="pi pi-wallet text-xs text-[#004D4A]"></i>
+              Devise
+            </label>
+            <select v-model="form.currency" class="signup-input">
+              <option value="">-- Devise --</option>
+              <option value="CDF">CDF</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+        </div>
+        <div class="signup-field">
+          <label class="signup-label">
+            <i class="pi pi-briefcase text-xs text-[#004D4A]"></i>
+            Type d'activité
+          </label>
+          <input v-model="form.business_type" placeholder="Commerce, Restauration..." class="signup-input" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <button class="signup-btn-secondary" @click="prevStep">
+            <i class="pi pi-arrow-left text-xs"></i>
+            Retour
+          </button>
+          <button class="signup-btn-primary" @click="nextStep">
+            Continuer
+            <i class="pi pi-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 4 : ABONNEMENT -->
+      <div v-if="step === 4" class="space-y-3">
+
+        <div class="text-center mb-4">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                       bg-emerald-50 border border-emerald-200
+                       text-emerald-700 text-xs font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            30 jours d'essai gratuit inclus
+          </span>
+        </div>
+
+        <div
+          v-for="plan in plans"
+          :key="plan.value"
+          @click="form.plan = plan.value"
+          class="plan-card"
+          :class="form.plan === plan.value ? 'plan-card--active' : ''"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-8 h-8 rounded-xl flex items-center justify-center"
+                :class="form.plan === plan.value ? 'bg-[#004D4A] text-white' : 'bg-slate-100 text-slate-500'"
+              >
+                <i :class="plan.icon" class="text-sm"></i>
+              </div>
+              <span class="font-bold text-sm text-slate-800">{{ plan.label }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold" :class="form.plan === plan.value ? 'text-[#004D4A]' : 'text-slate-600'">
+                {{ plan.price }}
+              </span>
+              <div
+                class="w-4 h-4 rounded-full border-2 transition-all"
+                :class="form.plan === plan.value
+                  ? 'border-[#004D4A] bg-[#004D4A]'
+                  : 'border-slate-300'"
+              >
+                <i v-if="form.plan === plan.value" class="pi pi-check text-white text-[8px] flex items-center justify-center w-full h-full"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          <button class="signup-btn-secondary" @click="prevStep">
+            <i class="pi pi-arrow-left text-xs"></i>
+            Retour
+          </button>
+          <button class="signup-btn-primary" @click="nextStep">
+            Continuer
+            <i class="pi pi-arrow-right text-xs"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 5 : VALIDATION -->
+      <div v-if="step === 5" class="space-y-3">
+
+        <div class="bg-slate-50 rounded-2xl border border-slate-100 p-5 space-y-3">
+          <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <i class="pi pi-list text-[#004D4A] text-xs"></i>
+            Récapitulatif
+          </h4>
+
+          <div class="recap-row">
+            <span class="recap-label">Utilisateur</span>
+            <span class="recap-value">{{ form.username }}</span>
+          </div>
+          <div class="recap-row">
+            <span class="recap-label">Email</span>
+            <span class="recap-value">{{ form.email }}</span>
+          </div>
+          <div class="recap-row">
+            <span class="recap-label">Boutique</span>
+            <span class="recap-value">{{ form.store_name }}</span>
+          </div>
+          <div class="recap-row">
+            <span class="recap-label">Devise</span>
+            <span class="recap-value">{{ form.currency }}</span>
+          </div>
+          <div class="recap-row">
+            <span class="recap-label">Plan</span>
+            <span class="recap-value font-bold text-[#004D4A]">{{ form.plan }}</span>
+          </div>
+        </div>
+
+        <button
+          class="signup-btn-primary w-full"
+          :disabled="loading"
+          @click="register"
+        >
+          <i v-if="loading" class="pi pi-spin pi-spinner text-sm"></i>
+          <i v-else class="pi pi-check-circle text-sm"></i>
+          {{ loading ? 'Création en cours...' : 'Créer le compte' }}
+        </button>
+
+        <button class="signup-btn-secondary w-full" @click="prevStep">
+          <i class="pi pi-arrow-left text-xs"></i>
+          Retour
         </button>
 
       </div>
 
-      <!-- STEP 2 -->
-      <div v-if="step===2" class="space-y-4">
-
-        <input v-model="form.password" type="password" placeholder="Mot de passe" class="input-ios" />
-        <input v-model="form.confirmPassword" type="password" placeholder="Confirmer mot de passe" class="input-ios" />
-
-        <p v-if="errorMessage" class="text-red-400 text-sm">
-          {{ errorMessage }}
-        </p>
-
-        <div class="flex gap-3">
-          <button class="btn-secondary-ios w-1/2" @click="prevStep">← Retour</button>
-          <button class="btn-ios w-1/2" @click="nextStep">Continuer</button>
-        </div>
-
-      </div>
-
-      <!-- STEP 3 -->
-      <div v-if="step===3" class="space-y-4">
-
-        <input v-model="form.store_name" placeholder="Nom du point de vente" class="input-ios" />
-        <input v-model="form.store_address" placeholder="Adresse" class="input-ios" />
-        <input v-model="form.store_phone" placeholder="Téléphone" class="input-ios" />
-
-        <select v-model="form.currency" class="input-ios">
-          <option value="">-- Devise --</option>
-          <option value="CDF">CDF</option>
-          <option value="USD">USD</option>
-        </select>
-
-        <input v-model="form.business_type" placeholder="Type d'activité" class="input-ios" />
-
-        <div class="flex gap-3">
-          <button class="btn-secondary-ios w-1/2" @click="prevStep">← Retour</button>
-          <button class="btn-ios w-1/2" @click="nextStep">Continuer</button>
-        </div>
-
-      </div>
-
-      <!-- STEP 4 -->
-      <div v-if="step===4" class="space-y-3">
-
-        <h5 class="text-center text-[#F9A825] font-semibold mb-2">
-          Essai gratuit 30 jours
-        </h5>
-
-        <div @click="form.plan='BASIC'" class="plan-ios">BASIC - $9.99</div>
-        <div @click="form.plan='MEDIUM'" class="plan-ios">MEDIUM - $19.99</div>
-        <div @click="form.plan='PREMIUM'" class="plan-ios">PREMIUM - $29.99</div>
-         <div @click="form.plan='PLATINUM'" class="plan-ios">PLATINUM - $29.99</div>
-          <div @click="form.plan='DIAMOND'" class="plan-ios">DIAMOND - $59.99</div>
-
-        <div class="flex gap-3 mt-4">
-          <button class="btn-secondary-ios w-1/2" @click="prevStep">← Retour</button>
-          <button class="btn-ios w-1/2" @click="nextStep">Continuer</button>
-        </div>
-
-      </div>
-
-      <!-- STEP 5 -->
-      <div v-if="step===5" class="text-sm space-y-2 text-gray-300">
-
-        <p><b>Utilisateur:</b> {{ form.username }}</p>
-        <p><b>Email:</b> {{ form.email }}</p>
-        <p><b>Boutique:</b> {{ form.store_name }}</p>
-        <p><b>Devise:</b> {{ form.currency }}</p>
-        <p><b>Plan:</b> {{ form.plan }}</p>
-
-        <button class="btn-ios w-full mt-4" :disabled="loading" @click="register">
-          {{ loading ? "Création..." : "Créer le compte" }}
-        </button>
-
-      </div>
-
     </div>
-
   </div>
-
 </div>
-
 </template>
 
 <script> 
-export default { methods:
-   { planCard(active) { return [ 'cursor-pointer p-4 rounded-xl border transition-all', 
-   active ? 'bg-gradient-to-r from-[#7BB661]/20 to-[#004D4A]/20 border-[#7BB661] shadow-lg' : 
-   'bg-gray-900 border-gray-700 hover:border-[#7BB661]' ] } } } 
-</script>
+export default {
+  data() {
+    return {
+      plans: [
+        { value: 'BASIC',    label: 'BASIC',    price: '$9.99/mois',  icon: 'pi pi-star' },
+        { value: 'MEDIUM',   label: 'MEDIUM',   price: '$19.99/mois', icon: 'pi pi-star-fill' },
+        { value: 'PREMIUM',  label: 'PREMIUM',  price: '$39.99/mois', icon: 'pi pi-verified' },
+        { value: 'PLATINUM', label: 'PLATINUM', price: '$59.99/mois', icon: 'pi pi-shield' },
+        { value: 'DIAMOND',  label: 'DIAMOND',  price: '$79.99/mois', icon: 'pi pi-diamond' },
+      ],
+    };
+  },
+  methods: {
+    planCard(active) {
+      return [
+        'cursor-pointer p-4 rounded-xl border transition-all',
+        active
+          ? 'bg-[#004D4A]/5 border-[#004D4A] shadow-sm'
+          : 'bg-white border-slate-200 hover:border-[#004D4A]/40',
+      ];
+    },
+  },
+};
 
+</script>
 
 <style scoped>
 
-
-.input-ios {
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: white;
+.signup-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
 }
 
-.btn-ios {
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: white;
-  font-weight: 600;
+.signup-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.btn-secondary-ios {
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  color: #ccc;
+.signup-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    outline: none;
+    transition: all 0.2s ease;
 }
 
-.plan-ios {
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  cursor: pointer;
-  transition: 0.3s;
+.signup-input:focus {
+    border-color: #004D4A;
+    box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
+    background-color: #fff;
 }
 
-.plan-ios:hover {
-  border-color: #7BB661;
+.signup-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.signup-btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #fff;
+    background-color: #004D4A;
+    box-shadow: 0 4px 14px rgba(0, 77, 74, 0.25);
+    transition: all 0.2s ease;
+}
+
+.signup-btn-primary:hover {
+    background-color: #006660;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 77, 74, 0.3);
+}
+
+.signup-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.signup-btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    background-color: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.signup-btn-secondary:hover {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.signup-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #dc2626;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+/* Plans */
+.plan-card {
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1.5px solid #e2e8f0;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.plan-card:hover {
+    border-color: rgba(0, 77, 74, 0.3);
+    background-color: #f0faf9;
+}
+
+.plan-card--active {
+    border-color: #004D4A;
+    background-color: #f0faf9;
+    box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
+}
+
+/* Recap */
+.recap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.recap-row:last-child {
+    border-bottom: none;
+}
+
+.recap-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #94a3b8;
+}
+
+.recap-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
 }
 </style>

@@ -595,126 +595,121 @@ onMounted(async () => {
 
 
 <template>
-  <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-100 dark:bg-gray-900">
+  <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-slate-50">
 
-    <!-- Toolbar -->
-    <div class="card mb-6">
-      <Toolbar class="flex flex-wrap justify-between items-center gap-2">
+  <!-- Toolbar -->
+  <div class="toolbar-card mb-5">
+    <Toolbar class="flex flex-wrap justify-between items-center gap-3 p-4 border-none bg-transparent">
 
-        <!-- Left: supprimer sélection -->
-        <template v-if="statusUser =='ADMIN'" #start>
-          <div class="flex flex-wrap gap-2 justify-end">
-         <Button 
-            label="Afficher Bénéfice" 
-            icon="pi pi-lock" 
-            severity="warning" 
-            @click="openView" 
-          />
+      <!-- Left -->
+      <template v-if="statusUser == 'ADMIN'" #start>
+        <Button
+          label="Afficher Bénéfice"
+          icon="pi pi-lock"
+          severity="warning"
+          outlined
+          @click="openView"
+        />
+      </template>
 
-          </div>
-        </template>
+      <!-- Right -->
+      <template #end>
+        <div class="flex flex-wrap items-center gap-3">
 
-        <!-- Right: filtre utilisateur + refresh -->
-        <template #end>
-          <div class="flex flex-wrap items-center gap-2">
-          
-            <Select
-              v-if="statusUser === 'ADMIN'"
-              v-model="selectedUserFilter"
-              :options="userOptions.filter(u => u.status !=='GESTIONNAIRE_STOCK')"
-              optionValue="id"
-              optionLabel="username"
-              placeholder="Filtrer par utilisateur"
-              class="w-full sm:w-56"
-              :showClear="userOptions.value != 0"
-            >
-              <!-- Affichage des options -->
-              <template #option="{option}">
-                <div class="flex items-center justify-between w-full">
-                  <span>{{ option.username }}</span>
+          <Select
+            v-if="statusUser === 'ADMIN'"
+            v-model="selectedUserFilter"
+            :options="userOptions.filter(u => u.status !== 'GESTIONNAIRE_STOCK')"
+            optionValue="id"
+            optionLabel="username"
+            placeholder="Filtrer par utilisateur"
+            class="w-full sm:w-56"
+            :showClear="userOptions.value != 0"
+          >
+            <template #option="{ option }">
+              <div class="flex items-center justify-between w-full">
+                <span>{{ option.username }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                    'bg-teal-50 text-[#004D4A]': option.status === 'CAISSIER',
+                    'bg-slate-100 text-slate-500': option.status === 'GESTIONNAIRE_STOCK'
+                  }"
+                >
+                  {{ option.status }}
+                </span>
+              </div>
+            </template>
 
-                  <span
-                    class="px-2 py-1 rounded text-xs"
-                    :class="{
-                      'bg-green-100 text-green-700': option.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': option.status === 'CAISSIER',
-                      'bg-gray-200 text-gray-700': option.status === 'GESTIONNAIRE_STOCK'
-                    }"
-                  >
-                    {{ option.status }}
-                  </span>
-                </div>
-              </template>
+            <template #selectedItem="{ slotProps }">
+              <div class="flex items-center gap-2">
+                <span>{{ slotProps.username }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': slotProps.status === 'ADMIN',
+                    'bg-teal-50 text-[#004D4A]': slotProps.status === 'CAISSIER'
+                  }"
+                >
+                  {{ slotProps.status }}
+                </span>
+              </div>
+            </template>
+          </Select>
 
-              <!-- Affichage de la valeur sélectionnée -->
-              <template #selectedItem="{slotProps}">
-                <div  class="flex items-center gap-2">
-
-                  <span>{{ slotProps.username }}</span>
-
-                  <span
-                    class="px-2 py-1 rounded text-xs"
-                    :class="{
-                      'bg-green-100 text-green-700': slotProps.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': slotProps.status === 'CAISSIER'
-                    }"
-                  >
-                    {{ slotProps.status }}
-                  </span>
-                </div>
-            
-              </template>
-            </Select>
-
-
-
-          <div class="flex gap-4 mb-4">
-            <div class="flex flex-col">
-              <label>Date début :</label>
+          <!-- Filtre dates -->
+          <div class="date-filter-group">
+            <div class="flex flex-col gap-1">
+              <label class="date-filter-label">Date début</label>
               <Calendar
                 v-model="startDate"
-                dateFormat="yy-mm-dd"    
+                dateFormat="yy-mm-dd"
                 placeholder="Date début"
                 showIcon
                 :monthNavigator="true"
                 :yearNavigator="true"
                 :showButtonBar="true"
+                class="w-full sm:w-44"
               />
             </div>
-            <div class="flex flex-col">
-              <label>Date fin :</label>
+
+            <div class="flex flex-col gap-1">
+              <label class="date-filter-label">Date fin</label>
               <Calendar
                 v-model="endDate"
-                dateFormat="yy-mm-dd"     
+                dateFormat="yy-mm-dd"
                 placeholder="Date fin"
                 showIcon
-                :showTime="false"         
+                :showTime="false"
                 :monthNavigator="true"
                 :yearNavigator="true"
                 :showButtonBar="true"
+                class="w-full sm:w-44"
               />
             </div>
-            <button
-              class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 self-end"
-              @click="resetDateFilter"
-            >
+
+            <button class="btn-reset-date" @click="resetDateFilter">
+              <i class="pi pi-times text-xs"></i>
               Réinitialiser
             </button>
           </div>
 
+          <Button
+            label="Actualiser"
+            icon="pi pi-refresh"
+            class="btn-teal"
+            @click="refreshInvoices"
+          />
+        </div>
+      </template>
+    </Toolbar>
+  </div>
 
+  <!-- DataTable Factures -->
+  <div class="table-card">
 
-            <Button label="Actualiser" icon="pi pi-refresh" severity="primary" @click="refreshInvoices" />
-          </div>
-        </template>
-      </Toolbar>
-    </div>
-
-    <!-- DataTable Factures -->
-    <div class="card overflow-x-auto">
-
-
-     <DataTable
+    <DataTable
       ref="dt"
       :value="filteredInvoices"
       v-model:selection="selectedInvoices"
@@ -726,152 +721,183 @@ onMounted(async () => {
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
       :rowsPerPageOptions="[5, 10, 25]"
       currentPageReportTemplate="Affichage {first} à {last} de {totalRecords} factures"
-      class="min-w-full compact-table"
+      class="custom-datatable min-w-full"
     >
 
-  <!-- HEADER -->
-  <template #header>
+      <!-- HEADER -->
+      <template #header>
 
-  <div v-if="loading" class="text-center py-8 text-gray-500">
-    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <div v-if="loading" class="loading-state">
+          <i class="pi pi-spin pi-spinner text-[#004D4A]" style="font-size: 2rem"></i>
+          <p class="text-sm text-slate-400 mt-3 font-medium">Chargement des factures...</p>
+        </div>
+
+        <div v-else class="flex flex-col gap-4">
+
+          <!-- Ligne du haut -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-lg bg-[#004D4A]/8 flex items-center justify-center">
+                <i class="pi pi-receipt text-[#004D4A] text-sm"></i>
+              </div>
+              <h4 class="m-0 text-base sm:text-lg font-bold text-slate-800">
+                Table Factures
+              </h4>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <Button
+                label="Télécharger PDF"
+                icon="pi pi-file-pdf"
+                class="btn-teal"
+                @click="downloadPDFInvoices"
+              />
+
+              <Button
+                v-if="statusUser == 'ADMIN'"
+                label="Supprimer sélection"
+                icon="pi pi-trash"
+                severity="danger"
+                outlined
+                :disabled="selectedInvoices.length === 0"
+                @click="deleteMultipleDialog = true"
+              />
+            </div>
+          </div>
+
+          <!-- Recherche -->
+          <span class="relative flex items-center w-full sm:w-72">
+            <i class="pi pi-search absolute left-3 text-slate-400 text-sm pointer-events-none"></i>
+            <InputText
+              v-model="filters['global'].value"
+              placeholder="Rechercher une facture..."
+              class="w-full !pl-9 !py-2.5 !text-sm !rounded-xl !border-slate-200
+                     focus:!border-[#004D4A] focus:!ring-[#004D4A]/10"
+            />
+          </span>
+
+        </div>
+      </template>
+
+      <!-- Colonnes -->
+      <Column selectionMode="multiple" headerStyle="width: 40px" />
+
+      <Column field="id" header="ID" sortable style="max-width: 60px">
+        <template #body="slotProps">
+          <span class="cell text-slate-500">{{ slotProps.data.id }}</span>
+        </template>
+      </Column>
+
+      <Column field="client_name" header="Client" sortable style="max-width: 130px">
+        <template #body="slotProps">
+          <span class="cell font-semibold text-slate-800">{{ slotProps.data.client_name }}</span>
+        </template>
+      </Column>
+
+      <Column field="cashier_name" header="Caissier" sortable style="max-width: 120px">
+        <template #body="slotProps">
+          <span class="cell">{{ slotProps.data.cashier_name }}</span>
+        </template>
+      </Column>
+
+      <Column field="total_amount" header="Total" sortable style="max-width: 110px">
+        <template #body="slotProps">
+          <span class="cell font-bold text-[#004D4A]">{{ formatPrice(slotProps.data.total_amount) }}</span>
+        </template>
+      </Column>
+
+      <Column v-if="isSecretValidatedForView" field="profit_amount" header="Bénéfice" sortable style="max-width: 110px">
+        <template #body="slotProps">
+          <span class="cell text-emerald-600 font-semibold">{{ formatPrice(slotProps.data.profit_amount) }}</span>
+        </template>
+      </Column>
+
+      <Column field="change" header="Reste" sortable style="max-width: 110px">
+        <template #body="slotProps">
+          <span class="cell">{{ formatPrice(slotProps.data.change) }}</span>
+        </template>
+      </Column>
+
+      <Column field="amount_paid" header="Payé" sortable style="max-width: 110px">
+        <template #body="slotProps">
+          <span class="cell">{{ formatPrice(slotProps.data.amount_paid) }}</span>
+        </template>
+      </Column>
+
+      <Column field="tva" header="TVA" sortable style="max-width: 90px">
+        <template #body="slotProps">
+          <span class="cell">{{ formatPrice(slotProps.data.tva) || 'N/A' }}</span>
+        </template>
+      </Column>
+
+      <Column field="cashier_currency" header="Devise" sortable style="max-width: 70px">
+        <template #body="slotProps">
+          <span class="cell text-xs font-semibold text-slate-500">{{ slotProps.data.cashier_currency }}</span>
+        </template>
+      </Column>
+
+      <Column field="created_at" header="Date" sortable style="max-width: 150px">
+        <template #body="slotProps">
+          <span class="cell">{{ formatDate(slotProps.data.created_at) }}</span>
+        </template>
+      </Column>
+
+      <Column header="Status" field="status" sortable style="max-width: 95px">
+        <template #body="slotProps">
+          <span
+            class="status-badge"
+            :class="slotProps.data.status === 'ANNULER' ? 'status-badge--cancelled' : 'status-badge--valid'"
+          >
+            <i :class="slotProps.data.status === 'ANNULER' ? 'pi pi-ban' : 'pi pi-check-circle'" class="text-[10px]"></i>
+            {{ slotProps.data.status }}
+          </span>
+        </template>
+      </Column>
+
+      <Column field="invoice_number" header="N° Ticket" sortable style="max-width: 150px">
+        <template #body="slotProps">
+          <div class="text-center font-mono text-xs text-slate-500">
+            {{ slotProps.data.invoice_number || 'N/A' }}
+          </div>
+        </template>
+      </Column>
+
+      <Column header="Actions" style="max-width: 160px">
+        <template #body="slotProps">
+          <div class="flex justify-center gap-1.5">
+            <button
+              v-if="statusUser == 'ADMIN'"
+              class="action-btn action-btn--delete"
+              @click="confirmDeleteInvoice(slotProps.data)"
+              title="Supprimer"
+            >
+              <i class="pi pi-trash text-xs"></i>
+            </button>
+
+            <button
+              class="action-btn action-btn--view"
+              @click="ViewDetailInvoice(slotProps.data.id)"
+              title="Voir détails"
+            >
+              <i class="pi pi-eye text-xs"></i>
+            </button>
+
+            <button
+              v-if="statusUser == 'ADMIN'"
+              class="action-btn action-btn--cancel"
+              @click="confirmCancelInvoice(slotProps.data)"
+              title="Annuler"
+            >
+              <i class="pi pi-ban text-xs"></i>
+            </button>
+          </div>
+        </template>
+      </Column>
+
+    </DataTable>
+
   </div>
 
-  <div v-else class="flex flex-col gap-4">
-
-    <!-- Ligne du haut : Titre + boutons -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <h4 class="m-0 text-lg sm:text-xl font-semibold">Table Factures</h4>
-
-      <div class="flex flex-wrap items-center gap-2 justify-start sm:justify-end">
-
-        <Button 
-          label="Télécharger PDF"
-          icon="pi pi-file-pdf"
-           severity="info"
-          class="p-button-success"
-          @click="downloadPDFInvoices"
-        />
-
-        <Button 
-        v-if="statusUser =='ADMIN'"
-          label="Supprimer sélection"
-          icon="pi pi-trash"
-          severity="danger"
-          :disabled="selectedInvoices.length === 0"
-          @click="deleteMultipleDialog = true"
-        />
-      </div>
-    </div>
-
-    <!-- Barre de recherche -->
-    <div class="relative flex items-center w-full sm:w-72">
-      <i class="pi pi-search absolute left-3 text-gray-400"></i>
-      <InputText 
-        v-model="filters['global'].value"
-        placeholder="      Rechercher..."
-        class="w-full pl-10 py-2"
-      />
-      
-    </div>
-
-  </div>
-</template>
-
-  <!-- Colonnes -->
-  <Column selectionMode="multiple" headerStyle="width: 40px"></Column>
-
-  <Column field="id" header="ID" sortable style="max-width: 60px;">
-    <template #body="slotProps">
-      <span class="cell">{{ slotProps.data.id }}</span>
-    </template>
-  </Column>
-
-
-  <Column field="client_name" header="Client" sortable style="max-width: 130px;">
-    <template #body="slotProps">
-      <span class="cell">{{ slotProps.data.client_name }}</span>
-    </template>
-  </Column>
-
-  <Column field="cashier_name" header="Caissier" sortable style="max-width: 120px;">
-    <template #body="slotProps">
-      <span class="cell">{{ slotProps.data.cashier_name }}</span>
-    </template>
-  </Column>
-
-  <Column field="total_amount" header="Total" sortable style="max-width: 110px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.total_amount) }}</span>
-    </template>
-  </Column>
-
-  <Column v-if="isSecretValidatedForView" field="profit_amount" header="Bénéfice" sortable style="max-width: 110px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.profit_amount) }}</span>
-    </template>
-  </Column>
-
-  <Column field="change" header="Reste" sortable style="max-width: 110px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.change) }}</span>
-    </template>
-  </Column>
-
-  <Column field="amount_paid" header="Payé" sortable style="max-width: 110px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.amount_paid) }}</span>
-    </template>
-  </Column>
-
-  <Column field="tva" header="TVA" sortable style="max-width: 90px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatPrice(slotProps.data.tva) || 'N/A' }}</span>
-    </template>
-  </Column>
-
-  <Column field="cashier_currency" header="Devise" sortable style="max-width: 70px;">
-    <template #body="slotProps">
-      <span class="cell">{{ slotProps.data.cashier_currency }}</span>
-    </template>
-  </Column>
-
-  <Column field="created_at" header="Date" sortable style="max-width: 150px;">
-    <template #body="slotProps">
-      <span class="cell">{{ formatDate(slotProps.data.created_at) }}</span>
-    </template>
-  </Column>
-
-  <Column header="Status" field="status" sortable style="max-width: 95px;">
-    <template #body="slotProps">
-      <span 
-        class="px-2 py-1 rounded text-white text-xs whitespace-nowrap"
-        :class="slotProps.data.status === 'ANNULER' ? 'bg-red-500' : 'bg-green-500'"
-      >
-        {{ slotProps.data.status }}
-      </span>
-    </template>
-  </Column>
-  <Column field="invoice_number" header=" N° Ticket" sortable  style="max-width: 150px;" >
-    <template #body="slotProps">
-      <div class="text-center">
-        {{ slotProps.data.invoice_number  || 'N/A'}}
-       </div>
-    </template>
-  </Column>
-
-  <Column  header="Actions" style="max-width: 160px;">
-    <template #body="slotProps">
-      <div class="flex gap-1">
-        <Button  v-if="statusUser =='ADMIN'" icon="pi pi-trash" outlined rounded severity="danger" class="action-btn" @click="confirmDeleteInvoice(slotProps.data)" />
-        <Button icon="pi pi-eye" outlined rounded class="action-btn" @click="ViewDetailInvoice(slotProps.data.id)" />
-        <Button  v-if="statusUser =='ADMIN'" icon="pi pi-ban" outlined rounded severity="danger" class="action-btn" @click="confirmCancelInvoice(slotProps.data)" />
-      </div>
-    </template>
-  </Column>
-
-</DataTable>
-
-    </div>
 
     <!-- Delete Invoice Dialog -->
     <Dialog v-model:visible="deleteInvoicesDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Confirmer la suppression" :modal="true">
@@ -1091,3 +1117,168 @@ onMounted(async () => {
 
   </div>
 </template>
+<style scoped>
+
+.toolbar-card {
+    background-color: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #f1f5f9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.table-card {
+    background-color: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #f1f5f9;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    padding: 1.25rem;
+    overflow-x: auto;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+/* Filtre dates */
+.date-filter-group {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background-color: #f8fafc;
+    border-radius: 12px;
+    border: 1.5px solid #f1f5f9;
+}
+
+.date-filter-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.btn-reset-date {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #ef4444;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    transition: all 0.15s ease;
+}
+
+.btn-reset-date:hover {
+    background-color: #ef4444;
+    color: #fff;
+}
+
+/* Boutons */
+.btn-teal {
+    background-color: #004D4A !important;
+    border-color: #004D4A !important;
+}
+.btn-teal:hover {
+    background-color: #006660 !important;
+    border-color: #006660 !important;
+}
+
+/* Status badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-badge--valid {
+    background-color: #ecfdf5;
+    color: #059669;
+}
+
+.status-badge--cancelled {
+    background-color: #fef2f2;
+    color: #dc2626;
+}
+
+/* Action buttons */
+.action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.action-btn--view {
+    background-color: #f0faf9;
+    color: #004D4A;
+    border-color: rgba(0, 77, 74, 0.15);
+}
+.action-btn--view:hover {
+    background-color: #004D4A;
+    color: #fff;
+}
+
+.action-btn--delete {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+.action-btn--delete:hover {
+    background-color: #dc2626;
+    color: #fff;
+}
+
+.action-btn--cancel {
+    background-color: #fffbeb;
+    color: #d97706;
+    border-color: #fde68a;
+}
+.action-btn--cancel:hover {
+    background-color: #d97706;
+    color: #fff;
+}
+
+/* DataTable refinement */
+.custom-datatable :deep(.p-datatable-thead > tr > th) {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-color: #f1f5f9;
+}
+
+.custom-datatable :deep(.p-datatable-tbody > tr:hover) {
+    background-color: #f8fafc;
+}
+
+.custom-datatable :deep(.p-paginator) {
+    background-color: transparent;
+    border-top: 1px solid #f1f5f9;
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+}
+
+.cell {
+    font-size: 0.82rem;
+}
+</style>

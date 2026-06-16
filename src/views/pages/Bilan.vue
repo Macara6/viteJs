@@ -825,364 +825,130 @@ onMounted(() => {
 <template>
   <div class="p-4 sm:p-6 lg:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
 
-    <!-- Dashboard Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      <!-- Carte template -->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full bg-white dark:bg-gray-800">
+        <!-- Filtres -->
+      <div class="filters-bar">
 
-        <!-- Titre -->
-        <div class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2 text-center">
-         Nombre Factures Valide
-        </div>
+        <div v-if="statusUser !='CAISSIER'" class="filter-group">
+          <label class="filter-label">
+            <i class="pi pi-user text-xs"></i>
+            Filtrer par Caissier
+          </label>
 
-        <!-- Comptage des factures -->
-        <div class="flex justify-around items-center mb-4">
-          <!-- Factures valides -->
-          <div class="flex flex-col items-center">
-            <span class="text-green-500 text-3xl font-bold">{{ todaysInvoicesUserConnectCount }} </span>
-            <span class="text-green-700 text-sm font-medium">Valides</span>
-          </div>
-        </div>
-
-        <!-- Footer : date -->
-        <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
-          {{ selectDate.global.value || 'Toutes les dates' }}
-        </div>
-
-      </div>
-
-      <!-- Total valide -->
-    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-
-      <div class="flex justify-between items-start mb-3">
-
-        <div>
-          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">
-            Total Factures Valide
-          </span>
-
-          <!-- Montant officiel -->
-          <div class="text-gray-900 dark:text-gray-100 font-bold text-xl mt-1">
-            {{ formatPrice(total_AmountUserConnect) }}
-            {{ selectedUserProfile?.currency_preference || 'N/A' }}
-          </div>
-
-          <!-- Montant converti -->
-          <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
-            ({{ exchangeRate(total_AmountUserConnect) }})
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
-        Total pour aujourd'hui : {{ selectDate.global.value }}
-      </div>
-
-    </div>
-
-
-        
-    <div v-if="statusUser != 'CAISSIER'" class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-      
-      <div class="flex justify-between items-center mb-2">
-
-        <div>
-          <span class="block text-gray-500 dark:text-gray-400 text-sm font-medium">
-            Bénéfice estimé
-          </span>
-
-          <!-- Montant principal -->
-          <div class="text-gray-900 dark:text-gray-100 font-semibold text-xl">
-
-            <span v-if="showSensitiveInfo">
-              {{ formatPrice(total_ProfitAmountUserConnect) }}
-              {{ selectedUserProfile?.currency_preference || 'N/A' }}
-            </span>
-
-            <span v-else>XXXXX</span>
-
-          </div>
-
-          <!-- Conversion -->
-          <div
-            v-if="showSensitiveInfo"
-            class="text-black dark:text-gray-200 text-base font-semibold mt-1"
+          <Select
+            v-model="selectedUserId"
+            :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'ADMIN')"
+            optionValue="id"
+            optionLabel="username"
+            placeholder="Filtrer par utilisateur"
+            class="w-full sm:w-56"
+            showClear
           >
-            ({{ exchangeRate(total_ProfitAmountUserConnect) }})
-          </div>
+            <template #option="{ option }">
+              <div class="flex justify-between items-center gap-2">
+                <span>{{ option.username }}</span>
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                    'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                  }"
+                >
+                  {{ option.status }}
+                </span>
+              </div>
+            </template>
 
+            <template #selectedItem="{ option }">
+              <div class="flex justify-between items-center gap-2">
+                <span>{{ option.username }}</span>
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                    'bg-teal-50 text-teal-600': slotProps.option.status === 'CAISSIER',
+                  }"
+                >
+                  {{ option.status }}
+                </span>
+              </div>
+            </template>
+          </Select>
         </div>
 
-        <div class="flex items-center justify-center bg-yellow-100 dark:bg-yellow-400/10 rounded-full w-10 h-10">
-          <i class="pi pi-wallet text-yellow-500 text-lg"></i>
+        <div v-if="statusUser !='CAISSIER'" class="filter-group">
+          <label class="filter-label">
+            <i class="pi pi-shield text-xs"></i>
+            Filtrer par Admin
+          </label>
+
+          <Select
+            v-model="selectedUserId"
+            :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'CAISSIER')"
+            optionValue="id"
+            optionLabel="username"
+            placeholder="Filtrer par utilisateur"
+            class="w-full sm:w-56"
+            showClear
+          >
+            <template #option="{ option }">
+              <div class="flex justify-between items-center gap-2">
+                <span>{{ option.username }}</span>
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                    'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                  }"
+                >
+                  {{ option.status }}
+                </span>
+              </div>
+            </template>
+
+            <template #selectedItem="{ option }">
+              <div class="flex justify-between items-center gap-2">
+                <span>{{ option.username }}</span>
+                <span
+                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                    'bg-teal-50 text-teal-600': slotProps.option.status === 'CAISSIER',
+                  }"
+                >
+                  {{ option.status }}
+                </span>
+              </div>
+            </template>
+          </Select>
         </div>
 
-      </div>
+        <div v-if="statusUser !='CAISSIER'" class="filter-group">
+          <label class="filter-label">
+            <i class="pi pi-users text-xs"></i>
+            Filtrer groupe
+          </label>
 
-      <Button
-        v-if="!showSensitiveInfo"
-        label="Afficher le bénéfice"
-        icon="pi pi-lock"
-        severity="warning"
-        size="small"
-        class="mt-2"
-        @click="openView"
-      />
-
-    </div>
-
-
-     <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total Entrée</span>
-
-            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_AmountCashInt) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
-            </div>
-              Et
-            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_AmountCashIntUSD) }} USD
-            </div>
-          </div>
-          <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-arrow-down-left text-green-900 text-lg"></i>
-          </div>
-        </div>
-        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto">
-          <span>{{ total_CashIntCount }}</span>
-          <span>Nombres des dépasses</span>
-        </div>
-      </div>
-
-
-          <!-- Nombre des factre annuler--->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full bg-white dark:bg-gray-800">
-
-        <!-- Titre -->
-        <div class="text-gray-500 dark:text-gray-400 text-sm font-medium mb-2 text-center">
-         Nombres Factures Annulées 
+          <Select
+            v-model="selectedGroup"
+            :options="[
+              { label: 'Aucun', value: null },
+              { label: 'Tous les Admins', value: 'ADMIN' },
+              { label: 'Tous les Caissiers', value: 'CAISSIER' }
+            ]"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full sm:w-56"
+            placeholder="Filtrer groupe"
+            showClear
+          />
         </div>
 
-        <!-- Comptage des factures -->
-        <div class="flex justify-around items-center mb-4">
-          <!-- Factures valides -->
-      
-          <!-- Factures annulées -->
-          <div class="flex flex-col items-center">
-            <span class="text-red-500 text-3xl font-bold">{{ canceledInvoicesCount}}</span>
-            <span class="text-red-700 text-sm font-medium">Annulées</span>
-          </div>
-        </div>
-
-        <!-- Footer : date -->
-        <div class="text-center text-gray-500 dark:text-gray-400 text-sm">
-          {{ selectDate.global.value || 'Toutes les dates' }}
-        </div>
-
-      </div>
-
-          <!-- Total annuler -->
-    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-      <div class="flex justify-between items-center mb-2">
-        <div>
-          <span class="block text-red-500 dark:text-gray-400 text-sm font-medium">Total Factures Annulées</span>
-
-          <div class="text-red-500 dark:text-gray-100 font-semibold text-xl">
-            {{ formatPrice(canceledTotalAmount) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
-          </div>
-          <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
-              ({{ exchangeRate(canceledTotalAmount) }})
-          </div>
-        </div>
-
-      </div>
-      <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
-        Total pour aujourd'hui : {{ selectDate.global.value }}
-      </div>
-    </div>
-
-   <!-- total tva -->
-    <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-grey-500 dark:text-red-400 text-sm font-medium">Total TVA valide</span>
-
-            <div class="text-green-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_tva_valid) }} 
-               {{ selectedUserProfile?.currency_preference || 'N/A' }}
-            </div>
-            
-            <div class="text-black dark:text-gray-200 text-base font-semibold mt-1">
-              ({{ exchangeRate(total_tva_valid) }})
-            </div>
-
-          </div>
-
-          <div class="flex items-center justify-center bg-green-100 dark:bg-red-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-arrow-down-left text-green-900 text-lg"></i>
-          </div>
-        </div>
-      </div>
-
-    
-
-
-      <!-- Total dépassé -->
-      <div class="card flex flex-col justify-between p-4 shadow-sm rounded-lg h-full">
-        <div class="flex justify-between items-center mb-2">
-          <div>
-            <span class="block text-red-500 dark:text-red-400 text-sm font-medium">Total dépassé</span>
-
-            <div class="text-red-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_AmountCashOut) }} {{ selectedUserProfile?.currency_preference || 'N/A' }}
-            </div>
-              Et
-            <div class="text-red-600 dark:text-red-400 font-semibold text-xl">
-               {{ formatPrice(total_AmountCashoutUSD) }} USD
-            </div>
-
-          </div>
-
-          <div class="flex items-center justify-center bg-red-100 dark:bg-red-400/10 rounded-full w-10 h-10">
-            <i class="pi pi-arrow-up-right text-red-500 text-lg"></i>
-          </div>
-        </div>
-        <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-auto">
-          <span>{{ todaysCashoutCount}}</span>
-          <span>Nombres des dépasses</span>
-        </div>
-      </div>
-    
-
-    </div>
-
-    <!-- Date Selector -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
- 
-      <div class="flex flex-col">
-        <label v-if="statusUser !='CAISSIER'" for="user-filter" class="font-medium">Filtrer par Caissier :</label>
-
-      <Select
-        v-if="statusUser !='CAISSIER'" 
-        v-model="selectedUserId"
-        :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='ADMIN')"
-        optionValue="id"
-        optionLabel="username"
-        placeholder="Filtrer par utilisateur"
-        class="w-full sm:w-56"
-        showClear
-      >
-        <!-- Comment afficher chaque option dans la liste -->
-        <template #option="{ option }">
-          <div class="flex justify-between items-center gap-2">
-            <span>{{ option.username }}</span>
-            <span 
-              class="text-xs px-2 py-0.5 rounded"
-              :class="{
-                'bg-green-100 text-green-800': option.status === 'ADMIN',
-                'bg-blue-100 text-blue-800': option.status === 'CAISSIER',
-              }"
-            >
-              {{ option.status }}
-            </span>
-          </div>
-        </template>
-
-        <!-- Comment afficher l'élément sélectionné -->
-        <template #selectedItem="{ option }">
-          <div class="flex justify-between items-center gap-2">
-            <span>{{ option.username }}</span>
-            <span 
-              class="text-xs px-2 py-0.5 rounded"
-              :class="{
-                'bg-green-100 text-green-800': option.status === 'ADMIN',
-                'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-              }"
-            >
-              {{ option.status }}
-            </span>
-          </div>
-        </template>
-      </Select>
-      </div>
-
-      <div class="flex flex-col">
-          <label  v-if="statusUser !='CAISSIER'"  for="user-filter" class="font-medium">Filtrer par Admin :</label>
-
-      <Select
-       v-if="statusUser !='CAISSIER'" 
-        v-model="selectedUserId"
-          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !=='CAISSIER')"
-        optionValue="id"
-        optionLabel="username"
-        placeholder="Filtrer par utilisateur"
-        class="w-full sm:w-56"
-        showClear
-      >
-        <!-- Comment afficher chaque option dans la liste -->
-        <template #option="{ option }">
-          <div class="flex justify-between items-center gap-2">
-            <span>{{ option.username }}</span>
-            <span 
-              class="text-xs px-2 py-0.5 rounded"
-              :class="{
-                'bg-green-100 text-green-800': option.status === 'ADMIN',
-                'bg-blue-100 text-blue-800': option.status === 'CAISSIER',
-              }"
-            >
-              {{ option.status }}
-            </span>
-          </div>
-        </template>
-
-        <!-- Comment afficher l'élément sélectionné -->
-        <template #selectedItem="{ option }">
-          <div class="flex justify-between items-center gap-2">
-            <span>{{ option.username }}</span>
-            <span 
-              class="text-xs px-2 py-0.5 rounded"
-              :class="{
-                'bg-green-100 text-green-800': option.status === 'ADMIN',
-                'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-              }"
-            >
-              {{ option.status }}
-            </span>
-          </div>
-        </template>
-        </Select>
-      </div>
-
-      <div   v-if="statusUser !='CAISSIER'" class="flex flex-col">
-
-        <label  class="font-medium">Filtrer groupe :</label>
-
-        <Select
-          v-model="selectedGroup"
-          :options="[
-            { label: 'Aucun', value: null },
-            { label: 'Tous les Admins', value: 'ADMIN' },
-            { label: 'Tous les Caissiers', value: 'CAISSIER' }
-          ]"
-          optionLabel="label"
-          optionValue="value"
-          class="w-full sm:w-56"
-          placeholder="Filtrer groupe"
-          showClear
-        />
-
-      </div>
-
-
-
-
-
-        <!-- 🔹 Sélecteur de date -->
-    <div class="flex flex-col">
-          <label for="date-select" class="font-medium">Sélectionner une date :</label>
+        <!-- Sélecteur de date -->
+        <div class="filter-group">
+          <label for="date-select" class="filter-label">
+            <i class="pi pi-calendar text-xs"></i>
+            Sélectionner une date
+          </label>
           <InputText
             id="date-select"
             type="date"
@@ -1191,58 +957,302 @@ onMounted(() => {
           />
         </div>
 
-        <div class="flex justify-end gap-2 mt-4 sm:mt-0">
-          <Button label="Générer le Rapport" severity="success" @click="generatePDF"/>
-          <Button label="Actualiser" severity="warning" @click="forceRefresh"/>
+        <!-- Actions -->
+        <div class="filter-actions">
+          <Button
+            label="Générer le Rapport"
+            icon="pi pi-file-pdf"
+            severity="success"
+            @click="generatePDF"
+          />
+          <Button
+            label="Actualiser"
+            icon="pi pi-refresh"
+            severity="warning"
+            outlined
+            @click="forceRefresh"
+          />
+        </div>
+
+      </div>
+
+<!-- Dashboard Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+
+      <!-- Factures valides (count) -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Nombre Factures Valides</span>
+          <div class="dash-icon-badge bg-emerald-50 text-emerald-600">
+            <i class="pi pi-check-circle"></i>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center flex-1 py-3">
+          <span class="text-4xl font-extrabold text-emerald-600 leading-none">
+            {{ todaysInvoicesUserConnectCount }}
+          </span>
+          <span class="text-xs font-semibold text-emerald-500 mt-1 uppercase tracking-wide">
+            Valides
+          </span>
+        </div>
+
+        <div class="dash-footer">
+          <i class="pi pi-calendar text-xs"></i>
+          {{ selectDate.global.value || 'Toutes les dates' }}
         </div>
       </div>
 
+      <!-- Total Factures Valide -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Total Factures Valides</span>
+          <div class="dash-icon-badge bg-emerald-50 text-emerald-600">
+            <i class="pi pi-money-bill"></i>
+          </div>
+        </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="flex-1 flex flex-col justify-center">
+          <div class="dash-amount text-slate-800 dark:text-slate-100">
+            {{ formatPrice(total_AmountUserConnect) }}
+            <span class="dash-currency">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+          </div>
+          <div class="dash-amount-secondary">
+            ({{ exchangeRate(total_AmountUserConnect) }})
+          </div>
+        </div>
 
-      <!-- 📈 Line Chart -->
-      <div class="card p-4 shadow-sm rounded-lg flex flex-col h-full">
-        <div class="text-lg font-semibold mb-4">Factures pour la semaine</div>
-        <Chart
-        id="lineChart"
-          type="line"
-          :data="lineData"
-          :options="lineOptions"
-          class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
+        <div class="dash-footer">
+          <i class="pi pi-calendar text-xs"></i>
+          Total pour aujourd'hui : {{ selectDate.global.value }}
+        </div>
+      </div>
+
+      <!-- Bénéfice estimé -->
+      <div v-if="statusUser != 'CAISSIER'" class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Bénéfice estimé</span>
+          <div class="dash-icon-badge bg-amber-50 text-amber-500">
+            <i class="pi pi-wallet"></i>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center">
+          <div class="dash-amount text-slate-800 dark:text-slate-100">
+            <span v-if="showSensitiveInfo">
+              {{ formatPrice(total_ProfitAmountUserConnect) }}
+              <span class="dash-currency">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+            </span>
+            <span v-else class="text-slate-300 dark:text-slate-600 tracking-widest">••••••</span>
+          </div>
+
+          <div v-if="showSensitiveInfo" class="dash-amount-secondary">
+            ({{ exchangeRate(total_ProfitAmountUserConnect) }})
+          </div>
+        </div>
+
+        <Button
+          v-if="!showSensitiveInfo"
+          label="Afficher le bénéfice"
+          icon="pi pi-lock"
+          severity="warning"
+          size="small"
+          class="mt-2 w-full"
+          @click="openView"
         />
       </div>
 
-  <!--  Doughnut Chart + Légende -->
-  <div class="flex flex-col gap-4 h-full">
-    <div class="card p-4 shadow-sm rounded-lg flex flex-col items-center h-full">
-      <div class="text-lg font-semibold mb-4">Factures par Caissier</div>
+      <!-- Total Entrée -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Total Entrée</span>
+          <div class="dash-icon-badge bg-emerald-50 text-emerald-600">
+            <i class="pi pi-arrow-down-left"></i>
+          </div>
+        </div>
 
-      <!-- Graphique camembert -->
-      <Chart
-      id="doughnut"
-        type="doughnut"
-        :data="pieData"
-        :options="pieOptions"
-        class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
-      />
+        <div class="flex-1 flex flex-col justify-center gap-1">
+          <div class="dash-amount text-emerald-600">
+            {{ formatPrice(total_AmountCashInt) }}
+            <span class="dash-currency text-emerald-500">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+          </div>
+          <div class="dash-amount text-emerald-600">
+            {{ formatPrice(total_AmountCashIntUSD) }}
+            <span class="dash-currency text-emerald-500">USD</span>
+          </div>
+        </div>
 
-        <!-- Légende dynamique -->
-        <div v-if="pieData?.legend?.length" class="w-full mt-4 border-t pt-4 space-y-2">
-          <div v-for="(item, index) in pieData.legend" :key="index" class="flex items-center justify-between text-sm">
-            <div class="flex items-center gap-2">
-              <span :style="{ backgroundColor: item.color }" class="w-3 h-3 rounded-full"></span>
-              <span class="text-gray-700 dark:text-gray-300 font-medium">
-                {{ item.name }} 
-              </span>
-            </div>
-            <span class="font-semibold text-gray-900 dark:text-gray-100">
-              {{ formatPrice(item.amount) }} {{ item.currency || 'N/A' }}
-            </span>
+        <div class="dash-footer justify-between">
+          <span>Nombre de dépenses</span>
+          <span class="dash-count-pill bg-emerald-50 text-emerald-600">{{ total_CashIntCount }}</span>
+        </div>
+      </div>
+
+      <!-- Factures Annulées (count) -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Factures Annulées</span>
+          <div class="dash-icon-badge bg-red-50 text-red-500">
+            <i class="pi pi-times-circle"></i>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center flex-1 py-3">
+          <span class="text-4xl font-extrabold text-red-500 leading-none">
+            {{ canceledInvoicesCount }}
+          </span>
+          <span class="text-xs font-semibold text-red-400 mt-1 uppercase tracking-wide">
+            Annulées
+          </span>
+        </div>
+
+        <div class="dash-footer">
+          <i class="pi pi-calendar text-xs"></i>
+          {{ selectDate.global.value || 'Toutes les dates' }}
+        </div>
+      </div>
+
+      <!-- Total Factures Annulées -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Total Factures Annulées</span>
+          <div class="dash-icon-badge bg-red-50 text-red-500">
+            <i class="pi pi-ban"></i>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center">
+          <div class="dash-amount text-red-500">
+            {{ formatPrice(canceledTotalAmount) }}
+            <span class="dash-currency text-red-400">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+          </div>
+          <div class="dash-amount-secondary">
+            ({{ exchangeRate(canceledTotalAmount) }})
+          </div>
+        </div>
+
+        <div class="dash-footer">
+          <i class="pi pi-calendar text-xs"></i>
+          Total pour aujourd'hui : {{ selectDate.global.value }}
+        </div>
+      </div>
+
+      <!-- Total TVA valide -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Total TVA valide</span>
+          <div class="dash-icon-badge bg-emerald-50 text-emerald-600">
+            <i class="pi pi-arrow-down-left"></i>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center">
+          <div class="dash-amount text-emerald-600">
+            {{ formatPrice(total_tva_valid) }}
+            <span class="dash-currency text-emerald-500">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+          </div>
+          <div class="dash-amount-secondary">
+            ({{ exchangeRate(total_tva_valid) }})
           </div>
         </div>
       </div>
+
+      <!-- Total dépassé -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-label">Total dépassé</span>
+          <div class="dash-icon-badge bg-red-50 text-red-500">
+            <i class="pi pi-arrow-up-right"></i>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center gap-1">
+          <div class="dash-amount text-red-500">
+            {{ formatPrice(total_AmountCashOut) }}
+            <span class="dash-currency text-red-400">{{ selectedUserProfile?.currency_preference || 'N/A' }}</span>
+          </div>
+          <div class="dash-amount text-red-500">
+            {{ formatPrice(total_AmountCashoutUSD) }}
+            <span class="dash-currency text-red-400">USD</span>
+          </div>
+        </div>
+
+        <div class="dash-footer justify-between">
+          <span>Nombre de dépenses</span>
+          <span class="dash-count-pill bg-red-50 text-red-500">{{ todaysCashoutCount }}</span>
+        </div>
+      </div>
+
     </div>
+
+
+
+
+      <!-- Charts Section -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+  <!-- 📈 Line Chart -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div class="chart-icon-badge bg-teal-50 text-[#004D4A]">
+        <i class="pi pi-chart-line"></i>
+      </div>
+      <div>
+        <div class="chart-title">Factures pour la semaine</div>
+        <div class="chart-subtitle">Évolution quotidienne</div>
+      </div>
+    </div>
+
+    <div class="chart-divider"></div>
+
+    <Chart
+      id="lineChart"
+      type="line"
+      :data="lineData"
+      :options="lineOptions"
+      class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
+    />
+  </div>
+
+  <!-- Doughnut Chart + Légende -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <div class="chart-icon-badge bg-amber-50 text-amber-500">
+        <i class="pi pi-chart-pie"></i>
+      </div>
+      <div>
+        <div class="chart-title">Factures par Caissier</div>
+        <div class="chart-subtitle">Répartition des ventes</div>
+      </div>
+    </div>
+
+    <div class="chart-divider"></div>
+
+    <Chart
+      id="doughnut"
+      type="doughnut"
+      :data="pieData"
+      :options="pieOptions"
+      class="flex-1 w-full min-h-[250px] sm:min-h-[300px]"
+    />
+
+    <!-- Légende dynamique -->
+    <div v-if="pieData?.legend?.length" class="chart-legend">
+      <div
+        v-for="(item, index) in pieData.legend"
+        :key="index"
+        class="chart-legend-item"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <span :style="{ backgroundColor: item.color }" class="chart-legend-dot"></span>
+          <span class="chart-legend-name">{{ item.name }}</span>
+        </div>
+        <span class="chart-legend-amount">
+          {{ formatPrice(item.amount) }} {{ item.currency || 'N/A' }}
+        </span>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -1292,11 +1302,319 @@ onMounted(() => {
   </div>
 </template>
 
+
+
 <style scoped>
-/* Mobile-first adjustments */
-@media (max-width: 640px) {
-  .p-button {
+
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem;
+  border-radius: 16px;
+  height: 100%;
+  background-color: #fff;
+  border: 1.5px solid var(--surface-100, #f1f5f9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.dash-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+:global(.dark) .dash-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.dash-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.dash-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.3;
+  max-width: 75%;
+}
+
+:global(.dark) .dash-label {
+  color: #94a3b8;
+}
+
+.dash-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.dash-amount {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.dash-currency {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.dash-amount-secondary {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f97316;
+  margin-top: 0.2rem;
+}
+
+.dash-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--surface-100, #f1f5f9);
+}
+
+:global(.dark) .dash-footer {
+  border-top-color: #334155;
+}
+
+.dash-count-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+}
+
+/* ── section filtre ── */
+
+
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background-color: #fff;
+  border: 1.5px solid var(--surface-100, #f1f5f9);
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+
+  /* ── Sticky ── */
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+:global(.dark) .filters-bar {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  background-color: #fff;
+  border: 1.5px solid var(--surface-100, #f1f5f9);
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+:global(.dark) .filters-bar {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+:global(.dark) .filter-label {
+  color: #94a3b8;
+}
+
+.filter-label i {
+  color: #004D4A;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+@media (max-width: 768px) {
+  .filter-actions {
+    margin-left: 0;
     width: 100%;
+    align-self: stretch;
+  }
+
+  .filter-actions :deep(.p-button) {
+    flex: 1;
   }
 }
+
+/* ── section charte── */
+
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1.25rem;
+  border-radius: 16px;
+  background-color: #fff;
+  border: 1.5px solid var(--surface-100, #f1f5f9);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+:global(.dark) .chart-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+.chart-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.chart-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.chart-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+}
+
+:global(.dark) .chart-title {
+  color: #f1f5f9;
+}
+
+.chart-subtitle {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.chart-divider {
+  height: 1px;
+  background-color: var(--surface-100, #f1f5f9);
+  margin: 1rem 0;
+}
+
+:global(.dark) .chart-divider {
+  background-color: #334155;
+}
+
+/* ── Légende ── */
+.chart-legend {
+  width: 100%;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-100, #f1f5f9);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+:global(.dark) .chart-legend {
+  border-top-color: #334155;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 10px;
+  transition: background-color 0.15s ease;
+}
+
+.chart-legend-item:hover {
+  background-color: var(--surface-50, #f8fafc);
+}
+
+:global(.dark) .chart-legend-item:hover {
+  background-color: #273548;
+}
+
+.chart-legend-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-legend-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:global(.dark) .chart-legend-name {
+  color: #cbd5e1;
+}
+
+.chart-legend-amount {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex-shrink: 0;
+}
+
+:global(.dark) .chart-legend-amount {
+  color: #f1f5f9;
+}
+
+
 </style>

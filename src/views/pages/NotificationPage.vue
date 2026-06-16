@@ -7,11 +7,15 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
  const toast = useToast();
 const notifications = ref([]);
+
+
 const loading = ref(false);
 const loadingSend = ref(false)
 const selectedNotification = ref(null);
 const isMobileDetailOpen = ref(false);
 const visibleCreateDialog = ref(false);
+const showViewsDrawer = ref(false);
+
 const users = ref([]);
 const search = ref('');
 
@@ -33,6 +37,10 @@ onMounted(() => {
 onBeforeUnmount(() => {
     window.removeEventListener('resize', handleResize);
 });
+
+const openViewsDrawer = () => {
+    showViewsDrawer.value = true
+}
 
 
 const filteredUsers = computed(() => {
@@ -86,8 +94,12 @@ const filteredUsers = computed(() => {
 }
  
 
- function selectNotification(notification) {
+async function selectNotification(notification) {
     selectedNotification.value = notification;
+
+    console.log('notication selectionne :', selectedNotification.value)
+  
+
     if (screenWidth.value < 1024) {
         isMobileDetailOpen.value = true;
     }
@@ -235,6 +247,7 @@ function getSeverity(notification) {
     }
     return 'danger';
 }
+
 // responsive mobile
 
 </script>
@@ -281,7 +294,7 @@ function getSeverity(notification) {
 
                     <template #content>
 
-                        <div class="flex flex-col h-full p-5">
+                        <div class="flex flex-col h-full p-2">
 
                             <!-- HEADER -->
                             <div
@@ -630,28 +643,22 @@ function getSeverity(notification) {
                                 </div>
 
                                 <!-- VIEWS -->
+       
                                 <div
-                                    class="bg-slate-50 rounded-2xl p-5 border border-slate-200"
+                                    class="bg-slate-50 rounded-2xl p-5 border border-slate-200 cursor-pointer hover:bg-slate-100 transition-all"
+                                    @click="openViewsDrawer"
                                 >
-
                                     <p class="text-sm text-slate-500 mb-2">
                                         Nombre de vues
                                     </p>
 
                                     <div class="flex items-center gap-3">
+                                        <i class="pi pi-eye text-2xl text-indigo-500" />
 
-                                        <i
-                                            class="pi pi-eye text-2xl text-indigo-500"
-                                        />
-
-                                        <h3
-                                            class="text-2xl font-bold text-slate-800"
-                                        >
-                                            {{ selectedNotification.views_count || 0 }}
+                                        <h3 class="text-2xl font-bold text-slate-800">
+                                            {{ selectedNotification?.views_count || 0 }}
                                         </h3>
-
                                     </div>
-
                                 </div>
 
                             </div>
@@ -1069,6 +1076,105 @@ function getSeverity(notification) {
             </div>
 
         </Dialog>
+
+<Drawer
+    v-model:visible="showViewsDrawer"
+    position="right"
+    class="w-full md:w-30rem"
+    :pt="{
+        root: { class: 'bg-slate-50' },
+        header: { class: 'bg-white border-b border-slate-100 px-5 py-4' },
+        content: { class: 'p-0' }
+    }"
+>
+    <template #header>
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-teal-50 flex items-center justify-center">
+                <i class="pi pi-eye text-teal-700 text-sm"></i>
+            </div>
+            <div>
+                <p class="font-semibold text-sm text-slate-800 leading-tight">
+                    Vu par
+                </p>
+                <p class="text-xs text-slate-400 leading-tight">
+                    {{ selectedNotification?.viewed_by?.length || 0 }}
+                    utilisateur{{ (selectedNotification?.viewed_by?.length || 0) > 1 ? 's' : '' }}
+                </p>
+            </div>
+        </div>
+    </template>
+
+    <div class="p-4">
+        <div
+            v-if="selectedNotification?.viewed_by?.length"
+            class="space-y-2"
+        >
+            <div
+                v-for="view in selectedNotification.viewed_by"
+                :key="`${view.user}-${view.viewed_at}`"
+                class="p-3.5 border border-slate-100 rounded-2xl bg-white shadow-sm hover:shadow-md transition-shadow"
+            >
+                <div class="flex items-center gap-3">
+                    <!-- Avatar initiale -->
+                    <div class="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                        <span class="text-teal-700 font-bold text-sm">
+                            {{ view.user_name?.charAt(0)?.toUpperCase() || '?' }}
+                        </span>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <p class="font-semibold text-sm text-slate-800 truncate">
+                            {{ view.user_name }}
+                        </p>
+                        <p class="text-xs text-slate-400">
+                            ID : {{ view.user }}
+                        </p>
+                    </div>
+
+                    <div class="text-right flex-shrink-0">
+                        <div class="flex items-center gap-1 text-xs text-slate-500 font-medium bg-slate-50 px-2 py-1 rounded-full">
+                            <i class="pi pi-clock text-[10px] text-slate-400"></i>
+                            {{
+                                new Date(view.viewed_at).toLocaleString('fr-FR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                })
+                            }}
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            {{
+                                new Date(view.viewed_at).toLocaleTimeString('fr-FR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })
+                            }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- État vide -->
+        <div
+            v-else
+            class="flex flex-col items-center justify-center text-center py-16"
+        >
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                <i class="pi pi-eye-slash text-slate-300 text-2xl"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-500">
+                Aucune consultation
+            </p>
+            <p class="text-xs text-slate-400 mt-1">
+                Personne n'a encore consulté cette notification
+            </p>
+        </div>
+    </div>
+</Drawer>
+
+
+
 
     </div>
 

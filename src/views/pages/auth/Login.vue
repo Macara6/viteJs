@@ -113,188 +113,253 @@ const handleLogin = async() => {
 
 </script>
 
+
 <template>
+<div class="min-h-screen flex items-center justify-center bg-white px-4 overflow-hidden relative">
 
-<div class="min-h-screen flex items-center justify-center bg-[#070A12] px-4 overflow-hidden relative">
-
-  <!-- BACKGROUND GLOW (comme pricing) -->
-  <div class="absolute inset-0 
-              bg-[radial-gradient(circle_at_top,rgba(123,182,97,0.18),transparent_60%)]">
-  </div>
-
-  <!-- FLOATING LIGHTS -->
-  <div class="absolute w-[400px] h-[400px] bg-[#7BB661]/20 blur-[120px] rounded-full animate-float1"></div>
-  <div class="absolute right-0 bottom-0 w-[400px] h-[400px] bg-[#F9A825]/20 blur-[120px] rounded-full animate-float2"></div>
+  <!-- Décorations fond -->
+  <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
+              bg-[#004D4A]/5 blur-3xl translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+  <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full
+              bg-[#004D4A]/5 blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
 
   <!-- CARD -->
   <div class="relative w-full max-w-md z-10">
+    <div class="bg-white rounded-3xl border border-slate-100
+                shadow-[0_8px_40px_rgba(0,77,74,0.10)]
+                p-8 sm:p-10">
 
-    <div class="p-8 sm:p-10 rounded-3xl 
-                bg-white/10 backdrop-blur-3xl 
-                border border-white/20 
-                shadow-[0_20px_80px_rgba(0,0,0,0.6)]
-                transition-all duration-500">
+      <!-- LOGO + TITRE -->
+      <div class="text-center mb-8">
+        <img
+          src="/demo/bilatechslogan.png"
+          class="h-14 mx-auto mb-5 object-contain"
+          alt="BilaTech"
+        />
 
-      <!-- LOGO -->
-      <div class="text-center mb-6">
-
-        <img src="/demo/bilatechblanc.png"
-             class="h-20 mx-auto mb-3 
-                    drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]" />
-
-        <h2 class="text-2xl font-semibold text-white tracking-tight">
+        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">
           Connexion
         </h2>
-
-        <p class="text-gray-400 text-sm mt-1">
+        <p class="text-slate-500 text-sm mt-1.5">
           Accédez à votre espace BilaTech
         </p>
-
       </div>
 
       <!-- ERROR -->
-      <div v-if="errorMessage"
-           class="text-red-400 text-center mb-4 text-sm">
-        {{ errorMessage }}
-      </div>
+      <Transition
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-1"
+        enter-to-class="opacity-100 translate-y-0"
+      >
+        <div
+          v-if="errorMessage"
+          class="flex items-center gap-2.5 p-3.5 rounded-2xl mb-5
+                 bg-red-50 border border-red-200 text-red-600 text-sm"
+        >
+          <i class="pi pi-exclamation-triangle text-red-500 flex-shrink-0"></i>
+          {{ errorMessage }}
+        </div>
+      </Transition>
 
       <!-- FORM -->
-      <div class="space-y-5">
+      <div class="space-y-4">
 
         <!-- USERNAME -->
-        <div>
-          <label class="text-gray-300 text-sm mb-1 block">
-            Nom d’utilisateur
+        <div class="form-group">
+          <label class="form-label">
+            <i class="pi pi-user text-xs text-[#004D4A]"></i>
+            Nom d'utilisateur
           </label>
-
           <InputText
             v-model="username"
-            placeholder="Nom d’utilisateur"
-            class="input-ios"
+            placeholder="Entrez votre nom d'utilisateur"
+            class="login-input"
           />
         </div>
 
         <!-- PASSWORD -->
-        <div>
-          <label class="text-gray-300 text-sm mb-1 block">
+        <div class="form-group">
+          <label class="form-label">
+            <i class="pi pi-lock text-xs text-[#004D4A]"></i>
             Mot de passe
           </label>
-
           <Password
             v-model="password"
             :toggleMask="true"
             :feedback="false"
-            placeholder="mot de passe"
-            class="input-ios"
-            inputClass="w-full h-12 text-white bg-transparent border-none outline-none"
+            placeholder="Entrez votre mot de passe"
+            class="login-input w-full"
+            inputClass="w-full bg-transparent border-none outline-none text-slate-800 placeholder-slate-400"
           />
-
         </div>
 
-        <!-- REMEMBER -->
-        <div class="flex items-center gap-2 text-sm text-gray-300">
-          <input type="checkbox" v-model="rememberMe" />
-          Se souvenir de moi
+        <!-- REMEMBER ME -->
+        <div class="flex items-center gap-2.5 py-1">
+          <input
+            type="checkbox"
+            v-model="rememberMe"
+            id="rememberMe"
+            class="w-4 h-4 rounded accent-[#004D4A] cursor-pointer"
+          />
+          <label for="rememberMe" class="text-sm text-slate-500 cursor-pointer select-none">
+            Se souvenir de moi
+          </label>
         </div>
 
-        <!-- BUTTON -->
+        <!-- BOUTON CONNEXION -->
         <button
           @click="handleLogin"
           :disabled="loading"
-          class="
-            w-full py-3 rounded-2xl 
-            bg-white/10 backdrop-blur-xl 
-            border border-white/20
-            text-white font-medium
-            flex justify-center items-center gap-2
-            transition-all duration-300
-            hover:bg-white/20 hover:scale-[1.02]
-            active:scale-[0.97]
-          "
+          class="w-full flex items-center justify-center gap-2.5
+                 py-3.5 rounded-2xl
+                 bg-[#004D4A] hover:bg-[#006660]
+                 text-white text-sm font-bold
+                 shadow-lg shadow-[#004D4A]/20
+                 hover:shadow-[#004D4A]/30
+                 hover:scale-[1.02] active:scale-[0.98]
+                 transition-all duration-200
+                 disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100"
         >
-          <i v-if="loading" class="pi pi-spin pi-spinner"></i>
+          <i v-if="loading" class="pi pi-spin pi-spinner text-sm"></i>
+          <i v-else class="pi pi-sign-in text-sm"></i>
           <span>{{ loading ? 'Connexion...' : 'Se connecter' }}</span>
         </button>
 
-        <!-- LINKS -->
-        <div class="text-center text-sm text-gray-400 space-y-2 mt-4">
+        <!-- DIVIDER -->
+        <div class="flex items-center gap-3 py-2">
+          <div class="flex-1 h-px bg-slate-100"></div>
+          <span class="text-xs text-slate-400 font-medium">ou</span>
+          <div class="flex-1 h-px bg-slate-100"></div>
+        </div>
 
-          <RouterLink to="/reset" class="link-ios">
+        <!-- LIENS -->
+        <div class="flex flex-col gap-2">
+
+          <RouterLink
+            to="/reset"
+            class="login-link-btn"
+          >
+            <i class="pi pi-key text-xs"></i>
             Mot de passe oublié ?
           </RouterLink>
 
-          <RouterLink to="/signup" class="link-ios block">
+          <RouterLink
+            to="/signup"
+            class="login-link-btn"
+          >
+            <i class="pi pi-user-plus text-xs"></i>
             Créer un compte
           </RouterLink>
 
-          <RouterLink to="/Payment" class="link-ios block">
+          <RouterLink
+            to="/Payment"
+            class="login-link-btn"
+          >
+            <i class="pi pi-refresh text-xs"></i>
             Réabonnement
           </RouterLink>
 
         </div>
 
-        <!-- FOOT -->
-        <p class="text-center text-xs text-gray-500 mt-6">
-          © 2026 BilaTech
-        </p>
-
       </div>
 
-    </div>
+      <!-- FOOTER -->
+      <p class="text-center text-xs text-slate-400 mt-8 pt-6 border-t border-slate-100">
+        © 2026 BilaTech — Tous droits réservés
+      </p>
 
+    </div>
   </div>
 
 </div>
-
 </template>
 
 <style scoped>
 
-/* INPUT */
-.input-ios {
-  @apply w-full rounded-xl 
-         bg-white/5 backdrop-blur-xl 
-         border border-white/10 
-         text-white placeholder-gray-400
-         focus:border-[#7BB661] focus:ring-1 focus:ring-[#7BB661]
-         transition-all duration-300;
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
 }
 
- .p-password .p-inputtext {
-  background: transparent !important;
-  color: white !important;
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
- .p-password,
-.p-password input {
-  background: transparent !important;
-  color: white !important;
-  border: none !important;
-  box-shadow: none !important;
+.login-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-  /* LINKS */
-  .link-ios {
-    @apply text-[#7BB661] hover:text-white transition;
-  }
+.login-input:focus,
+.login-input:focus-within {
+    border-color: #004D4A;
+    box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
+    background-color: #fff;
+}
 
-  /* FLOAT ANIMATIONS */
-  @keyframes float1 {
-    0%,100% { transform: translate(0,0); }
-    50% { transform: translate(20px, -20px); }
-  }
+:deep(.p-password) {
+    width: 100%;
+}
 
-  @keyframes float2 {
-    0%,100% { transform: translate(0,0); }
-    50% { transform: translate(-20px, 20px); }
-  }
+:deep(.p-password input) {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1e293b;
+    background-color: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    outline: none;
+    transition: all 0.2s ease;
+}
 
-  .animate-float1 {
-    animation: float1 12s ease-in-out infinite;
-  }
+:deep(.p-password input:focus) {
+    border-color: #004D4A;
+    box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
+    background-color: #fff;
+}
 
-  .animate-float2 {
-    animation: float2 14s ease-in-out infinite;
-  }
+:deep(.p-password .p-icon-field) {
+    width: 100%;
+}
 
+.login-link-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border-radius: 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #004D4A;
+    background-color: #f0faf9;
+    border: 1.5px solid rgba(0, 77, 74, 0.1);
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.login-link-btn:hover {
+    background-color: #004D4A;
+    color: #fff;
+    border-color: #004D4A;
+    transform: translateY(-1px);
+}
 </style>
