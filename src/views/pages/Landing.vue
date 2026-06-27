@@ -503,8 +503,7 @@ const startStatsAnimation = () => {
   </section>
 
 <!-- Animation simple via Tailwind CSS -->
-    <div id="features" class="relative py-24 px-6 lg:px-24 bg-white overflow-hidden">
-
+    <div id="features" class="relative py-20 px-7 lg:px-24 bg-white overflow-hidden">
       <!-- Décoration fond -->
       <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
                   bg-[#004D4A]/5 blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
@@ -660,7 +659,7 @@ const startStatsAnimation = () => {
 
 </div>
 
-<div id="highlights" class="relative py-24 px-6 lg:px-24 bg-white overflow-hidden">
+<div id="highlights" class="relative py-18 px-5 lg:px-24 bg-white overflow-hidden">
 
   <!-- Décorations fond -->
   <div class="absolute top-0 left-0 w-[600px] h-[600px] rounded-full
@@ -805,7 +804,7 @@ const startStatsAnimation = () => {
 </div>
 
 
-<div id="pricing" class="relative py-24 px-6 lg:px-24 bg-white overflow-hidden">
+<div id="pricing" class="relative py-20 px-6 lg:px-24 bg-white overflow-hidden">
 
   <!-- Décorations fond -->
   <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full
@@ -1012,7 +1011,7 @@ const startStatsAnimation = () => {
 
 </div>
 
-<div class="relative py-24 px-6 bg-white overflow-hidden">
+<div class="relative py-18 px-6 bg-white overflow-hidden">
 
   <!-- Décorations fond -->
   <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2
@@ -1046,7 +1045,7 @@ const startStatsAnimation = () => {
       </h3>
 
       <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
-        Disponible sur votre appareil · Version 1.8.2
+        Disponible sur votre appareil · Version 1.8.3
       </p>
 
       <!-- Badges store -->

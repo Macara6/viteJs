@@ -866,370 +866,266 @@ async function generatePdfInvoice(invoice) {
 </script>
 
 <template>
-  <div class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex flex-col md:flex-row gap-5 p-4 md:p-6">
-    
-    <!-- 🧾 Section Produits -->
-    <div class="bg-white shadow-lg rounded-2xl p-5 flex-1 flex flex-col border border-gray-100">
-      <h3 class="text-2xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
-        <i class="pi pi-box text-indigo-500"></i> Produits disponibles
-      </h3>
-      <div class="flex justify-end mb-3">
+ <div class="pos-shell">
+
+  <!-- ══════════════════ SECTION PRODUITS ══════════════════ -->
+  <div class="pos-panel products-panel">
+
+    <!-- Header produits -->
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="pi pi-box"></i>
+        <span>Produits</span>
+      </div>
       <Button
-        label="Actualiser les produits"
         icon="pi pi-refresh"
-        class="p-button-sm p-button-info"
+        text
+        rounded
+        class="refresh-btn"
+        v-tooltip.bottom="'Actualiser'"
         @click="forceRefreshProducts"
       />
     </div>
 
-      <!-- 🔍 Recherche -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-4">
+    <!-- Recherche -->
+    <div class="search-row">
+      <div class="search-field">
+        <i class="pi pi-search search-icon"></i>
         <InputText
           v-model="filters.global.value"
-          placeholder=" Rechercher un produit..."
-          class="flex-1 rounded-lg border-gray-300"
+          placeholder="   Rechercher..."
+          class="search-input"
         />
+      </div>
+      <div class="search-field">
+        <i class="pi pi-barcode search-icon"></i>
         <InputText
           ref="barcodeInput"
           v-model="barcodeSearch"
-          placeholder="Scanner / code-barres..."
-          class="flex-1 rounded-lg border-gray-300"
+          placeholder="Code-barres..."
+          class="search-input"
         />
       </div>
+    </div>
 
-      <!-- 📦 Liste produits -->
-      <div class="flex-1 overflow-auto">
-        <DataTable
-          :value="filterProducts()"
-          :rows="8"
-          :paginator="true"
-          :filters="filters"
-          dataKey="id"
-          responsiveLayout="scroll"
-          class="text-sm border-t border-gray-100"
-        >
-          <Column field="name" header="Produit" />
-          <Column field="price" header="Prix">
-            <template #body="{ data }">
+    <!-- Table produits -->
+    <div class="table-wrapper">
+      <DataTable
+        :value="filterProducts()"
+        :rows="8"
+        :paginator="true"
+        :filters="filters"
+        dataKey="id"
+        responsiveLayout="scroll"
+        class="pos-table"
+      >
+        <Column field="name" header="Produit" />
+        <Column field="price" header="Prix">
+          <template #body="{ data }">
+            <span class="price-tag">
               {{ formatPrice(data.price) }} {{ userProfile?.currency_preference || '' }}
-            </template>
-          </Column>
-          <Column header="Action">
-            <template #body="{ data }">
-              <div class="flex gap-2">
-                <!-- Ajouter à la facture -->
-                <Button
-                  icon="pi pi-cart-plus"
-                  label="Ajouter"
-                  @click="addToInvoice(data)"
-                  size="small"
-                  class="bg-indigo-500 hover:bg-indigo-600 text-white border-none rounded-lg"
-                />
-
-                <!-- 🎁 Cadeau -->
-                <Button
-                  icon="pi pi-gift"
-                  severity="info"
-                  size="small"
-                  @click="addGiftToInvoice(data)"
-                />
-
-              </div>
-
-            </template>
-          </Column>
-
-        </DataTable>
-      </div>
-    </div>
-
- 
-    <!-- 💳 Section Facture -->
-<div class="bg-white shadow-lg rounded-xl p-4 flex flex-col border border-gray-100">
-  <h3 class="text-xl font-semibold mb-3 text-gray-800 flex items-center gap-2">
-    <i class="pi pi-receipt text-green-500"></i> Nouvelle facture
-  </h3>
-
-  <!-- Client -->
-   <Button label="Factures en attente"  icon="pi pi-clock" @click="showPendingDialog = true" class="!big-orange-600 mb-2" />
-
-    <!-- Téléphone -->
-    <div class="mb-2">
-      <label class="block text-sm font-medium text-gray-600 mb-1">
-        Téléphone
-      </label>
-
-      <InputText
-        v-model="clientPhone"
-        placeholder="Numéro de téléphone..."
-        class="w-full text-sm rounded-md border-gray-300"
-        @blur="searchCustomerByPhone"
-      />
-    </div>
-
-    <div v-if="isNewCustomer" class="space-y-2 border p-3 rounded-lg bg-yellow-50">
-
-      <InputText
-        v-model="clientName "
-        placeholder="Nom"
-        class="w-full text-sm"
-      />
-
-      <InputText
-        v-model="clientLastName"
-        placeholder="Post-nom"
-        class="w-full text-sm"
-      />
-
-      <Dropdown
-        v-model="clientSexe"
-        :options="customerSexe"
-        placeholder="Sexe"
-        optionLabel="label"
-        optionValue="value"
-        class="w-full text-sm"
-      />
-      <Button
-        label="Enregistré"
-        icon="pi pi-check-circle"
-        @click="saveNewCustomer"
-        class="bg-green-900 hover:bg-green-600 text-white text-sm font-semibold rounded-md px-4 py-2 shadow-sm border-none transition-all"
-      />
-    </div>
-
-
-
-  <div class="mb-2">
-    <label class="block text-sm font-medium text-gray-600 mb-1">
-      Client
-    </label>
-
-   <div class="flex flex-col sm:flex-row gap-2">
-      <!-- Nom client (modifiable) -->
-      <InputText
-        v-model="clientName"
-        placeholder="Nom du client..."
-        class="w-1/2 text-sm rounded-md border-gray-300 
-              focus:border-green-500 focus:ring-green-500"
-      />
-
-      <!-- Infos client (non modifiable) -->
-      <InputText
-        v-if="customer"
-        v-model="clientInfo"
-        readonly
-        class="w-1/2 text-sm rounded-md border-gray-300 
-              bg-gray-100 text-gray-600 cursor-not-allowed"
-      />
-
+            </span>
+          </template>
+        </Column>
+        <Column header="">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <button class="btn-add" @click="addToInvoice(data)">
+                <i class="pi pi-cart-plus"></i> Ajouter
+              </button>
+              <button class="btn-gift" @click="addGiftToInvoice(data)">
+                <i class="pi pi-gift"></i>
+              </button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
     </div>
   </div>
 
+  <!-- ══════════════════ SECTION FACTURE ══════════════════ -->
+  <div class="pos-panel invoice-panel">
 
-  <!-- Produits -->
-  <div class="overflow-auto border border-gray-100 rounded-md mb-4 max-h-[260px]">
-    <DataTable
-      :value="invoiceItems"
-      dataKey="product.id"
-      :virtualScroll="true"
-      scrollHeight="400px"
-      class="text-xs"
-    >
-      <Column field="product.name" header="Produit" style="width: 40%" />
+    <!-- Header facture -->
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="pi pi-receipt"></i>
+        <span>Nouvelle facture</span>
+      </div>
+      <Button
+        label="En attente"
+        icon="pi pi-clock"
+        text
+        class="pending-btn"
+        @click="showPendingDialog = true"
+      />
+    </div>
 
-    <Column header="Qté" style="width: 100px; text-align: center;">
+    <!-- Client -->
+    <div class="client-section">
+      <div class="field-group">
+        <label class="field-label">Téléphone</label>
+        <InputText
+          v-model="clientPhone"
+          placeholder="Numéro de téléphone..."
+          class="field-input"
+          @blur="searchCustomerByPhone"
+        />
+      </div>
+<!-- Nouveau client -->
+<div v-if="isNewCustomer" class="new-customer-box">
+  <div class="new-customer-badge">
+    <i class="pi pi-user-plus"></i> Nouveau client
+  </div>
+  <div class="new-customer-fields">
+    <InputText v-model="clientName" placeholder="Nom" class="field-input" />
+    <InputText v-model="clientLastName" placeholder="Post-nom" class="field-input" />
+    <Dropdown
+      v-model="clientSexe"
+      :options="customerSexe"
+      placeholder="Sexe"
+      optionLabel="label"
+      optionValue="value"
+      class="field-input"
+    />
+  </div>
+  <button class="btn-save-customer" @click="saveNewCustomer">
+    <i class="pi pi-check-circle"></i> Enregistrer
+  </button>
+</div>
+
+<div class="field-group">
+  <label class="field-label">Client</label>
+  <div class="client-inputs">
+    <InputText v-model="clientName" placeholder="Nom du client..." class="field-input" />
+    <InputText
+      v-if="customer"
+      v-model="clientInfo"
+      readonly
+      class="field-input field-readonly"
+    />
+  </div>
+</div>
+
+<!-- Items facture -->
+<div class="invoice-items">
+  <DataTable
+    :value="invoiceItems"
+    dataKey="product.id"
+    :virtualScroll="true"
+    scrollHeight="220px"
+    class="pos-table items-table"
+  >
+    <Column field="product.name" header="Produit" style="width:35%; min-width:90px" />
+
+    <Column header="Qté" style="width:90px; min-width:90px">
       <template #body="{ data }">
-        <div class="flex items-center justify-center gap-1">
-          <Button
-            icon="pi pi-minus"
-            size="small"
-            text
-            rounded
-            class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
+        <div class="qty-control">
+          <button
+            class="qty-btn"
             @click="data.quantity > 1 ? updateQuantity(data, data.quantity - 1) : null"
-          />
-
+          >−</button>
           <InputNumber
             v-model.number="data.quantity"
-            class="w-17 text-center text-xs border border-gray-300 rounded-md focus:ring-1 focus:ring-green-500 focus:border-green-500"
+            class="qty-input"
             @input="updateQuantity(data, data.quantity)"
             @blur="handleBlurQuantity(data)"
           />
-
-          <Button
-            icon="pi pi-plus"
-            size="small"
-            text
-            rounded
-            class="!p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700"
+          <button
+            class="qty-btn qty-btn-plus"
             @click="updateQuantity(data, data.quantity + 1)"
-          />
+          >+</button>
         </div>
       </template>
     </Column>
 
+    <Column field="price" header="P.U" style="width:20%; min-width:60px">
+      <template #body="{ data }">
+        <span class="price-cell">{{ formatPrice(data.price) }}</span>
+      </template>
+    </Column>
 
-      <Column field="price" header="Prix" style="width: 20%;">
-        <template #body="{ data }">
-          {{ formatPrice(data.price) }} {{ userProfile?.currency_preference || '' }}
-        </template>
-      </Column>
+    <Column header="Total" style="width:22%; min-width:65px">
+      <template #body="{ data }">
+        <span class="price-cell total-cell">
+          {{ formatPrice(data.quantity * data.price) }}
+        </span>
+      </template>
+    </Column>
 
-      <Column header="Total" style="width: 20%;">
-        <template #body="{ data }">
-          {{ formatPrice(data.quantity * data.price) }} {{ userProfile?.currency_preference || '' }}
-        </template>
-      </Column>
-
-      <Column style="width: 5%; text-align: center;">
-        <template #body="{ data }">
-          <Button
-            icon="pi pi-times"
-            rounded
-            text
-            severity="danger"
-            class="!p-1"
-            @click="removeFromInvoice(data.product.id)"
-          />
-        </template>
-      </Column>
-    </DataTable>
-  </div>
-
-  <!-- 💰 Totaux & Paiement -->
-  <div class="border-t border-gray-200 pt-3 pb-2 text-right bg-gray-50 rounded-lg shadow-inner self-center w-full max-w-xl">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-      <!-- Totaux -->
-      <div class="bg-gray-50 p-5 rounded-lg border w-full max-w-md space-y-3 text-sm sm:text-base font-semibold text-gray-800">
-
-        <div class="flex justify-between items-center">
-          <span>Total :</span>
-          <span class="flex gap-3 items-center">
-            <span class="text-indigo-600 tabular-nums">
-              {{ formatPrice(totalAmount) }} {{ userProfile?.currency_preference }}
-            </span>
-            <span class="text-gray-700 font-bold tabular-nums">
-              ({{ exchangeRate(totalAmount) }})
-            </span>
-          </span>
-        </div>
-
-        <div class="flex justify-between items-center">
-          <span>TVA :</span>
-          <span class="flex gap-3 items-center">
-            <span class="text-red-600 tabular-nums">
-              {{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference }}
-            </span>
-            <span class="text-gray-700 font-bold tabular-nums">
-              ({{ exchangeRate(tva_pro) }})
-            </span>
-          </span>
-        </div>
-
-        <div v-if="pointsDiscount > 0" class="flex justify-between items-center text-green-600">
-          <span>Réduction :</span>
-          <span class="flex gap-3 items-center">
-            <span class="tabular-nums">
-              - {{ formatPrice(pointsDiscount) }} {{ userProfile?.currency_preference }}
-            </span>
-            <span class="text-gray-700 font-bold tabular-nums">
-              ({{ exchangeRate(pointsDiscount) }})
-            </span>
-          </span>
-        </div>
-
-        <div class="border-t border-dashed pt-3"></div>
-
-        <div v-if="pointsDiscount > 0" class="flex justify-between items-center text-lg font-bold">
-          <span>Total final :</span>
-          <span class="flex gap-3 items-center">
-            <span class="text-indigo-700 tabular-nums">
-              {{ formatPrice(finalTotal) }} {{ userProfile?.currency_preference }}
-            </span>
-            <span class="text-gray-800 font-bold text-base tabular-nums">
-              ({{ exchangeRate(finalTotal) }})
-            </span>
-          </span>
-        </div>
-
-        <div class="border-t border-dashed pt-3"></div>
-
-        <div class="flex justify-between items-center">
-          <span>Reste :</span>
-          <span class="text-red-600 font-bold tabular-nums">
-            {{ formatPrice(change) }} {{ userProfile?.currency_preference }}
-          </span>
-          <span class="text-gray-800 font-bold text-basse tabular-nums">
-            ({{ exchangeRate(change) }})
-          </span>
-        </div>
-
-      </div>
-
-<!-- Paiement -->
-<!-- Paiement -->
-    <div class="flex items-center justify-end gap-2 sm:gap-3 flex-wrap w-full max-w-xs">
-      <label class="text-sm font-medium text-gray-600 whitespace-nowrap">Payé :</label>
-      <InputNumber
-        v-model="amountPaid"
-        mode="decimal"
-        :maxFractionDigits="2"
-        locale="en-US"
-        :useGrouping="false"
-        class="text-xs sm:text-sm border-gray-300 rounded-md"
-        inputClass="text-right"
-       @input="onInput"
-      />
-    </div>
-
-    </div>
-
-   <div class="mt-3 flex flex-wrap justify-end gap-2">
-
-      <Button
-        label="Annuler"
-        icon="pi pi-times"
-        severity="danger"
-        class="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold 
-              rounded-md px-4 py-2 shadow-sm border-none transition"
-        @click="confirmCancelInvoice"
-      />
-
-      <Button
-        label="Mettre en attente"
-        icon="pi pi-shopping-bag"
-        class="!bg-yellow-500 hover:!bg-yellow-600 
-              text-white text-sm font-semibold 
-              rounded-md px-4 py-2 shadow-sm border-none transition"
-        @click="savePendingInvoice"
-      />
-
-      <!-- Bouton réduction points -->
-      <Button
-        v-if="customer"
-        label="Utiliser les points"
-        icon="pi pi-star"
-        class="!bg-indigo-600 hover:!bg-indigo-700 
-              text-white text-sm font-semibold 
-              rounded-md px-4 py-2 shadow-sm border-none transition"
-        @click="showPointsDialog = true"
-      />
-
-      <Button
-        label="Payer & imprimer"
-        icon="pi pi-money-bill"
-        @click="createInvoice"
-        class="bg-green-900 hover:bg-green-600 
-              text-white text-sm font-semibold 
-              rounded-md px-4 py-2 shadow-sm border-none transition"
-      />
-
-    </div>
-
-
-  </div>
-
+    <Column style="width:28px">
+      <template #body="{ data }">
+        <button class="btn-remove" @click="removeFromInvoice(data.product.id)">
+          <i class="pi pi-times"></i>
+        </button>
+      </template>
+    </Column>
+  </DataTable>
 </div>
+
+<!-- Totaux -->
+<div class="totals-section">
+  <div class="totals-grid">
+    <div class="total-row">
+      <span class="total-label">Sous-total</span>
+      <span class="total-value">{{ formatPrice(totalAmount) }} {{ userProfile?.currency_preference }}</span>
+      <span class="total-exchange">({{ exchangeRate(totalAmount) }})</span>
+    </div>
+    <div class="total-row tva-row">
+      <span class="total-label">TVA</span>
+      <span class="total-value danger">{{ formatPrice(tva_pro) }} {{ userProfile?.currency_preference }}</span>
+      <span class="total-exchange">({{ exchangeRate(tva_pro) }})</span>
+    </div>
+    <div v-if="pointsDiscount > 0" class="total-row discount-row">
+      <span class="total-label">Réduction pts</span>
+      <span class="total-value success">− {{ formatPrice(pointsDiscount) }} {{ userProfile?.currency_preference }}</span>
+      <span class="total-exchange">({{ exchangeRate(pointsDiscount) }})</span>
+    </div>
+    <div class="total-divider"></div>
+    <div v-if="pointsDiscount > 0" class="total-row final-row">
+      <span class="total-label">Total final</span>
+      <span class="total-value primary bold">{{ formatPrice(finalTotal) }} {{ userProfile?.currency_preference }}</span>
+      <span class="total-exchange">({{ exchangeRate(finalTotal) }})</span>
+    </div>
+    <div class="total-row reste-row">
+      <span class="total-label">Reste</span>
+      <span class="total-value danger bold">{{ formatPrice(change) }} {{ userProfile?.currency_preference }}</span>
+      <span class="total-exchange">({{ exchangeRate(change) }})</span>
+    </div>
+  </div>
+
+  <div class="payment-row">
+    <label class="field-label">Montant payé</label>
+    <InputNumber
+      v-model="amountPaid"
+      mode="decimal"
+      :maxFractionDigits="2"
+      locale="en-US"
+      :useGrouping="false"
+      class="payment-input"
+      inputClass="text-right"
+      @input="onInput"
+    />
+  </div>
+</div>
+
+<!-- Actions -->
+<div class="invoice-actions">
+  <button class="action-btn cancel" @click="confirmCancelInvoice">
+    <i class="pi pi-times"></i> Annuler
+  </button>
+  <button class="action-btn hold" @click="savePendingInvoice">
+    <i class="pi pi-shopping-bag"></i> En attente
+  </button>
+  <button v-if="customer" class="action-btn points" @click="showPointsDialog = true">
+    <i class="pi pi-star"></i> Points
+  </button>
+  <button class="action-btn pay" @click="createInvoice">
+    <i class="pi pi-money-bill"></i> Payer & imprimer
+  </button>
+</div>
+</div>
+  </div>
 
 
 <Dialog
@@ -1414,4 +1310,368 @@ async function generatePdfInvoice(invoice) {
 
   </div>
 </template>
+
+
+
+
+<style scoped>
+/* ── Shell ─────────────────────────────────────────────── */
+.pos-shell {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  min-height: 100vh;
+  background: #f1f5f9;  /* ← était #0f1117 */
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+
+/* ── Panels ─────────────────────────────────────────────── */
+.pos-panel {
+  background: #ffffff;  /* ← était #1a1d27 */
+  border: 1px solid #e2e8f0;  /* ← était #2a2d3e */
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.products-panel { flex: 1.2; }
+.invoice-panel  { flex: 1; min-width: 360px; }
+
+/* ── Panel header ───────────────────────────────────────── */
+.panel-header {
+  border-bottom: 1px solid #e2e8f0;  /* ← était #2a2d3e */
+}
+
+.panel-title {
+  color: #1e293b;  /* ← était #e2e8f0 */
+}
+
+.panel-title .pi {
+  color: #6366f1;
+  font-size: 15px;
+}
+.refresh-btn { color: #6b7280 !important; }
+.pending-btn {
+  font-size: 12px !important;
+  color: #f59e0b !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
+}
+
+/* ── Search ─────────────────────────────────────────────── */
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+.search-field {
+  flex: 1;
+  position: relative;
+}
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #4b5563;
+  font-size: 13px;
+  z-index: 1;
+}
+
+.search-input {
+  background: #f8fafc !important;  /* ← était #0f1117 */
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+}
+.search-input:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.15) !important;
+}
+
+/* ── Tables ─────────────────────────────────────────────── */
+.table-wrapper { flex: 1; overflow: auto; }
+.pos-table :deep(.p-datatable-thead > tr > th) {
+  background: #f8fafc !important;
+  color: #94a3b8 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.pos-table :deep(.p-datatable-tbody > tr > td) {
+  color: #374151 !important;
+  border-color: #f1f5f9 !important;
+}
+
+.pos-table :deep(.p-datatable-tbody > tr:hover > td) {
+  background: #f1f5f9 !important;
+}
+
+.pos-table :deep(.p-paginator) {
+  color: #94a3b8 !important;
+}
+
+.pos-table :deep(.p-paginator .p-paginator-page.p-highlight) {
+  background: #6366f1 !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+}
+
+/* ── Action buttons (products) ──────────────────────────── */
+.action-btns { display: flex; gap: 6px; align-items: center; }
+.btn-add {
+  display: flex; align-items: center; gap: 5px;
+  background: #0a7b1d;
+  color: #fff;
+  border: none; border-radius: 7px;
+  padding: 5px 11px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.btn-add:hover { background: #0fbc65; }
+.btn-gift {
+  background: #1e2130; border: 1px solid #2a2d3e;
+  color: #6b7280; border-radius: 7px;
+  padding: 5px 9px; cursor: pointer; font-size: 13px;
+  transition: all .15s;
+}
+.btn-gift {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+}
+
+/* ── Price tag ──────────────────────────────────────────── */
+.price-tag { color: #a5b4fc; font-weight: 600; font-size: 13px; }
+.price-cell { color: #9ca3af; font-size: 12px; }
+.total-cell { color: #e2e8f0; font-weight: 600; }
+
+/* ── Client section ─────────────────────────────────────── */
+.client-section { display: flex; flex-direction: column; gap: 8px; }
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+
+.field-label { color: #94a3b8; }
+
+.field-input {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+}
+
+
+.field-label { color: #94a3b8; }
+.client-inputs { display: flex; gap: 8px; }
+
+.new-customer-box {
+  background: #1c1a0d;
+  border: 1px solid #3d3400;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.new-customer-badge {
+  font-size: 10px; font-weight: 700; color: #f59e0b;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.btn-save-customer {
+  background: #16a34a; color: #fff;
+  border: none; border-radius: 7px;
+  padding: 7px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: background .15s; align-self: flex-start;
+}
+.btn-save-customer:hover { background: #15803d; }
+
+/* ── Invoice items ──────────────────────────────────────── */
+.invoice-items { border: 1px solid #e2e8f0; }
+
+.items-table :deep(.p-datatable-thead > tr > th) { padding: 6px 10px !important; }
+.items-table :deep(.p-datatable-tbody > tr > td) { padding: 5px 10px !important; }
+
+.qty-control {
+  display: flex; align-items: center; gap: 4px;
+}
+.qty-btn {
+  background: #f1f5f9;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+}
+
+.qty-btn:hover { background: #6366f1; border-color: #6366f1; }
+.qty-input {
+  width: 44px !important;
+}
+
+.qty-input :deep(input) {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+}
+.qty-control {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.qty-btn {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  background: #f1f5f9;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .1s, border-color .1s, color .1s;
+  flex-shrink: 0;
+}
+.qty-btn:hover       { background: #e0e7ff; border-color: #6366f1; color: #4f46e5; }
+.qty-btn-plus        { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+.qty-btn-plus:hover  { background: #0de114; border-color: #6366f1; color: #fff; }
+
+.qty-input { width: 36px !important; }
+.qty-input :deep(input) {
+  width: 36px !important;
+  min-width: 36px !important;
+  text-align: center !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 5px !important;
+  color: #1e293b !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 2px 4px !important;
+  height: 24px !important;
+}
+
+.btn-remove {
+  background: transparent; border: none;
+  color: #4b5563; cursor: pointer; font-size: 11px;
+  border-radius: 5px; padding: 3px 5px;
+  transition: color .1s;
+}
+.btn-remove:hover { color: #ef4444; }
+
+/* ── Price cells ────────────────────────────────────────── */
+.price-cell {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.total-cell {
+  color: #1e293b;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+
+/* ── Remove btn ─────────────────────────────────────────── */
+.btn-remove {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 10px;
+  border-radius: 4px;
+  padding: 3px 4px;
+  transition: color .1s, background .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-remove:hover { color: #ef4444; background: #fef2f2; }
+
+/* ── New customer box ───────────────────────────────────── */
+.new-customer-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.new-customer-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #d97706;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.new-customer-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Totaux ─────────────────────────────────────────────── */
+
+.totals-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.totals-grid { display: flex; flex-direction: column; gap: 5px; }
+.total-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 8px; align-items: center;
+}
+.total-label { color: #94a3b8; }
+.total-value { color: #1e293b; }
+.total-exchange { color: #cbd5e1; }
+.total-value.danger { color: #f87171; }
+.total-value.success { color: #34d399; }
+.total-value.primary { color: #a5b4fc; }
+.total-value.bold { font-size: 15px; }
+.total-divider { border-top: 1px dashed #e2e8f0; }
+.final-row .total-label { color: #1e293b; }
+.reste-row .total-label { color: #1e293b; }
+
+.payment-row {
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 8px; border-top: 1px solid #2a2d3e;
+}
+
+.payment-row { border-top: 1px solid #e2e8f0; }
+.payment-input :deep(input) {
+  background: #ffffff !important;
+  color: #4f46e5 !important;
+}
+
+/* ── Invoice actions ────────────────────────────────────── */
+.invoice-actions {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.action-btn {
+  flex: 1; min-width: 80px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 9px 10px; border-radius: 9px;
+  font-size: 12px; font-weight: 700;
+  border: none; cursor: pointer; transition: all .15s;
+}
+.action-btn.cancel  { background: #2d1515; color: #f87171; border: 1px solid #3d1f1f; }
+.action-btn.cancel:hover  { background: #ef4444; color: #fff; }
+.action-btn.hold    { background: #2a2000; color: #f59e0b; border: 1px solid #3d3000; }
+.action-btn.hold:hover    { background: #d97706; color: #fff; }
+.action-btn.points  { background: #1e1a2e; color: #a78bfa; border: 1px solid #2d2550; }
+.action-btn.points:hover  { background: #7c3aed; color: #fff; }
+.action-btn.pay     { background: #166534; color: #4ade80; border: 1px solid #1a4d30; flex: 2; }
+.action-btn.pay:hover     { background: #16a34a; color: #fff; }
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .pos-shell { flex-direction: column; padding: 8px; }
+  .invoice-panel { min-width: unset; }
+}
+</style>
 

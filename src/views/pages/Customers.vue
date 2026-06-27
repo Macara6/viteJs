@@ -106,102 +106,153 @@ async function saveCustomer(){
 </script>
 
 <template>
-  <div class="card">
-    <div class="font-semibold text-xl mb-4">Liste des Clients</div>
+  <div class="p-4">
+    <div class="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+      <DataTable
+        :value="customers"
+        scrollable
+        :filters="filters"
+        :globalFilterFields="['name','last_name','phone_number','loyalty_card_number']"
+        scrollHeight="400px"
+        stripedRows
+      >
 
-  <DataTable
-    :value="customers"
-    scrollable
-    :filters="filters"
-    :globalFilterFields="['name','last_name','phone_number','loyalty_card_number']"
-    scrollHeight="400px"
-    class="mt-6"
-  >
+        <template #header>
+          <div class="flex flex-col sm:flex-row justify-between items-center gap-4 px-2 py-1">
 
-      <template #header>
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-
-          <div class="flex gap-3 items-center">
-             <Button
-                label="Nouveau Client"
-                icon="pi pi-plus"
-                class="p-button-outlined"
-                @click="openNew"
-            />
-            
-          </div>
-          <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
-            <span class="relative flex items-center w-full sm:w-64">
-              <i
-                v-if="!filters['global'].value"
-                class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
-              ></i>
-
-              <InputText
-                v-model="filters['global'].value"
-                placeholder="     Rechercher..."
-                class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
-              />
-            </span>
+            <div class="flex items-center gap-3">
+              <i class="pi pi-users text-indigo-500 text-xl"></i>
+              <span class="font-bold text-lg text-gray-700">Liste des Clients</span>
             </div>
+
+            <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
+              <Button
+                label="Nouveau Client"
+                icon="pi pi-user-plus"
+                rounded
+                class="font-semibold shadow-sm"
+                @click="openNew"
+              />
+
+              <span class="relative flex items-center w-full sm:w-64">
+                <i class="pi pi-search absolute left-3 text-gray-400 text-sm"></i>
+                <InputText
+                  v-model="filters['global'].value"
+                  placeholder="        Rechercher..."
+                  class="w-full pl-9 py-2 text-sm rounded-xl border-gray-200"
+                />
+              </span>
+            </div>
+
           </div>
         </template>
 
-        <Column field="id" header="Id" style="min-width: 10px"></Column>
-
-
-        <Column field=""   header="Nom & Post-Nom" style="min-width: 150px"> 
-        <template #body="slotProps">
-          {{ slotProps.data.name}} - {{ slotProps.data.last_name }}
-        </template>
-        </Column>
-
-        <Column field="sexe" header="Sexe" style="min-width: 20px" /> 
-
-        <Column field="phone_number" header="Téléphone" style="min-width: 100px"/> 
-
-        <Column field="created_at" header="Date création" style="min-width: 100px">
+        <!-- ID -->
+        <Column field="id" header="#" style="min-width: 50px">
           <template #body="slotProps">
-            {{ formatDate(slotProps.data.created_at) }}
+            <span class="text-xs text-gray-400 font-mono">{{ slotProps.data.id }}</span>
           </template>
         </Column>
 
-        <Column field="" header="Points" style="min-width: 50px">
-         <template #body="{ data}">
-             {{ data.balance_point }} Pts
-         </template>
-        </Column>
-        <Column field="" header="Valeur" style="min-width: 50px" >
-            <template #body="{ data }">
-                {{ data.total_value_points }} {{ userProfile?.currency_preference || '' }}
-            </template>
-        </Column>
-
-        <Column field="loyalty_card_number" header="Numero Carte" style="min-width: 100px" >
-         <template #body="{ data }">
-            {{ formatLoyaltyCard(data.loyalty_card_number) }}
-         </template>
+        <!-- Nom & Post-Nom -->
+        <Column field="" header="Client" style="min-width: 180px">
+          <template #body="slotProps">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                {{ (slotProps.data.name || '?')[0] }}
+              </div>
+              <span class="font-medium text-gray-700">
+                {{ slotProps.data.name }} {{ slotProps.data.last_name }}
+              </span>
+            </div>
+          </template>
         </Column>
 
-        <Column header="ACTION" style="min-width: 150px">
+        <!-- Sexe -->
+        <Column field="sexe" header="Sexe" style="min-width: 80px">
+          <template #body="slotProps">
+            <span :class="slotProps.data.sexe === 'M'
+              ? 'bg-blue-50 text-blue-600 border border-blue-200'
+              : 'bg-pink-50 text-pink-600 border border-pink-200'"
+              class="px-2 py-0.5 rounded-full text-xs font-semibold"
+            >
+              {{ slotProps.data.sexe === 'M' ? ' M' : ' F' }}
+            </span>
+          </template>
+        </Column>
+
+        <!-- Téléphone -->
+        <Column field="phone_number" header="Téléphone" style="min-width: 130px">
+          <template #body="slotProps">
+            <span class="text-gray-500 text-sm font-mono">{{ slotProps.data.phone_number }}</span>
+          </template>
+        </Column>
+
+        <!-- Date création -->
+        <Column field="created_at" header="Création" style="min-width: 110px">
+          <template #body="slotProps">
+            <span class="text-gray-400 text-xs">{{ formatDate(slotProps.data.created_at) }}</span>
+          </template>
+        </Column>
+
+        <!-- Points -->
+        <Column field="" header="Points" style="min-width: 90px">
           <template #body="{ data }">
-
-           <Button 
-           label="Carte" 
-           class="p-button-sm"
-           icon="pi pi-id-card"
-            @click="downloadCard(data.id)" />
-
-            <Button
-              icon="pi pi-trash"
-              class="p-button-sm"
-              severity="danger"
-              @click="confirmDelete(data)"
-            />
+            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full text-xs font-semibold">
+              <i class="pi pi-star-fill text-xs"></i>
+              {{ data.balance_point }} pts
+            </span>
           </template>
         </Column>
+
+        <!-- Valeur -->
+        <Column field="" header="Valeur" style="min-width: 90px">
+          <template #body="{ data }">
+            <span class="text-emerald-600 font-semibold text-sm">
+              {{ data.total_value_points }} {{ userProfile?.currency_preference || '' }}
+            </span>
+          </template>
+        </Column>
+
+        <!-- Numéro Carte -->
+        <Column field="loyalty_card_number" header="Carte" style="min-width: 130px">
+          <template #body="{ data }">
+            <span class="font-mono text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg tracking-wider">
+              {{ formatLoyaltyCard(data.loyalty_card_number) }}
+            </span>
+          </template>
+        </Column>
+
+        <!-- Actions -->
+        <Column header="Actions" style="min-width: 130px">
+          <template #body="{ data }">
+            <div class="flex items-center gap-2">
+              <Button
+                icon="pi pi-id-card"
+                label="Carte"
+                rounded
+                outlined
+                severity="info"
+                class="p-button-sm font-semibold"
+                v-tooltip.top="'Télécharger la carte'"
+                @click="downloadCard(data.id)"
+              />
+              <Button
+                icon="pi pi-trash"
+                rounded
+                outlined
+                severity="danger"
+                class="p-button-sm"
+                v-tooltip.top="'Supprimer'"
+                @click="confirmDelete(data)"
+              />
+            </div>
+          </template>
+        </Column>
+
       </DataTable>
-    
+    </div>
+ 
 
             <!-- Dialogs -->
     <Dialog v-model:visible="customerDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Client" :modal="true">

@@ -951,141 +951,229 @@ onMounted(async () => {
       </Dialog>
 
     <!-- Invoice Details Modal -->
-    <Dialog v-model:visible="showModal" modal header=" Détails de la facture" :style="{ width: '95%', maxWidth: '900px' }">
-      <div id="cashout-pdf-content" class="p-4 bg-white">
+    <Dialog
+          v-model:visible="showModal"
+          modal
+          :style="{ width: '95%', maxWidth: '860px', padding: 0 }"
+          :showHeader="false"
+        >
+          <div id="cashout-pdf-content" class="invoice-shell">
 
-        <!-- Header facture -->
-        <div class="flex flex-col sm:flex-row justify-between border-b pb-4 mb-4">
-          <div>
-            <h2 class="text-xl sm:text-2xl font-bold text-gray-800">
-              {{ userProfile ? userProfile.entrep_name : 'Entreprise non définie' }}
-            </h2>
-            <p class="text-gray-600 text-sm sm:text-base">
-             ID.Nat :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
-            </p>
+            <!-- ══════════════ EN-TÊTE FACTURE ══════════════ -->
+            <div class="invoice-header">
 
-            <p class="text-gray-600 text-sm sm:text-base">
-             Numéro Impot :{{ userProfile ? userProfile.impot_number : 'Adresse non définie' }}
-            </p>
-             <p class="text-gray-600 text-sm sm:text-base">
-             RCCM :{{ userProfile ? userProfile.rccm_number : 'Adresse non définie' }}
-            </p>
-            <p class="text-gray-600 text-sm sm:text-base">
-             Address :{{ userProfile ? userProfile.adress : 'Adresse non définie' }}
-            </p>
-            <p class="text-gray-600 text-sm sm:text-base">
-             Tél :{{ userProfile ? userProfile.id_nat : 'Adresse non définie' }}
-            </p>
-            <p class="text-gray-600 text-sm sm:text-base">
-             Devise :{{ userProfile ? userProfile.currency_preference : 'Adresse non définie' }}
-            </p>
-            <p class="mt-2 text-sm"><strong>Client(e) :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</p>
-            <p class="text-sm"><strong>Caissier :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</p>
-          </div>
-          <div class="text-right text-sm sm:text-base text-gray-500 mt-2 sm:mt-0">
-            <p><strong>Date :</strong> {{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) || 'N/A' }}</p>
-            <p><strong>Status :</strong> {{ invoices.find(c => c.id ===selectedInvoices)?.status || 'N/A'}}</p>
-             <p><strong>N° Ticket :</strong> {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A'}}</p>
-
-          </div>
-        </div>
-
-        <!-- Produits facture -->
-        <div v-if="invoiceDetails.length > 0" class="overflow-x-auto">
-          <DataTable :value="invoiceDetails" class="p-datatable-sm shadow-sm rounded-md">
-            <Column field="product_name" header="Produit" style="min-width: 150px">
-              <template #body="slotProps">
-                <span class="font-medium">{{ slotProps.data.product_name }}</span>
-              </template>
-            </Column>
-
-
-            <Column field="price" header="Prix U" style="min-width: 80px">
-              <template #body="slotProps">
-                <span v-if="slotProps.data.is_gift" class="text-green-600 font-semibold">
-                  🎁 Cadeau
-                </span>
-                <span v-else>
-                  {{ userProfile ? userProfile.currency_preference : '' }}
-                  {{ formatPrice(slotProps.data.price) }}
-                </span>
-              </template>
-            </Column>
-
-            <Column field="quantity" header="Qté" style="width: 60px; text-align: center;">
-              <template #body="slotProps">{{ slotProps.data.quantity }}</template>
-            </Column>
-
-            <Column header="Total" style="min-width: 80px">
-              <template #body="slotProps">
-                <span v-if="slotProps.data.is_gift" class="text-green-600 font-semibold">
-                  🎁 Gratuit
-                </span>
-
-                <span v-else>
-                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || 'N/A' }}
-                  {{ formatPrice(slotProps.data.price * slotProps.data.quantity) }}
-                </span>
-              </template>
-            </Column>
-          
-          </DataTable>
-        </div>
-
-        <!-- Totaux facture -->
-        <div class="mt-6 border-t pt-4 space-y-2 text-sm">
-
-          <!-- Total -->
-          <div class="flex justify-end">
-            <div class="flex items-center gap-10 font-medium">
-              <span class="text-gray-700">Total :</span>
-
-              <div class="text-right">
-                <div class="text-green-600 font-semibold">
-                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                  {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+              <!-- Colonne gauche : infos entreprise -->
+              <div class="company-info">
+                <div class="company-name">
+                  {{ userProfile?.entrep_name || 'Entreprise non définie' }}
+                </div>
+                <div class="company-meta">
+                  <span><i class="pi pi-id-card"></i> ID Nat : {{ userProfile?.id_nat || '—' }}</span>
+                  <span><i class="pi pi-file"></i> N° Impôt : {{ userProfile?.impot_number || '—' }}</span>
+                  <span><i class="pi pi-briefcase"></i> RCCM : {{ userProfile?.rccm_number || '—' }}</span>
+                  <span><i class="pi pi-map-marker"></i> {{ userProfile?.adress || '—' }}</span>
+                  <span><i class="pi pi-phone"></i> {{ userProfile?.phone_number || '—' }}</span>
+                  <span><i class="pi pi-dollar"></i> Devise : {{ userProfile?.currency_preference || '—' }}</span>
                 </div>
 
-                <div class="text-gray-500 text-sm">
-                  ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                <div class="people-row">
+                  <div class="person-tag">
+                    <i class="pi pi-user"></i>
+                    <span>{{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</span>
+                    <em>Client</em>
+                  </div>
+                  <div class="person-tag">
+                    <i class="pi pi-desktop"></i>
+                    <span>{{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</span>
+                    <em>Caissier</em>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- TVA -->
-          <div class="flex justify-end">
-            <div class="flex items-center gap-10 font-medium">
-              <span class="text-gray-700">TVA :</span>
-
-              <div class="text-right">
-                <div class="text-red-600 font-semibold">
-                  {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                  {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
+              <!-- Colonne droite : numéro + statut -->
+              <div class="invoice-meta">
+                <div class="invoice-label">FACTURE</div>
+                <div class="invoice-number">
+                  {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A' }}
                 </div>
 
-                <div class="text-gray-500 text-xs">
-                  ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
+                <div class="invoice-detail-row">
+                  <span class="detail-label">Date</span>
+                  <span class="detail-value">
+                    {{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) || 'N/A' }}
+                  </span>
+                </div>
+
+                <div class="invoice-detail-row">
+                  <span class="detail-label">Statut</span>
+                  <span
+                    class="status-badge"
+                    :class="invoices.find(c => c.id === selectedInvoices)?.status === 'VALIDE'
+                      ? 'badge-valid' : 'badge-cancel'"
+                  >
+                    <i :class="invoices.find(c => c.id === selectedInvoices)?.status === 'VALIDE'
+                      ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
+                    {{ invoices.find(c => c.id === selectedInvoices)?.status || 'N/A' }}
+                  </span>
                 </div>
               </div>
+
             </div>
+
+            <!-- ══════════════ TABLE PRODUITS ══════════════ -->
+            <div class="invoice-body">
+              <div v-if="invoiceDetails.length > 0" class="table-wrapper">
+                <DataTable
+                  :value="invoiceDetails"
+                  class="invoice-table"
+                  size="small"
+                >
+
+                  <Column field="product_name" header="Produit" style="min-width:160px">
+                    <template #body="slotProps">
+                      <div class="product-cell">
+                        
+                        <span class="font-semibold text-gray-800">{{ slotProps.data.product_name }}</span>
+                      </div>
+                    </template>
+                  </Column>
+
+                  <Column field="price" header="Prix U." style="min-width:100px">
+                    <template #body="slotProps">
+                      <span v-if="slotProps.data.is_gift" class="gift-badge">
+                        🎁 Cadeau
+                      </span>
+                      <span v-else class="price-text">
+                        {{ userProfile?.currency_preference }}
+                        {{ formatPrice(slotProps.data.price) }}
+                      </span>
+                    </template>
+                  </Column>
+
+                  <Column field="quantity" header="Qté" style="width:70px; text-align:center">
+                    <template #body="slotProps">
+                      <span class="qty-badge">{{ slotProps.data.quantity }}</span>
+                    </template>
+                  </Column>
+
+                  <Column header="Total" style="min-width:110px">
+                    <template #body="slotProps">
+                      <span v-if="slotProps.data.is_gift" class="gift-badge">
+                        🎁 Gratuit
+                      </span>
+                      <span v-else class="total-text">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(slotProps.data.price * slotProps.data.quantity) }}
+                      </span>
+                    </template>
+                  </Column>
+
+                </DataTable>
+              </div>
+
+              <!-- ══════════════ TOTAUX ══════════════ -->
+              <div class="totals-block">
+
+                <div class="total-row">
+                  <span class="total-label">Sous-total</span>
+                  <div class="total-values">
+                    <span class="total-main">
+                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                    </span>
+                    <span class="total-conv">
+                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                    </span>
+                  </div>
+                </div>
+
+                <div class="total-row tva">
+                  <span class="total-label">TVA</span>
+                  <div class="total-values">
+                    <span class="total-main danger">
+                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
+                    </span>
+                    <span class="total-conv">
+                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
+                    </span>
+                  </div>
+                </div>
+
+                <div class="total-row final">
+                  <span class="total-label bold">TOTAL TTC</span>
+                  <div class="total-values">
+                    <span class="total-main bold primary">
+                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                    </span>
+                    <span class="total-conv">
+                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Remplace uniquement le bloc invoice-footer et ajoute le QR -->
+
+<!-- ══════════════ PIED DE FACTURE ══════════════ -->
+        <div class="invoice-bottom">
+
+          <div class="bottom-left">
+
+            <!-- Numéro facture en grand -->
+            <div class="invoice-number-block">
+              <span class="invoice-number-label">N° Facture</span>
+              <span class="invoice-number-value">
+                {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A' }}
+              </span>
+            </div>
+
+            <!-- Message + branding -->
+            <div class="footer-bottom-row">
+              <div class="footer-msg">
+              
+              Merci pour votre confiance !
+              </div>
+              <span class="footer-brand">Powered by BilaSol APP</span>
+            </div>
+
+          </div>
+
+          <!-- QR Code -->
+          <div class="qr-block">
+            <div class="qr-box">
+              <img
+                :src="`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${
+                  encodeURIComponent(
+                    'Facture:#' + (invoices.find(c => c.id === selectedInvoices)?.invoice_number || '') +
+                    '|Client:' + (invoices.find(c => c.id === selectedInvoices)?.client_name || '') +
+                    '|Total:' + (invoices.find(c => c.id === selectedInvoices)?.total_amount || '')
+                  )
+                }`"
+                alt="QR Code facture"
+              />
+            </div>
+            <span class="qr-label">Scanner pour vérifier</span>
           </div>
 
         </div>
 
-      </div>
+          </div>
 
-    <div
-        class="sticky bottom-0 bg-white py-3 px-4 shadow-md flex justify-end"
-      >
-        <Button
-          label="Télécharger PDF"
-          icon="pi pi-download"
-          class="p-button-success"
-          @click="downloadPDF"
-        />
-      </div>
-    </Dialog>
+          <!-- ══════════════ ACTION BAR ══════════════ -->
+          <div class="action-bar">
+            <button class="btn-close-modal" @click="showModal = false">
+              <i class="pi pi-times"></i> Fermer
+            </button>
+            <button class="btn-download" @click="downloadPDF">
+              <i class="pi pi-download"></i> Télécharger PDF
+            </button>
+          </div>
+
+        </Dialog>
 
       <Dialog 
       v-model:visible="deleteMultipleDialog" 
@@ -1281,4 +1369,319 @@ onMounted(async () => {
 .cell {
     font-size: 0.82rem;
 }
+
+
+/* ── Shell ──────────────────────────────────────────────── */
+.invoice-shell {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #ffffff;
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+}
+
+/* ══════════════ HEADER ══════════════ */
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 28px 32px 24px;
+  background: #ffffff;
+  border-bottom: 2px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+
+.header-left-accent {
+  width: 4px;
+  height: 100%;
+  min-height: 80px;
+  background: linear-gradient(180deg, #6366f1, #4ade80);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.company-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.3px;
+  margin-bottom: 10px;
+}
+
+.company-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.company-meta span {
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.company-meta .pi { font-size: 11px; color: #6366f1; }
+
+.people-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.person-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #374151;
+}
+.person-tag .pi { color: #6366f1; font-size: 12px; }
+.person-tag em  { color: #94a3b8; font-style: normal; font-size: 10px; margin-left: 2px; }
+
+/* Colonne droite header */
+.invoice-meta {
+  text-align: right;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.invoice-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+.invoice-detail-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+.detail-label {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+.detail-value {
+  font-size: 12px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.badge-valid  { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+.badge-cancel { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* ══════════════ BODY ══════════════ */
+.invoice-body {
+  padding: 24px 32px;
+  background: #fff;
+}
+
+.table-wrapper {
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.invoice-table :deep(.p-datatable-thead > tr > th) {
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-color: #f1f5f9 !important;
+  padding: 10px 14px !important;
+}
+.invoice-table :deep(.p-datatable-tbody > tr > td) {
+  border-color: #f8fafc !important;
+  padding: 10px 14px !important;
+  font-size: 13px;
+  color: #374151;
+}
+.invoice-table :deep(.p-datatable-tbody > tr:hover > td) {
+  background: #fafbff !important;
+}
+
+.product-cell { display: flex; align-items: center; gap: 8px; }
+.product-icon { color: #6366f1; font-size: 13px; }
+.price-text   { color: #374151; font-weight: 500; }
+.total-text   { color: #1e293b; font-weight: 700; }
+
+.qty-badge {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: #eef2ff; color: #6366f1;
+  border-radius: 7px; font-size: 12px; font-weight: 700;
+}
+.gift-badge {
+  font-size: 12px; font-weight: 600;
+  color: #16a34a; background: #dcfce7;
+  border-radius: 6px; padding: 3px 8px;
+}
+
+/* Totaux */
+.totals-block {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: 380px;
+  margin-left: auto;
+}
+.total-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.total-row.final {
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+.total-label { font-size: 13px; color: #64748b; font-weight: 500; }
+.total-label.bold { color: #1e293b; font-weight: 800; font-size: 14px; }
+.total-values { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.total-main { font-size: 14px; font-weight: 700; color: #1e293b; }
+.total-main.danger  { color: #dc2626; }
+.total-main.primary { color: #6366f1; font-size: 16px; }
+.total-main.bold    { font-weight: 800; }
+.total-conv { font-size: 11px; color: #94a3b8; }
+
+/* ══════════════ PIED DE FACTURE : N° + QR ══════════════ */
+.invoice-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.bottom-left {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.invoice-number-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.invoice-number-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.invoice-number-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #161617;
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  letter-spacing: 1px;
+}
+
+.footer-bottom-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.footer-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.footer-msg .pi { color: #f43f5e; font-size: 12px; }
+.footer-brand { font-size: 11px; color: #94a3b8; }
+
+/* QR code container */
+.qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.qr-box {
+  width: 90px; height: 90px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.qr-box img { width: 80px; height: 80px; }
+.qr-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ══════════════ ACTION BAR ══════════════ */
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+  border-radius: 0 0 16px 16px;
+}
+.btn-close-modal {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 9px;
+  background: #f1f5f9; color: #64748b;
+  font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer; transition: background .15s;
+}
+.btn-close-modal:hover { background: #e2e8f0; }
+
+.btn-download {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 20px; border-radius: 9px;
+  background: #16a34a; color: #fff;
+  font-size: 13px; font-weight: 700;
+  border: none; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(22,163,74,0.25);
+  transition: background .15s;
+}
+.btn-download:hover { background: #15803d; }
+
+
+
 </style>

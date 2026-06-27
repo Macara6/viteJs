@@ -71,7 +71,7 @@ const dt = ref();
 
 const startDate = ref(null);
 const endDate = ref(null);
-const loadingHistory = ref(true);
+const loadingHistory = ref(false);
 
 
 // dialog/category state
@@ -255,7 +255,7 @@ const userId = selectedUserFilter.value || localStorage.getItem('id');
 // Charger le cache existant
 let cacheHistory = loadCache('historyStock') || [];
 try{
-
+  loadingHistory.value = true;
   if (cacheHistory && cacheHistory.length) {
   historyList.value = cacheHistory;
   console.log('Historique chargé depuis le cache');
@@ -938,6 +938,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
               outlined
               severity="secondary"
               size="small"
+              @click=" openHistoryDialog"
             />
 
             <!-- Filtre utilisateur -->

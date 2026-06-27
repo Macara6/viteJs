@@ -460,145 +460,174 @@ function hideDialog(){
     submitted.value = false;
 }
 
+const roleClass = (status) => {
+  const map = {
+    ADMIN: 'bg-green-100 text-green-700 border border-green-200',
+    CAISSIER: 'bg-orange-100 text-orange-700 border border-orange-200',
+    GESTIONNAIRE_STOCK: 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  }
+  return map[status] ?? 'bg-gray-100 text-gray-600 border border-gray-200'
+}
+
+
 </script> 
 
-
 <template>
+  <div class="p-4">
 
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between mb-6">
+      <Button
+        label="Nouvel Utilisateur"
+        icon="pi pi-user-plus"
+        severity="primary"
+        class="rounded-xl font-semibold shadow-sm"
+        @click="openNew"
+      />
+      <Button
+        label="Actualiser"
+        icon="pi pi-refresh"
+        outlined
+        class="rounded-xl font-semibold"
+        @click="refreshPage"
+      />
+    </div>
 
-   <div>
-        <div class="card">
-            <Toolbar class="mb-6">
-                <template #start>
-                    <Button label="Nouveau Utilissateur" icon="pi pi-user-plus" severity="primary" class="mr-2" @click="openNew" />
-                </template>
+    <!-- Empty State -->
+    <div
+      v-if="users.length === 0"
+      class="flex flex-col items-center justify-center py-24 text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200"
+    >
+      <i class="pi pi-users text-6xl mb-4 opacity-30"></i>
+      <p class="text-lg font-medium">Aucun utilisateur trouvé</p>
+      <p class="text-sm mt-1 opacity-70">Commencez par créer un nouvel utilisateur</p>
+    </div>
 
-                <template #end>
-                    <Button label="Actualiser" icon="pi pi-refresh" security="primary" class="m-2" @click="refreshPage"/>
-                </template>
+    <!-- DataTable -->
+    <div v-else class="rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+      <DataTable
+        ref="dt"
+        :value="users"
+        dataKey="id"
+        :paginator="true"
+        :rows="10"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        :rowsPerPageOptions="[5, 10, 25]"
+        currentPageReportTemplate="Affichage {first}–{last} sur {totalRecords} utilisateurs"
+        class="text-sm"
+        stripedRows
+      >
 
-            </Toolbar>
+        <Column field="custom_account_id" header="ID Compte" sortable style="min-width: 2rem" />
 
-        </div>
+        <Column field="username" header="Nom d'utilisateur" />
 
-         <div
-                v-if="users.length === 0"
-                class="text-center py-16 text-gray-400"
+        <Column field="first_name" header="Nom complet">
+          <template #body="slotProps">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                {{ (slotProps.data.first_name || slotProps.data.username || '?')[0] }}
+              </div>
+              <span class="font-medium text-gray-700">
+                {{ slotProps.data.first_name || 'N/A' }} {{ slotProps.data.last_name }}
+              </span>
+            </div>
+          </template>
+        </Column>
+
+        <Column field="email" header="Email" sortable style="min-width: 5rem">
+          <template #body="slotProps">
+            <span class="text-gray-500">{{ slotProps.data.email }}</span>
+          </template>
+        </Column>
+
+        <Column field="status" header="Rôle" sortable style="min-width: 8rem">
+          <template #body="slotProps">
+            <span :class="roleClass(slotProps.data.status)" class="px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide">
+              {{ slotProps.data.status }}
+            </span>
+          </template>
+        </Column>
+
+        <Column field="is_blocked" header="Statut" sortable style="min-width: 8rem">
+          <template #body="slotProps">
+            <span
+              :class="slotProps.data.is_blocked
+                ? 'bg-red-50 text-red-600 border border-red-200'
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
+              class="px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-fit"
             >
-                <i class="pi pi-inbox text-5xl mb-3"></i>
-                <p class="text-lg">Aucun utilisateur trouver</p>
-        </div>
+              <i :class="slotProps.data.is_blocked ? 'pi pi-ban' : 'pi pi-check-circle'" class="text-xs"></i>
+              {{ statusCheck(slotProps.data.is_blocked) }}
+            </span>
+          </template>
+        </Column>
 
-        <DataTable
-        v-else
-                ref="dt"
-                :value="users"
-                dataKey="id"
-                :paginator="true"
-                :rows="10"
-               
-                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                :rowsPerPageOptions="[5, 10, 25]"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} Factures "
-            >
+        <Column field="date_joined" header="Création" sortable style="min-width: 8rem">
+          <template #body="slotProps">
+            <span class="text-gray-400 text-xs">{{ formatDate(slotProps.data.date_joined) }}</span>
+          </template>
+        </Column>
 
-            
-                <Column field="custom_account_id" header="ID Compte" sortable style="min-width: 2rem"></Column>
-                <Column field="username" header="NON UTILISATEUR"  ></Column>
-                <Column field="first_name" header="NOM " >
-                  <template #body="slotProps">
-                        {{ slotProps?.data.first_name || 'N/A' }} {{ slotProps?.data.last_name }}
-                  </template>
-                </Column>
-                <Column field="email" header="EMAIL" sortable style="min-width: 5rem"></Column>
-               
-                <Column field="status" header="RÔLE" sortable style="min-width: 8rem">
-                  <template #body="slotProps">
-                    <span
-                      :class="[
-                      'px-2 py-1 rounded text-white text-sm font-semibold',
-                      {
-                        'bg-green-500': slotProps.data.status === 'ADMIN',
-                        'bg-orange-600': slotProps.data.status === 'CAISSIER',
-                        'bg-indigo-900': slotProps.data.status === 'GESTIONNAIRE_STOCK'
-                      }
-                    ]"
-                    >
-                    {{ slotProps.data.status }}
-                    </span>
-                  </template>
-                </Column>
-                 <Column field="status" header="STATUT" sortable style="min-width: 8rem">
-                  <template #body="slotProps">
-                    <span 
-                      :class="[
-                       'px-2 py-1 rounded text-white text-sm font-semibold',
-                       {
-                        'bg-emerald-800': slotProps.data.is_blocked === false,
-                        'bg-orange-600' : slotProps.data.is_blocked === true
-                       }
-                      ]"
-                    >
-                     {{ statusCheck(slotProps.data.is_blocked) }}
-                     </span>
-                  </template>
-                 </Column>
-                <Column field="date_joined" header=" CREATION " sortable style="min-width: 8rem">
-                   <template #body="slotProps">
-                    {{ formatDate(slotProps.data.date_joined)}}
-                   </template>
-                </Column>
+        <Column header="Actions" style="min-width: 12rem">
+          <template #body="slotProps">
+            <div class="flex items-center gap-1.5">
 
-                <Column field="inventoryStatus" header="ACTION" sortable style="min-width: 12rem">
-                    <template #body="slotProps">
+              <Button
+                v-if="isSuperuser"
+                icon="pi pi-eye"
+                rounded
+                outlined
+                severity="info"
+                v-tooltip.top="'Voir'"
+                @click="viewUser(slotProps.data.id)"
+              />
 
-                        <Button 
-                        v-if="isSuperuser"
-                        icon="pi pi-eye" 
-                        label="" outlined rounded class="mr-2" @click="viewUser(slotProps.data.id)" />
+              <Button
+                v-if="!isSuperuser"
+                icon="pi pi-ellipsis-v"
+                label="Détails"
+                rounded
+                outlined
+                severity="info"
+                @click="openUserDetail(slotProps.data)"
+              />
 
-                        <Button 
-                        v-if="!isSuperuser"
-                        icon="pi pi-ellipsis-v" 
-                        label="Details" 
-                        outlined 
-                        rounded 
-                        class="mr-2"
-                        severity="info"
-                         @click="openUserDetail(slotProps.data)" />
+              <Button
+                icon="pi pi-trash"
+                rounded
+                outlined
+                severity="danger"
+                v-tooltip.top="'Supprimer'"
+                @click="confirmDeleteUser(slotProps.data)"
+              />
 
-                        <Button 
-                          icon="pi pi-trash" 
-                          severity="danger" 
-                          class="mr-2"
-                          rounded 
-                          outlined 
-                          @click="confirmDeleteUser(slotProps.data)" 
-                      />
+              <Button
+                v-if="slotProps.data.is_blocked === false"
+                icon="pi pi-lock"
+                rounded
+                severity="secondary"
+                v-tooltip.top="'Bloquer'"
+                @click="confirmBlocked(slotProps.data)"
+              />
 
-                        <Button
-                          v-if="slotProps.data.is_blocked == false"
-                          icon="pi pi-unlock"
-                          severity="info"
-                          rounded
-                          @click="confirmBlocked(slotProps.data)"
-                        />
+              <Button
+                v-if="slotProps.data.is_blocked === true"
+                icon="pi pi-unlock"
+                rounded
+                severity="warn"
+                v-tooltip.top="'Débloquer'"
+                @click="confirmUnblocked(slotProps.data)"
+              />
 
-                        <Button
-                          v-if="slotProps.data.is_blocked == true"
-                          icon="pi pi-ban"
-                          severity="warn"
-                          rounded
-                          @click="confirmUnblocked(slotProps.data)"
-                        />
-                        
-                    
-                    </template> 
-                </Column>
+            </div>
+          </template>
+        </Column>
 
-        </DataTable>    
+      </DataTable>
+    </div>
 
-   </div> 
+  </div>
    
    <Dialog v-model:visible="userDialog" :style="{ width: '450px' }" header="Nouveau Utilisateur" :modal="true">
             <div class="flex flex-col gap-6">

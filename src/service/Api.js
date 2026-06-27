@@ -13,8 +13,8 @@ export async function login(usernam, password, rememberMe) {
         });
         const { id, username, email, token, refresh , is_superuser, status} = response.data;
         
-          localStorage.setItem('token',token);
-          localStorage.setItem('refresh_token',refresh);
+        localStorage.setItem('token',token);
+        localStorage.setItem('refresh_token',refresh);
        
         localStorage.setItem('id',id);
         localStorage.setItem('username',usernam);
