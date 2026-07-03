@@ -49,6 +49,7 @@ export async function logoutAPI(){
     }
 }
 
+
 // fonction pour actualiser le token
 export async function refreshToken(){
     const REFRESH_TOKEN_URL = `${API_BASE}refresh-token/`;
@@ -209,6 +210,7 @@ export async function fetchCategorys(){
         throw error; 
     }
 }
+
 
 export async function getCategoryByUser(userID) {
     const LIMIT = 200;  // charge plus vite

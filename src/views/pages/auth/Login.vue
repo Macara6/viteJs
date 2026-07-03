@@ -174,6 +174,7 @@ const handleLogin = async() => {
             v-model="username"
             placeholder="Entrez votre nom d'utilisateur"
             class="login-input"
+            inputClass="w-full bg-transparent border-none outline-none text-slate-800 placeholder-slate-400"
           />
         </div>
 
@@ -183,14 +184,16 @@ const handleLogin = async() => {
             <i class="pi pi-lock text-xs text-[#004D4A]"></i>
             Mot de passe
           </label>
-          <Password
-            v-model="password"
-            :toggleMask="true"
-            :feedback="false"
-            placeholder="Entrez votre mot de passe"
-            class="login-input w-full"
-            inputClass="w-full bg-transparent border-none outline-none text-slate-800 placeholder-slate-400"
-          />
+
+<!-- PASSWORD : on retire "login-input" du wrapper, on garde juste w-full -->
+        <Password
+          v-model="password"
+          :toggleMask="true"
+          :feedback="false"
+          placeholder="Entrez votre mot de passe"
+          class="w-full"
+          inputClass="w-full bg-transparent border-none outline-none text-slate-800 placeholder-slate-400"
+        />
         </div>
 
         <!-- REMEMBER ME -->
@@ -293,12 +296,16 @@ const handleLogin = async() => {
     letter-spacing: 0.04em;
 }
 
-.login-input {
+.login-input,
+:deep(.p-password input) {
+    box-sizing: border-box;
     width: 100%;
+    height: 48px;
     padding: 0.75rem 1rem;
     border-radius: 14px;
     font-size: 0.875rem;
     font-weight: 500;
+    line-height: 1.25rem;
     color: #1e293b;
     background-color: #f8fafc;
     border: 1.5px solid #e2e8f0;
@@ -307,8 +314,8 @@ const handleLogin = async() => {
 }
 
 .login-input:focus,
-.login-input:focus-within {
-    border-color: #004D4A;
+:deep(.p-password input:focus) {
+   
     box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
     background-color: #fff;
 }
@@ -330,14 +337,13 @@ const handleLogin = async() => {
     transition: all 0.2s ease;
 }
 
-:deep(.p-password input:focus) {
-    border-color: #004D4A;
-    box-shadow: 0 0 0 3px rgba(0, 77, 74, 0.08);
-    background-color: #fff;
+:deep(.p-password .p-icon-field),
+:deep(.p-password-input) {
+    width: 100%;
 }
 
-:deep(.p-password .p-icon-field) {
-    width: 100%;
+:deep(.p-password input) {
+    padding-right: 2.75rem; /* espace pour l'icône œil sans réduire la hauteur */
 }
 
 .login-link-btn {

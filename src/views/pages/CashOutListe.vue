@@ -209,166 +209,221 @@ const findUser = (id) => {
 </script>
 
 
-
 <template>
-  <div>
-    <div class="card">
-      <div class="font-semibold text-xl mb-4">Liste des Dépasses</div>
+  <div class="p-4 md:p-6">
+    <div class="card shadow-sm rounded-xl border border-gray-100 bg-white">
+
+      <!-- En-tête de la page -->
+      <div class="flex items-center justify-between px-6 pt-6 pb-2">
+        <div>
+          <h1 class="text-xl font-bold text-gray-800">Liste des Dépenses</h1>
+          <p class="text-sm text-gray-400 mt-1">Suivi et gestion des dépasses de caisse</p>
+        </div>
+      </div>
 
       <DataTable
         :value="filterdCashOut"
         scrollable
         scrollHeight="400px"
-        class="mt-6"
+        class="mt-2"
         :filters="filters"
+        stripedRows
       >
 
-      <template #header>
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <template #header>
+          <div class="flex flex-col gap-5 px-2 py-3">
 
-          <div class="flex gap-3 items-center">
-             <RouterLink to="/pages/CreateCashout">
-                <Button
+            <!-- Ligne 1 : Actions + Filtres de date -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+              <div class="flex flex-wrap gap-3 items-center">
+                <RouterLink to="/pages/CreateCashout">
+                  <Button
                     label="Nouveau Dépasse"
                     icon="pi pi-plus"
-                    class="p-button-outlined"
-                />
-            </RouterLink>
+                    class="shadow-sm"
+                  />
+                </RouterLink>
 
-              <Calendar v-model="startDate" placeholder="Date début" date-format="yy-mm-dd" show-icon />
-              <Calendar v-model="endDate" placeholder="Date fin" date-format="yy-mm-dd" show-icon />
-              <Button label="Réinitialiser" icon="pi pi-refresh" class="p-button-outlined" @click="resetDates" />
-
-          </div>
-          <div class="flex flex-wrap gap-3 items-center justify-end w-full sm:w-auto">
-
-            <Select
-             
-              v-model="selectedUserFilter"
-              :options="childUsers.map(u => ({
-                id: u.id,
-                username: u.username,
-                status: u.status
-              })).filter(u => u.status !=='GESTIONNAIRE_STOCK')"
-              optionLabel="username"
-              optionValue="id"
-              placeholder="Sélectionner utilisateur"
-              class="w-full sm:w-56"
-              showClear
-            >
-              <!-- Affichage des options -->
-              <template #option="slotProps">
-                <div class="flex items-center justify-between w-full">
-                  <span>{{ slotProps.option.username }}</span>
-
-                  <span
-                    class="px-2 py-1 rounded text-xs"
-                    :class="{
-                      'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-                      'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
-                    }"
-                  >
-                    {{ slotProps.option.status }}
-                  </span>
+                <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200">
+                  <Calendar
+                    v-model="startDate"
+                    placeholder="Date début"
+                    date-format="yy-mm-dd"
+                    show-icon
+                    class="w-40"
+                  />
+                  <i class="pi pi-arrow-right text-gray-400 text-xs"></i>
+                  <Calendar
+                    v-model="endDate"
+                    placeholder="Date fin"
+                    date-format="yy-mm-dd"
+                    show-icon
+                    class="w-40"
+                  />
+                  <Button
+                    icon="pi pi-refresh"
+                    class="p-button-text p-button-secondary"
+                    v-tooltip.top="'Réinitialiser les dates'"
+                    @click="resetDates"
+                  />
                 </div>
-              </template>
+              </div>
 
-              <!-- Affichage de la valeur sélectionnée -->
-              <template #seletectItem="slotProps">
-                <div v-if="slotProps.value" class="flex items-center gap-2">
+              <!-- Filtre utilisateur + recherche -->
+              <div class="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto">
+                <Select
+                  v-model="selectedUserFilter"
+                  :options="childUsers.map(u => ({
+                    id: u.id,
+                    username: u.username,
+                    status: u.status
+                  })).filter(u => u.status !== 'GESTIONNAIRE_STOCK')"
+                  optionLabel="username"
+                  optionValue="id"
+                  placeholder="Sélectionner utilisateur"
+                  class="w-full sm:w-60"
+                  showClear
+                >
+                  <template #option="slotProps">
+                    <div class="flex items-center justify-between w-full">
+                      <span class="text-sm">{{ slotProps.option.username }}</span>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                        :class="{
+                          'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
+                          'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+                          'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                        }"
+                      >
+                        {{ slotProps.option.status }}
+                      </span>
+                    </div>
+                  </template>
 
-                  <span>{{ slotProps.value.username }}</span>
+                  <template #seletectItem="slotProps">
+                    <div v-if="slotProps.value" class="flex items-center gap-2">
+                      <span class="text-sm">{{ slotProps.value.username }}</span>
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                        :class="{
+                          'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
+                          'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
+                        }"
+                      >
+                        {{ slotProps.value.status }}
+                      </span>
+                    </div>
+                    <span v-else class="text-sm text-gray-400">Sélectionner utilisateur</span>
+                  </template>
+                </Select>
 
-                  <span
-                    class="px-2 py-1 rounded text-xs"
-                    :class="{
-                      'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
-                      'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
-                    }"
-                  >
-                    {{ slotProps.value.status }}
-                  </span>
+                <span class="relative flex items-center w-full sm:w-64">
+                  <i
+                    v-if="!filters['global'].value"
+                    class="pi pi-search absolute left-3 text-gray-400 text-sm"
+                  ></i>
+                  <InputText
+                    v-model="filters['global'].value"
+                    placeholder="       Rechercher..."
+                    class="w-full pl-9 py-2 text-sm rounded-lg"
+                  />
+                </span>
+              </div>
+            </div>
 
+            <!-- Ligne 2 : Totaux sous forme de cartes -->
+            <div class="flex flex-wrap gap-4">
+              <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 min-w-[180px]">
+                <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                  <i class="pi pi-money-bill text-green-600 text-sm"></i>
                 </div>
-                <span v-else>Sélectionner utilisateur</span>
-              </template>
-            </Select>
+                <div>
+                  <div class="text-xs text-gray-500">Total CDF</div>
+                  <div class="text-base font-bold text-green-700">{{ totalAmountCDF }}</div>
+                </div>
+              </div>
 
-
-
-              <!-- Recherche globale -->
-            <span class="relative flex items-center w-full sm:w-64">
-              <i
-                v-if="!filters['global'].value"
-                class="pi pi-search absolute left-3 text-gray-400 transition-opacity duration-200"
-              ></i>
-
-              <InputText
-                v-model="filters['global'].value"
-                placeholder="     Rechercher..."
-                class="w-full pl-9 py-2 text-sm sm:text-base focus:pl-3 transition-all duration-200"
-              />
-            </span>
-
-
-            </div>
-
-
-          </div>
-          <div class="mt-4 space-y-2">
-            <div class="text-lg font-semibold text-green-600">
-              Total CDF : {{ totalAmountCDF }}
-            </div>
-
-            <div class="text-lg font-semibold text-blue-600">
-              Total USD : {{ totalAmountUSD }}
+              <div class="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 min-w-[180px]">
+                <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                  <i class="pi pi-dollar text-blue-600 text-sm"></i>
+                </div>
+                <div>
+                  <div class="text-xs text-gray-500">Total USD</div>
+                  <div class="text-base font-bold text-blue-700">{{ totalAmountUSD }}</div>
+                </div>
+              </div>
             </div>
           </div>
-          
         </template>
-        <Column field="id" header="Id" style="min-width: 100px"></Column>
+
+        <Column field="id" header="ID" style="min-width: 90px">
+          <template #body="slotProps">
+            <span class="text-gray-500 font-mono text-sm">{{ slotProps.data.id }}</span>
+          </template>
+        </Column>
 
         <Column field="total_amount" header="TOTAL" style="min-width: 200px">
           <template #body="slotProps" v-if="isSuperUser">
-            USD {{ slotProps.data.total_amount }}
+            <span class="font-semibold text-gray-800">USD {{ slotProps.data.total_amount }}</span>
           </template>
           <template #body="slotProps">
-          {{ slotProps.data.currency 
-              || (userProfile ? userProfile.currency_preference : "N/A") }}
-          {{ slotProps.data.total_amount }}
-        </template>
+            <span class="font-semibold text-gray-800">
+              {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
+              {{ slotProps.data.total_amount }}
+            </span>
+          </template>
         </Column>
 
-        <Column field="motif" header="DEMANDEUR" style="min-width: 200px"></Column>
+        <Column field="motif" header="DEMANDEUR" style="min-width: 200px">
+          <template #body="slotProps">
+            <span class="text-gray-700">{{ slotProps.data.motif }}</span>
+          </template>
+        </Column>
 
         <Column field="created_at" header="DATE" style="min-width: 200px">
           <template #body="slotProps">
-            {{ formatDate(slotProps.data.created_at) }}
+            <span class="text-gray-500 text-sm">
+              <i class="pi pi-calendar mr-1 text-xs"></i>
+              {{ formatDate(slotProps.data.created_at) }}
+            </span>
           </template>
         </Column>
 
-        <Column field="user_name" header="DONATEUR" style="min-width: 200px"></Column>
-
-        <Column header="ACTION" style="min-width: 150px">
+        <Column field="user_name" header="DONATEUR" style="min-width: 200px">
           <template #body="slotProps">
-            <Button
-              icon="pi pi-eye"
-              class="p-button-sm p-button-info mr-2"
-              @click="ViewDetailCashout(slotProps.data.id)"
-            />
-            <Button
-              icon="pi pi-trash"
-              class="p-button-sm"
-              severity="danger"
-              @click="deleteToCahOut(slotProps.data)"
-            />
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
+                {{ slotProps.data.user_name?.charAt(0)?.toUpperCase() }}
+              </div>
+              <span class="text-gray-700 text-sm">{{ slotProps.data.user_name }}</span>
+            </div>
+          </template>
+        </Column>
+
+        <Column header="ACTION" style="min-width: 130px">
+          <template #body="slotProps">
+            <div class="flex gap-2">
+              <Button
+                icon="pi pi-eye"
+                class="p-button-sm p-button-rounded p-button-outlined p-button-info"
+                v-tooltip.top="'Voir le détail'"
+                @click="ViewDetailCashout(slotProps.data.id)"
+              />
+              <Button
+                icon="pi pi-trash"
+                class="p-button-sm p-button-rounded p-button-outlined"
+                severity="danger"
+                v-tooltip.top="'Supprimer'"
+                @click="deleteToCahOut(slotProps.data)"
+              />
+            </div>
           </template>
         </Column>
       </DataTable>
     </div>
-
-    <!--  Dialog responsive -->
+  
+   <!-- Dialog responsive -->
     <Dialog
       v-model:visible="showModal"
       modal
@@ -376,129 +431,148 @@ const findUser = (id) => {
       :style="{ width: dialogWidth }"
       class="responsive-dialog"
     >
-    <div
-        class="p-6 overflow-y-auto max-h-[70vh] space-y-6"
+      <div
+        class="p-6 md:p-8 overflow-y-auto max-h-[70vh] space-y-6 bg-white"
         id="cashout-pdf-content"
       >
         <!-- En-tête -->
-    <div class="flex justify-between items-center mb-6">
-       
-        <div class="text-left flex-2"> 
+        <div class="flex justify-between items-start gap-6 pb-6 border-b border-gray-200 mb-6">
+
+          <div class="text-left flex-2 space-y-1">
             <template v-if="isSuperUser">
-              <h2 class="text-lg font-semibold">BILATECH S.A.R.L.U</h2>
-              <p class="text-sm md:text-base">
+              <h2 class="text-xl font-bold text-gray-800 tracking-wide">BILATECH S.A.R.L.U</h2>
+              <p class="text-sm md:text-base text-gray-500">
                 KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25
               </p>
             </template>
 
             <template v-else>
-              <h2 class="text-lg font-semibold">
+              <h2 class="text-xl font-bold text-gray-800">
                 {{ userProfile ? userProfile.entrep_name : "Non défini" }}
               </h2>
-              <p class="text-sm md:text-base">
-              ID.Nat : {{ userProfile ? userProfile.id_nat : "Non défini" }}
-              </p>
-              <p class="text-sm md:text-base">
-               Numéro Impot : {{ userProfile ? userProfile.impot_number : "Non défini" }}
-              </p>
-              <p class="text-sm md:text-base">
-              RCCM : {{ userProfile ? userProfile.rccm_number : "Non défini" }}
-              </p>
-              <p class="text-sm md:text-base">
-               Address : {{ userProfile ? userProfile.adress : "Non défini" }}
-              </p>
-              <p class="text-sm md:text-base">
-              Tél: {{ userProfile ? userProfile.phone_number : "Non défini" }}
-              </p>
-              <p class="text-sm md:text-base">
-              Devise: {{ userProfile ? userProfile.currency_preference : "Non défini" }}
-              </p>
+              <div class="text-sm md:text-base text-gray-500 space-y-0.5">
+                <p><span class="text-gray-400">ID.Nat :</span> {{ userProfile ? userProfile.id_nat : "Non défini" }}</p>
+                <p><span class="text-gray-400">Numéro Impôt :</span> {{ userProfile ? userProfile.impot_number : "Non défini" }}</p>
+                <p><span class="text-gray-400">RCCM :</span> {{ userProfile ? userProfile.rccm_number : "Non défini" }}</p>
+                <p><span class="text-gray-400">Adresse :</span> {{ userProfile ? userProfile.adress : "Non défini" }}</p>
+                <p><span class="text-gray-400">Tél :</span> {{ userProfile ? userProfile.phone_number : "Non défini" }}</p>
+                <p>
+                  <span class="text-gray-400">Devise :</span>
+                  {{ cashoutList.find((c) => c.id === selectedCashout)?.currency || "N/A" }}
+                </p>
+              </div>
             </template>
 
-            <p class="text-sm md:text-base">
+            <p class="text-sm md:text-base text-gray-500 pt-2">
               Date : {{ formatDate(new Date()) }}
             </p>
-            <h3 class="text-base md:text-lg font-medium">
-              Bon de sortie N° : 000{{ selectedCashout }}/25
-            </h3>
-            <h3 class="text-base md:text-lg font-medium">
-              Demandeur :
-              <span class="font-normal">
-                {{
-                  cashoutList.find((c) => c.id === selectedCashout)?.motif ||
-                  "N/A"
-                }}
-              </span>
-            </h3>
+
+            <div class="pt-3 space-y-1">
+              <h3 class="text-base md:text-lg font-semibold text-gray-800">
+                Bon de sortie N°
+                <span class="text-primary-600">000{{ selectedCashout }}</span>
+              </h3>
+              <h3 class="text-base md:text-lg font-medium text-gray-700">
+                Demandeur :
+                <span class="font-normal text-gray-600">
+                  {{ cashoutList.find((c) => c.id === selectedCashout)?.motif || "N/A" }}
+                </span>
+              </h3>
+            </div>
           </div>
 
-          <img v-if="isSuperUser" src="/demo/bila.png" alt="Logo" class="h-24 md:h-32 lg:h-40" />
+          <img
+            v-if="isSuperUser"
+            src="/demo/bila.png"
+            alt="Logo"
+            class="h-24 md:h-32 lg:h-40 object-contain"
+          />
         </div>
 
         <!-- Table des détails -->
         <div v-if="cashoutDetails.length > 0">
-          <DataTable :value="cashoutDetails" class="mb-4" responsiveLayout="scroll">
-            <Column field="id" header="ID" />
-            <Column field="reason" header="Motif" />
-            <Column field="amount" header="Montant">
-              <template #body="slotProps" v-if="isSuperUser">
-                USD {{ slotProps.data.amount }}
-              </template>
-              <template #body="slotProps" v-else>
-                {{
-                  userProfile ? userProfile.currency_preference : "Non défini"
-                }}
-                {{ slotProps.data.amount }}
-              </template>
-            </Column>
-          </DataTable>
+          <div class="rounded-lg border border-gray-200 overflow-hidden mb-6">
+            <DataTable
+              :value="cashoutDetails"
+              responsiveLayout="scroll"
+              stripedRows
+              class="text-sm"
+            >
+              <Column field="id" header="ID" style="width: 100px">
+                <template #body="slotProps">
+                  <span class="text-gray-500 font-mono">#{{ slotProps.data.id }}</span>
+                </template>
+              </Column>
+
+              <Column field="reason" header="Motif">
+                <template #body="slotProps">
+                  <span class="text-gray-700">{{ slotProps.data.reason }}</span>
+                </template>
+              </Column>
+
+              <Column field="amount" header="Montant" style="min-width: 150px">
+                <template #body="slotProps" v-if="isSuperUser">
+                  <span class="font-semibold text-gray-800">USD {{ slotProps.data.amount }}</span>
+                </template>
+                <template #body="slotProps" v-else>
+                  <span class="font-semibold text-gray-800">
+                    {{ slotProps.data.amount }}
+                    {{ cashoutList.find((c) => c.id === selectedCashout)?.currency || "N/A" }}
+                  </span>
+                </template>
+              </Column>
+            </DataTable>
+          </div>
 
           <!-- Total -->
-          <div
-            class="text-right font-bold text-base md:text-lg mb-4"
-            v-if="isSuperUser"
-          >
-            Total : {{ calculateTotal() }} USD
-          </div>
-          <div class="text-right font-bold text-base md:text-lg mb-4" v-else>
-            Total : {{ calculateTotal() }}
-            {{ userProfile ? userProfile.currency_preference : "Non défini" }}
+          <div class="flex justify-end mb-6">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg px-5 py-3 min-w-[220px]">
+              <div v-if="isSuperUser" class="flex justify-between items-center gap-6">
+                <span class="text-sm text-gray-500 font-medium">Total</span>
+                <span class="text-base md:text-lg font-bold text-gray-800">
+                  {{ calculateTotal() }} USD
+                </span>
+              </div>
+              <div v-else class="flex justify-between items-center gap-6">
+                <span class="text-sm text-gray-500 font-medium">Total</span>
+                <span class="text-base md:text-lg font-bold text-gray-800">
+                  {{ calculateTotal() }}
+                  {{ cashoutList.find((c) => c.id === selectedCashout)?.currency || "N/A" }}
+                </span>
+              </div>
+            </div>
           </div>
 
           <!-- Signature -->
-      
-      <div v-if="isSuperUser" class="flex justify-end mt-10">
-      <div class="text-center">
-        <p class="text-sm">Mr DELOR Musangania</p>
-        <p class="text-sm">PDG BILATECH</p>
-        <!-- ✅ Signature agrandie -->
-        <img 
-          :src="signatureUrl" 
-          alt="Signature" 
-          class="h-36 w-auto mt-2" 
-          style="object-fit: contain;"
-        />
-      </div>
-
-      </div>
-
-
+          <div v-if="isSuperUser" class="flex justify-end mt-10 pt-6 border-t border-gray-100">
+            <div class="text-center">
+              <img
+                :src="signatureUrl"
+                alt="Signature"
+                class="h-36 w-auto mx-auto"
+                style="object-fit: contain;"
+              />
+              <div class="mt-2 pt-2 border-t border-gray-300">
+                <p class="text-sm font-medium text-gray-700">Mr DELOR Musangania</p>
+                <p class="text-xs text-gray-500">PDG BILATECH</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Aucun détail -->
-        <div v-else class="text-center text-gray-500">
-          Aucun détail trouvé.
+        <div v-else class="flex flex-col items-center justify-center text-center text-gray-400 py-12">
+          <i class="pi pi-inbox text-3xl mb-3"></i>
+          <p>Aucun détail trouvé.</p>
         </div>
       </div>
 
       <!-- Bouton bas -->
-      <div
-        class="sticky bottom-0 bg-white py-3 px-4 shadow-md flex justify-end"
-      >
+      <div class="sticky bottom-0 bg-white py-3 px-6 border-t border-gray-100 shadow-[0_-2px_6px_rgba(0,0,0,0.04)] flex justify-end">
         <Button
           label="Télécharger PDF"
           icon="pi pi-download"
-          class="p-button-success"
+          class="p-button-success shadow-sm"
           @click="downloadPDF"
         />
       </div>

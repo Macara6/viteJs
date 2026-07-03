@@ -426,74 +426,95 @@ const startStatsAnimation = () => {
     <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10"></div>
 
     <!-- CONTENT -->
-    <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-16 lg:px-24 max-w-7xl mx-auto">
+  <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-16 lg:px-24 max-w-7xl mx-auto">
 
-      <!-- Badge -->
-      <div class="flex mb-6">
-        <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
-                     bg-[#004D4A]/80 backdrop-blur-sm border border-[#004D4A]
-                     text-white text-xs font-semibold tracking-wide uppercase">
-          <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-          Solution POS moderne
-        </span>
-      </div>
+  <!-- Badge -->
+  <div class="flex mb-6">
+    <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
+                 bg-[#004D4A]/80 backdrop-blur-sm border border-[#004D4A]
+                 text-white text-xs font-semibold tracking-wide uppercase
+                 shadow-md shadow-[#004D4A]/20">
+      <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+      Solutions numériques pour entreprises
+    </span>
+  </div>
 
-      <!-- Titre -->
-      <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl">
-        <span class="block text-white/70 text-lg sm:text-xl md:text-2xl font-light mb-3 tracking-wide">
-          Tout votre business sur une seule plateforme
-        </span>
-        <span class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent">
-          BilaSol.
-        </span>
-      </h1>
+  <!-- Titre -->
+  <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl">
+    <span class="block text-white/70 text-lg sm:text-xl md:text-2xl font-light mb-3 tracking-wide">
+      Pilotez et digitalisez votre entreprise
+    </span>
+    <span class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent">
+      avec BilaSol.
+    </span>
+  </h1>
 
-      <!-- Description -->
-      <p class="text-base md:text-lg text-white/70 mt-5 max-w-xl leading-relaxed">
-        Une solution simple,
-        <span class="text-yellow-400 font-semibold">rapide</span>,
-        et
-        <span class="text-green-400 font-semibold">abordable</span>
-        pour gérer votre activité sans effort.
-      </p>
+  <!-- Description -->
+  <p class="text-base md:text-lg text-white/70 mt-5 max-w-xl leading-relaxed">
+    Point de vente, gestion logistique, suivi des stocks et bien plus —
+    une plateforme <span class="text-yellow-400 font-semibold">rapide</span>,
+    <span class="text-green-400 font-semibold">fiable</span> et
+    <span class="text-white font-semibold">accessible</span>,
+    pensée pour simplifier chaque étape de votre activité.
+  </p>
 
-      <!-- CTA -->
-      <div class="flex flex-col sm:flex-row gap-3 mt-8">
-        <button
-          @click="$router.push('/signup')"
-          class="px-7 py-3 rounded-xl text-sm font-bold text-white
-                 bg-[#004D4A] hover:bg-[#006660]
-                 shadow-lg shadow-[#004D4A]/30
-                 hover:scale-[1.02] transition-all duration-200"
-        >
-          Commencer gratuitement
-        </button>
+  <!-- Points clés -->
+  <div class="flex flex-wrap gap-x-6 gap-y-2 mt-6">
+    <span class="flex items-center gap-2 text-sm text-white/80">
+      <i class="pi pi-check-circle text-green-400 text-xs"></i>
+      Gestion de point de vente
+    </span>
+    <span class="flex items-center gap-2 text-sm text-white/80">
+      <i class="pi pi-check-circle text-green-400 text-xs"></i>
+      Logistique &amp; stocks
+    </span>
+    <span class="flex items-center gap-2 text-sm text-white/80">
+      <i class="pi pi-check-circle text-green-400 text-xs"></i>
+      Suivi en temps réel
+    </span>
+  </div>
 
-        <button
-          @click="$router.push('/login')"
-          class="px-7 py-3 rounded-xl text-sm font-semibold text-white
-                 bg-white/10 backdrop-blur-sm border border-white/25
-                 hover:bg-white/20 hover:scale-[1.02]
-                 transition-all duration-200"
-        >
-          Se connecter →
-        </button>
-      </div>
+  <!-- CTA -->
+  <div class="flex flex-col sm:flex-row gap-3 mt-8">
+    <button
+      @click="$router.push('/signup')"
+      class="px-7 py-3 rounded-xl text-sm font-bold text-white
+             bg-[#004D4A] hover:bg-[#006660]
+             shadow-lg shadow-[#004D4A]/30
+             hover:shadow-xl hover:shadow-[#004D4A]/40
+             hover:scale-[1.02] active:scale-[0.98]
+             transition-all duration-200"
+    >
+      Démarrer gratuitement
+    </button>
 
-      <!-- Indicateurs slides -->
-      <div class="flex items-center gap-2 mt-10">
-        <button
-          v-for="(_, index) in slides"
-          :key="index"
-          @click="goToSlide(index)"
-          class="transition-all duration-300 rounded-full"
-          :class="index === currentIndex
-            ? 'w-6 h-2 bg-white'
-            : 'w-2 h-2 bg-white/40 hover:bg-white/60'"
-        />
-      </div>
+    <button
+      @click="$router.push('/login')"
+      class="group px-7 py-3 rounded-xl text-sm font-semibold text-white
+             bg-white/10 backdrop-blur-sm border border-white/25
+             hover:bg-white/20 hover:border-white/40 hover:scale-[1.02]
+             active:scale-[0.98]
+             transition-all duration-200"
+    >
+      Se connecter
+      <span class="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
+    </button>
+  </div>
 
-    </div>
+  <!-- Indicateurs slides -->
+  <div class="flex items-center gap-2 mt-10">
+    <button
+      v-for="(_, index) in slides"
+      :key="index"
+      @click="goToSlide(index)"
+      class="transition-all duration-300 rounded-full"
+      :class="index === currentIndex
+        ? 'w-6 h-2 bg-white'
+        : 'w-2 h-2 bg-white/40 hover:bg-white/60'"
+    />
+  </div>
+
+</div>
 
     <!-- BARRE PROGRESSION -->
     <div class="absolute bottom-0 left-0 z-30 h-0.5 bg-[#004D4A] transition-all duration-[6000ms] ease-linear"
@@ -561,8 +582,8 @@ const startStatsAnimation = () => {
               </p>
 
               <div class="mt-4 flex items-center gap-1.5 text-[#004D4A] text-xs font-semibold">
-                <span>En savoir plus</span>
-                <i class="pi pi-arrow-right text-[10px] group-hover:translate-x-1 transition-transform duration-200"></i>
+                <i class="pi pi-check-circle text-green-400 text-xs"></i>
+                <span>Disponible</span>
               </div>
             </div>
 
@@ -579,7 +600,7 @@ const startStatsAnimation = () => {
 
             <div class="flex-1">
               <div class="flex items-center justify-between mb-2">
-                <h3 class="text-base font-bold text-slate-800">Gestion des colis</h3>
+                <h3 class="text-base font-bold text-slate-800">Logistique & stocks </h3>
                 <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-500">
                   Bientôt
                 </span>
