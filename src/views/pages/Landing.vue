@@ -1062,7 +1062,7 @@ const startStatsAnimation = () => {
 
       <!-- Texte -->
       <h3 class="text-xl font-bold text-slate-800 tracking-tight">
-        Bila-Sol POS
+        BilaSol POS
       </h3>
 
       <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
