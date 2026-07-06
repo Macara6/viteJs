@@ -235,7 +235,7 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
       data = await fetchInvoicesAllUsers(userId);
       saveCache('Invoices', data);
       invoicesCache.value = data;
-      console.log('Factures chargées depuis l’API');
+      
     }
 
     // Appliquer filtre utilisateur et date

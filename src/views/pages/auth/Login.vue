@@ -95,7 +95,7 @@ const handleLogin = async() => {
         if (error.response && error.response.status === 401){
             errorMessage.value = "compte non trouvé";
 
-        } else if(error.response && error.response.status ===400) {
+        } else if(error.response && error.response.status ===402) {
             errorMessage.value = 'Aucun abonnement trouver pour cette utilisateur';
         } else if(error.response && error.response.status === 406) {
           errorMessage.value = "Ce compte est bloqué pour un moment";
@@ -108,7 +108,6 @@ const handleLogin = async() => {
     }
   
 }
-
 
 
 </script>

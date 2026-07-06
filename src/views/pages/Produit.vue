@@ -1013,7 +1013,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
       <!-- === COLONNES === -->
       <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
 
-      <Column field="id" header="ID" sortable style="min-width: 5rem" />
+     
 
       <Column field="name" header="Nom produit" sortable style="min-width: 12rem">
         <template #body="slotProps">

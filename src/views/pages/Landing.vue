@@ -1062,11 +1062,11 @@ const startStatsAnimation = () => {
 
       <!-- Texte -->
       <h3 class="text-xl font-bold text-slate-800 tracking-tight">
-        BilaSol POS
+        Bila-Sol POS
       </h3>
 
       <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
-        Disponible sur votre appareil · Version 1.8.4
+        Disponible sur votre appareil · Version 1.8.5
       </p>
 
       <!-- Badges store -->
