@@ -230,6 +230,7 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
       invoicesCache.value = cached;
       console.log('Factures chargées depuis le cache');
       loading.value = false;
+      
       return;
     } else {
       data = await fetchInvoicesAllUsers(userId);
@@ -580,6 +581,10 @@ async function downloadPDF() {
   pdf.save(`facture_${selectedInvoices.value}.pdf`);
 }
 
+function calculateReduction(point){
+  const userPointOut = userProfile.value.point_output;
+  return point * userPointOut
+}
 
 
 // --- Mounted ---
@@ -782,12 +787,7 @@ onMounted(async () => {
       <!-- Colonnes -->
       <Column selectionMode="multiple" headerStyle="width: 40px" />
 
-      <Column field="id" header="ID" sortable style="max-width: 60px">
-        <template #body="slotProps">
-          <span class="cell text-slate-500">{{ slotProps.data.id }}</span>
-        </template>
-      </Column>
-
+  
       <Column field="client_name" header="Client" sortable style="max-width: 130px">
         <template #body="slotProps">
           <span class="cell font-semibold text-slate-800">{{ slotProps.data.client_name }}</span>
@@ -802,7 +802,7 @@ onMounted(async () => {
 
       <Column field="total_amount" header="Total" sortable style="max-width: 110px">
         <template #body="slotProps">
-          <span class="cell font-bold text-[#004D4A]">{{ formatPrice(slotProps.data.total_amount) }}</span>
+          <span class="cell font-bold text-[#004D4A]">{{ formatPrice(slotProps.data.amount_total) }}</span>
         </template>
       </Column>
 
@@ -812,9 +812,9 @@ onMounted(async () => {
         </template>
       </Column>
 
-      <Column field="change" header="Reste" sortable style="max-width: 110px">
+      <Column field="change" header="Réduc" sortable style="max-width: 110px">
         <template #body="slotProps">
-          <span class="cell">{{ formatPrice(slotProps.data.change) }}</span>
+          <span class="cell">{{ formatPrice( calculateReduction(slotProps.data.points_used)) }}</span>
         </template>
       </Column>
 
@@ -823,6 +823,13 @@ onMounted(async () => {
           <span class="cell">{{ formatPrice(slotProps.data.amount_paid) }}</span>
         </template>
       </Column>
+
+      <Column field="amount_paid" header="Reste" sortable style="max-width: 110px">
+        <template #body="slotProps">
+          <span class="cell">{{ formatPrice(slotProps.data.change) }}</span>
+        </template>
+      </Column>
+
 
       <Column field="tva" header="TVA" sortable style="max-width: 90px">
         <template #body="slotProps">
@@ -1079,13 +1086,28 @@ onMounted(async () => {
                   <div class="total-values">
                     <span class="total-main">
                       {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_total) }}
                     </span>
                     <span class="total-conv">
-                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_total) }})
                     </span>
                   </div>
                 </div>
+
+                <div class="total-row">
+                  <span class="total-label">Réduction</span>
+                  <div class="total-values">
+                    <span class="total-main">
+                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                      {{ formatPrice( calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }}
+                    </span>
+                    <span class="total-conv">
+                      ({{ exchangeRate(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used))}})
+                    </span>
+                  </div>
+                </div>
+
+
 
                 <div class="total-row tva">
                   <span class="total-label">TVA</span>
