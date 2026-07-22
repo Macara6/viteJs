@@ -1107,8 +1107,6 @@ onMounted(async () => {
                   </div>
                 </div>
 
-
-
                 <div class="total-row tva">
                   <span class="total-label">TVA</span>
                   <div class="total-values">

@@ -70,6 +70,10 @@ const customerSexe = [
 ]
 
 
+
+
+const pendingCount = computed(() => pendingInvoices.value.length);
+
   onMounted(async () => {
     await loadProduct();
     await fetchUserProfl();
@@ -77,6 +81,25 @@ const customerSexe = [
      
       
   });
+
+  function generateInvoiceNumber(){
+    const now = new Date();
+    const pad = (n, size = 2) => String(n).padStart(size, '0');
+
+    return (
+        now.getFullYear() +
+        pad(now.getMonth() + 1) +
+        pad(now.getDate()) +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds()) +
+        pad(now.getMilliseconds(), 3)
+    );
+
+  }
+
+  const invoiceNumber =  generateInvoiceNumber()
+
  
 
   async function getCustomers(){
@@ -561,9 +584,12 @@ async function createInvoice(){
             })),
           customer: selectedCustomer.value?.id || null,
           points_used : ptsUsed.value,
-          points_discount : pointsDiscount.value
+          points_discount : pointsDiscount.value,
+          customer_points: selectedCustomer.value?.balance_point || null,
+          invoice_number:invoiceNumber
         };
 
+       console.log('invoices data:',invoiceData)
 
         try{ 
             await createInvoiceAPI(invoiceData);
@@ -571,7 +597,9 @@ async function createInvoice(){
 
             saveCache('Invoices',invoiceData);
             toast.add({ severity: 'success', summary: 'Facture créée', detail: 'Paiement effectué et facture enregistrée.', life: 3000 });
+
             lastInvoice =invoiceData;
+
             showInvoiceDialog.value = true;
              invoiceItems.value = [];
              totalAmount.value = 0;
@@ -648,7 +676,9 @@ function savePendingInvoice(){
   const pending = {
     id: Date.now(),
     clientName:clientName.value ||'ClientDivers',
+
     items:JSON.parse(JSON.stringify(invoiceItems.value)),
+
     totalAmount:totalAmount.value,
     amountPaid: amountPaid.value || 0,
     change: change.value || 0,
@@ -667,7 +697,6 @@ function savePendingInvoice(){
     tva_pro.value = 0;
     clientInfo.value = '';
     clientPhone.value ='';
-
    toast.add({ severity: 'success', summary: 'Facture en attente', detail: 'La facture a été mise en attente.', life: 3000 });
 }
 
@@ -771,6 +800,7 @@ async function printInvoice(invoice) {
 
             `Caissier(e) : ${cashier_username}\n`,
             `Client : ${invoice.client_name}\n`,
+            `Points : ${invoice.customer_points || ''}\n`,
             '-'.repeat(lineLength) + '\n',
             'Produit       Qt     P.U        S.total\n',
             '-'.repeat(lineLength) + '\n'
@@ -792,14 +822,17 @@ async function printInvoice(invoice) {
 
         // Totaux
         const totalInvoice = Number(invoice.total_amount ?? invoice.items.reduce((sum, item) => sum + (item.total ?? item.quantity * item.price), 0));
+        
         data.push('-'.repeat(lineLength) + '\n');
         data.push(`Total         : ${totalInvoice.toFixed(2)} ${currency}\n`);
+        data.push(`Réduction     : ${(invoice.points_discount).toFixed(2)} ${currency}\n`);
         data.push(`Montant percu : ${invoice.amount_paid.toFixed(2)} ${currency}\n`);
         data.push(`TVA           : ${tvaInvoice.toFixed(2)} ${currency}\n`);
         data.push(`Reste         : ${invoice.change.toFixed(2)} ${currency}\n`);
         data.push('-'.repeat(lineLength) + '\n');
         
         // Message final centré
+        data.push(centerText(`${invoice.invoice_number}`, lineLength) + '\n\n');
         data.push(centerText('Merci de votre confiance !', lineLength) + '\n\n');
         data.push(centerText('Powered By Bilatech.org', lineLength) + '\n\n');
         data.push('\x1D\x56\x41\x10'); // Coupe automatique
@@ -952,13 +985,22 @@ async function generatePdfInvoice(invoice) {
         <i class="pi pi-receipt"></i>
         <span>Nouvelle facture</span>
       </div>
+     <div class="pending-wrapper">
       <Button
         label="En attente"
         icon="pi pi-clock"
-        text
         class="pending-btn"
         @click="showPendingDialog = true"
       />
+
+      <Badge
+        v-if="pendingCount > 0"
+        :value="pendingCount"
+        severity="danger"
+        class="pending-badge"
+      />
+    </div>
+      
     </div>
 
     <!-- Client -->
@@ -1353,11 +1395,14 @@ async function generatePdfInvoice(invoice) {
   font-size: 15px;
 }
 .refresh-btn { color: #6b7280 !important; }
+
 .pending-btn {
   font-size: 12px !important;
-  color: #f59e0b !important;
+  color: #110f0c !important;
   font-weight: 600 !important;
   padding: 4px 8px !important;
+  background: #dcb507;
+  border-color:#dcb507 ;
 }
 
 /* ── Search ─────────────────────────────────────────────── */
