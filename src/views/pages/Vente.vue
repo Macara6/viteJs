@@ -794,8 +794,9 @@ async function printInvoice(invoice) {
             (profile.adress || '') + '\n',
             'Tel     :' + (profile.phone_number || '') + '\n',
             'RCCM    :' + (profile.rccm_number || '') + '\n',
+            'ID.NAT : ' + (profile.id_nat || '') + '\n',
             'N.IMPOT : ' + (profile.impot_number || '') + '\n',
-
+            
             '-'.repeat(lineLength) + '\n',
 
             `Caissier(e) : ${cashier_username}\n`,

@@ -357,7 +357,7 @@ const subBadgeClass = (type) => ({
     <div class="card-header">
       <div class="card-title">
         <div class="title-icon">
-          <i class="pi pi-shopping"></i>
+          <i class="pi pi-shop"></i>
         </div>
         <div>
           <h2>Profil de la Boutique</h2>
