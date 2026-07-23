@@ -923,14 +923,16 @@ async function generatePdfInvoice(invoice) {
 
     <!-- Recherche -->
     <div class="search-row">
+
       <div class="search-field">
         <i class="pi pi-search search-icon"></i>
         <InputText
           v-model="filters.global.value"
-          placeholder="   Rechercher..."
+          placeholder="Rechercher..."
           class="search-input"
         />
       </div>
+
       <div class="search-field">
         <i class="pi pi-barcode search-icon"></i>
         <InputText
@@ -944,6 +946,7 @@ async function generatePdfInvoice(invoice) {
 
     <!-- Table produits -->
     <div class="table-wrapper">
+
       <DataTable
         :value="filterProducts()"
         :rows="8"
@@ -953,6 +956,7 @@ async function generatePdfInvoice(invoice) {
         responsiveLayout="scroll"
         class="pos-table"
       >
+
         <Column field="name" header="Produit" />
         <Column field="price" header="Prix">
           <template #body="{ data }">
@@ -1414,14 +1418,15 @@ async function generatePdfInvoice(invoice) {
 .search-field {
   flex: 1;
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 .search-icon {
   position: absolute;
   left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #4b5563;
-  font-size: 13px;
+   color: #6b7280; /* couleur icône, ajuste selon ton thème */
+  pointer-events: none; /* pour que le clic passe à travers vers l'input */
+  z-index: 1;
   z-index: 1;
 }
 
@@ -1429,6 +1434,7 @@ async function generatePdfInvoice(invoice) {
   background: #f8fafc !important;  /* ← était #0f1117 */
   border: 1px solid #e2e8f0 !important;
   color: #1e293b !important;
+  padding-left: 36px; 
 }
 .search-input:focus {
   border-color: #6366f1 !important;
