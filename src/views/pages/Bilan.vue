@@ -659,49 +659,56 @@ async function generatePDF() {
   const pdf = new jsPDF('p', 'mm', 'a4')
   const selectedDateVal = selectDate.value.global.value
   const connectedUserProfile = userProfile.value
+  const pageWidth = 210
+  const pageHeight = 297
+  const marginX = 12
 
   // === HEADER PRINCIPAL ===
   pdf.setFillColor(0, 77, 74)
-  pdf.rect(0, 0, 210, 30, 'F')
+  pdf.rect(0, 0, pageWidth, 32, 'F')
+
+  // petit accent en bas du header
+  pdf.setFillColor(255, 165, 0)
+  pdf.rect(0, 32, pageWidth, 1.2, 'F')
 
   pdf.setFontSize(20)
   pdf.setFont(undefined, 'bold')
   pdf.setTextColor(255)
-  pdf.text('Rapport des ventes', 105, 15, { align: 'center' })
+  pdf.text('Rapport des ventes', pageWidth / 2, 15, { align: 'center' })
 
-  pdf.setFontSize(12)
+  pdf.setFontSize(11)
   pdf.setFont(undefined, 'normal')
-  pdf.text(`Date : ${selectedDateVal}`, 105, 23, { align: 'center' })
+  pdf.text(`Date : ${selectedDateVal}`, pageWidth / 2, 23, { align: 'center' })
 
-  pdf.setDrawColor(255)
-  pdf.setLineWidth(1)
-  pdf.line(12, 30, 198, 30)
-
-  // === PROFIL ENTREPRISE ===
-  let currentY = 38
+  // === PROFIL ENTREPRISE (encadré) ===
+  let currentY = 42
   const infoLines = [
     `Entreprise : ${connectedUserProfile.entrep_name || 'N/A'}`,
     `Téléphone : ${connectedUserProfile.phone_number || 'N/A'}`,
     `Adresse : ${connectedUserProfile.adress || 'N/A'}`,
     `RCCM : ${connectedUserProfile.rccm_number || 'N/A'}`,
-    `Numéro d’impôt : ${connectedUserProfile.impot_number || 'N/A'}`
+    `Numéro d'impôt : ${connectedUserProfile.impot_number || 'N/A'}`
   ]
 
-  pdf.setFont(undefined, 'normal')
-  pdf.setTextColor(33, 33, 33)
-
-  infoLines.forEach(line => {
-    currentY += 7
-    pdf.text(line, 105, currentY, { align: 'center' })
-  })
+  const infoBoxHeight = infoLines.length * 6 + 6
+  pdf.setFillColor(248, 250, 249)
+  pdf.setDrawColor(220, 220, 220)
+  pdf.setLineWidth(0.2)
+  pdf.roundedRect(marginX, currentY, pageWidth - marginX * 2, infoBoxHeight, 2, 2, 'FD')
 
   currentY += 8
-  pdf.setDrawColor(0, 77, 74)
-  pdf.setLineWidth(0.8)
-  pdf.line(12, currentY, 198, currentY)
+  pdf.setFontSize(9.5)
+  pdf.setFont(undefined, 'normal')
+  pdf.setTextColor(60, 60, 60)
+
+  infoLines.forEach(line => {
+    pdf.text(line, pageWidth / 2, currentY, { align: 'center' })
+    currentY += 6
+  })
+
   currentY += 10
 
-  // === PRÉPARATION DES DONNÉES PAR UTILISATEUR ===
+  // === PRÉPARATION DES DONNÉES PAR UTILISATEUR (logique inchangée) ===
   const tableData = allUsers.value.map(u => {
     const userInvoices = invoices.value.filter(inv =>
       inv.cashier === u.id &&
@@ -718,94 +725,138 @@ async function generatePDF() {
       new Date(c.created_at).toISOString().split('T')[0] === selectedDateVal
     )
 
-    // Factures annulées
     const cancelledInvoices = userInvoices.filter(inv => inv.is_canceled === true)
 
     return {
       name: u.username,
       currency: u.currency || 'N/A',
-
       totalFacture: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0),
       nbFactures: userInvoices.length,
-
       totalTVA: userInvoices.reduce((sum, inv) => sum + parseFloat(inv.tva || 0), 0),
-
       totalCashInt: userCashInt.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
       totalCashOut: userCashOuts.reduce((sum, c) => sum + parseFloat(c.total_amount || 0), 0),
-
-      //  Ajout des factures annulées
       nbFacturesAnnulees: cancelledInvoices.length,
       totalFacturesAnnulees: cancelledInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
     }
   })
 
   // === TABLEAU ===
-  const startX = 8
+  const startX = marginX
+  const tableWidth = pageWidth - marginX * 2 // 186
   const rowHeight = 8
-  const rowColors = [[245, 245, 245], [255, 255, 255]]
-  const highlightColor = [255, 165, 0]
+  const headerHeight = 9
+  const rowColors = [[248, 249, 249], [255, 255, 255]]
+  const highlightColor = [204, 102, 0] // orange plus lisible sur fond clair
+  const dangerColor = [178, 34, 34]
 
-  // HEADER TABLEAU
-  pdf.setFont(undefined, 'bold')
-  pdf.setTextColor(255)
-  pdf.setFillColor(0, 77, 74)
-  pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
+  // Colonnes définies par largeur (plus de chevauchement possible)
+  const columns = [
+    { label: 'Nom',      width: 34, align: 'left'   },
+    { label: 'Total FV', width: 28, align: 'right'  },
+    { label: 'Nb.FV',    width: 16, align: 'center' },
+    { label: 'TVA',      width: 22, align: 'right'  },
+    { label: 'Entrées',  width: 26, align: 'right'  },
+    { label: 'Sorties',  width: 26, align: 'right'  },
+    { label: 'Nb.FA',    width: 14, align: 'center' },
+    { label: 'Total FA', width: 20, align: 'right'  },
+  ]
+  // largeurs -> positions X cumulées
+  const colX = []
+  let acc = startX
+  columns.forEach(col => { colX.push(acc); acc += col.width })
 
-  pdf.text('Nom', startX + 1, currentY)
-  pdf.text('Total FV', startX + 32, currentY)
-  pdf.text('Nb.FV', startX + 63, currentY)
-  pdf.text('TVA', startX + 80, currentY)
-  pdf.text('Entrées', startX + 105, currentY)
-  pdf.text('Sorties', startX + 130, currentY)
+  function drawCell(text, i, y, color = [0, 0, 0]) {
+    const col = columns[i]
+    pdf.setTextColor(...color)
+    const x = col.align === 'left' ? colX[i] + 2
+            : col.align === 'right' ? colX[i] + col.width - 2
+            : colX[i] + col.width / 2
+    pdf.text(text, x, y, { align: col.align === 'left' ? 'left' : col.align === 'right' ? 'right' : 'center' })
+  }
 
-  //  colonnes pour factures annulées
-  pdf.text('Nb.FA', startX + 148, currentY)
-  pdf.text('Total FA', startX + 168, currentY)
+  function drawTableHeader(y) {
+    pdf.setFont(undefined, 'bold')
+    pdf.setFontSize(8.5)
+    pdf.setFillColor(0, 77, 74)
+    pdf.rect(startX, y - headerHeight + 2, tableWidth, headerHeight, 'F')
+    columns.forEach((col, i) => drawCell(col.label, i, y, [255, 255, 255]))
+    pdf.setFont(undefined, 'normal')
+    pdf.setFontSize(8.5)
+  }
 
+  drawTableHeader(currentY)
   currentY += rowHeight
-  pdf.setFont(undefined, 'normal')
 
-  // ROWS
+  const bottomMargin = 45 // réserve de place pour le logo/pied de page
+  let pageNum = 1
+
   tableData.forEach((d, index) => {
+    // saut de page si on approche du bas
+    if (currentY > pageHeight - bottomMargin) {
+      pdf.addPage()
+      pageNum++
+      currentY = 20
+      drawTableHeader(currentY)
+      currentY += rowHeight
+    }
+
     const bgColor = rowColors[index % 2]
     pdf.setFillColor(...bgColor)
-    pdf.rect(startX, currentY - 6, 186, rowHeight, 'F')
+    pdf.rect(startX, currentY - 6, tableWidth, rowHeight, 'F')
+    pdf.setDrawColor(230, 230, 230)
+    pdf.setLineWidth(0.1)
+    pdf.rect(startX, currentY - 6, tableWidth, rowHeight, 'S')
 
-    pdf.setTextColor(0)
-    pdf.text(d.name, startX + 1, currentY)
+    drawCell(d.name, 0, currentY)
+    drawCell(`${formatPrice(d.totalFacture)} ${d.currency}`, 1, currentY, highlightColor)
+    drawCell(d.nbFactures.toString(), 2, currentY)
+    drawCell(formatPrice(d.totalTVA), 3, currentY, highlightColor)
+    drawCell(`${formatPrice(d.totalCashInt)} ${d.currency}`, 4, currentY)
+    drawCell(`${formatPrice(d.totalCashOut)} ${d.currency}`, 5, currentY)
+    drawCell(d.nbFacturesAnnulees.toString(), 6, currentY, dangerColor)
+    drawCell(`${formatPrice(d.totalFacturesAnnulees)} ${d.currency}`, 7, currentY, dangerColor)
 
-    pdf.setTextColor(...highlightColor)
-    pdf.text(`${formatPrice(d.totalFacture)} ${d.currency}`, startX + 32, currentY)
-
-    pdf.setTextColor(0)
-    pdf.text(d.nbFactures.toString(), startX + 63, currentY)
-
-    pdf.setTextColor(...highlightColor)
-    pdf.text(formatPrice(d.totalTVA), startX + 80, currentY)
-
-    pdf.setTextColor(0)
-    pdf.text(`${formatPrice(d.totalCashInt)} ${d.currency}`, startX + 105, currentY)
-    pdf.text(`${formatPrice(d.totalCashOut)} ${d.currency}`, startX + 130, currentY)
-
-    //  Factures annulées
-    pdf.setTextColor(255, 0, 0)
-    pdf.text(d.nbFacturesAnnulees.toString(), startX + 155, currentY)
-
-    pdf.text(`${formatPrice(d.totalFacturesAnnulees)} ${d.currency}`, startX + 178, currentY)
     currentY += rowHeight
   })
 
-  // === LOGO EN BAS ===
+  // trait de clôture sous le tableau
+  pdf.setDrawColor(0, 77, 74)
+  pdf.setLineWidth(0.6)
+  pdf.line(startX, currentY - 4, startX + tableWidth, currentY - 4)
+
+  // === PIED DE PAGE : numéro de page sur chaque page ===
+  const totalPages = pdf.internal.getNumberOfPages()
+  
+  for (let p = 1; p <= totalPages; p++) {
+    pdf.setPage(p)
+    pdf.setFontSize(8)
+    pdf.setTextColor(150, 150, 150)
+    pdf.text(`Page ${p} / ${totalPages}`, pageWidth - marginX, pageHeight - 8, { align: 'right' })
+  }
+
+  // === LOGO EN BAS (dernière page), avec fallback si l'image échoue ===
   const img = new Image()
   img.src = '/demo/bilatechslogan.png'
-  img.onload = () => {
-    const pageHeight = pdf.internal.pageSize.height
-    const logoWidth = 90
-    const logoHeight = 40
-    pdf.addImage(img, 'PNG', (210 - logoWidth) / 2, pageHeight - logoHeight - 10, logoWidth, logoHeight)
+
+  const finalizePdf = () => {
+    pdf.setPage(totalPages)
     pdf.save(`rapport_ventes_${selectedDateVal}.pdf`)
   }
+
+  img.onload = () => {
+    const logoWidth = 70
+    const logoHeight = 30
+    pdf.setPage(totalPages)
+    pdf.addImage(img, 'PNG', (pageWidth - logoWidth) / 2, pageHeight - logoHeight - 14, logoWidth, logoHeight)
+    finalizePdf()
+  }
+
+  img.onerror = () => {
+    // si le logo ne charge pas, on sauvegarde quand même le rapport
+    finalizePdf()
+  }
 }
+
 
 
 onMounted(() => {
@@ -815,6 +866,7 @@ onMounted(() => {
   chekeSecretKey();
   console.log('total cashout USD :', total_AmountCashoutUSD.value)
 })
+
 
 </script>
 
@@ -826,155 +878,157 @@ onMounted(() => {
   <div class="p-4 sm:p-6 lg:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen">
 
         <!-- Filtres -->
-      <div class="filters-bar">
+    <div class="filters-bar">
 
-        <div v-if="statusUser !='CAISSIER'" class="filter-group">
-          <label class="filter-label">
-            <i class="pi pi-user text-xs"></i>
-            Filtrer par Caissier
-          </label>
+      <div v-if="statusUser !='CAISSIER'" class="filter-group">
+        <label class="filter-label">
+          <i class="pi pi-user text-xs"></i>
+          Filtrer par Caissier
+        </label>
 
-          <Select
-            v-model="selectedUserId"
-            :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'ADMIN')"
-            optionValue="id"
-            optionLabel="username"
-            placeholder="Filtrer par utilisateur"
-            class="w-full sm:w-56"
-            showClear
-          >
-            <template #option="{ option }">
-              <div class="flex justify-between items-center gap-2">
-                <span>{{ option.username }}</span>
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                  :class="{
-                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
-                    'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
-                  }"
-                >
-                  {{ option.status }}
-                </span>
-              </div>
-            </template>
+        <Select
+          v-model="selectedUserId"
+          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'ADMIN')"
+          optionValue="id"
+          optionLabel="username"
+          placeholder="Filtrer par utilisateur"
+          class="filter-input"
+          showClear
+        >
+          <template #option="{ option }">
+            <div class="flex justify-between items-center gap-2">
+              <span>{{ option.username }}</span>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                :class="{
+                  'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                  'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                }"
+              >
+                {{ option.status }}
+              </span>
+            </div>
+          </template>
 
-            <template #selectedItem="{ option }">
-              <div class="flex justify-between items-center gap-2">
-                <span>{{ option.username }}</span>
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                  :class="{
-                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
-                    'bg-teal-50 text-teal-600': slotProps.option.status === 'CAISSIER',
-                  }"
-                >
-                  {{ option.status }}
-                </span>
-              </div>
-            </template>
-          </Select>
-        </div>
-
-        <div v-if="statusUser !='CAISSIER'" class="filter-group">
-          <label class="filter-label">
-            <i class="pi pi-shield text-xs"></i>
-            Filtrer par Admin
-          </label>
-
-          <Select
-            v-model="selectedUserId"
-            :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'CAISSIER')"
-            optionValue="id"
-            optionLabel="username"
-            placeholder="Filtrer par utilisateur"
-            class="w-full sm:w-56"
-            showClear
-          >
-            <template #option="{ option }">
-              <div class="flex justify-between items-center gap-2">
-                <span>{{ option.username }}</span>
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                  :class="{
-                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
-                    'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
-                  }"
-                >
-                  {{ option.status }}
-                </span>
-              </div>
-            </template>
-
-            <template #selectedItem="{ option }">
-              <div class="flex justify-between items-center gap-2">
-                <span>{{ option.username }}</span>
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full font-semibold"
-                  :class="{
-                    'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
-                    'bg-teal-50 text-teal-600': slotProps.option.status === 'CAISSIER',
-                  }"
-                >
-                  {{ option.status }}
-                </span>
-              </div>
-            </template>
-          </Select>
-        </div>
-
-        <div v-if="statusUser !='CAISSIER'" class="filter-group">
-          <label class="filter-label">
-            <i class="pi pi-users text-xs"></i>
-            Filtrer groupe
-          </label>
-
-          <Select
-            v-model="selectedGroup"
-            :options="[
-              { label: 'Aucun', value: null },
-              { label: 'Tous les Admins', value: 'ADMIN' },
-              { label: 'Tous les Caissiers', value: 'CAISSIER' }
-            ]"
-            optionLabel="label"
-            optionValue="value"
-            class="w-full sm:w-56"
-            placeholder="Filtrer groupe"
-            showClear
-          />
-        </div>
-
-        <!-- Sélecteur de date -->
-        <div class="filter-group">
-          <label for="date-select" class="filter-label">
-            <i class="pi pi-calendar text-xs"></i>
-            Sélectionner une date
-          </label>
-          <InputText
-            id="date-select"
-            type="date"
-            v-model="selectDate.global.value"
-            class="w-full sm:w-auto"
-          />
-        </div>
-
-        <!-- Actions -->
-        <div class="filter-actions">
-          <Button
-            label="Générer le Rapport"
-            icon="pi pi-file-pdf"
-            severity="success"
-            @click="generatePDF"
-          />
-          <Button
-            label="Actualiser"
-            icon="pi pi-refresh"
-            severity="warning"
-            outlined
-            @click="forceRefresh"
-          />
-        </div>
-
+          <template #selectedItem="{ option }">
+            <div class="flex justify-between items-center gap-2">
+              <span>{{ option.username }}</span>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                :class="{
+                  'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                  'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                }"
+              >
+                {{ option.status }}
+              </span>
+            </div>
+          </template>
+        </Select>
       </div>
+
+      <div v-if="statusUser !='CAISSIER'" class="filter-group">
+        <label class="filter-label">
+          <i class="pi pi-shield text-xs"></i>
+          Filtrer par Admin
+        </label>
+
+        <Select
+          v-model="selectedUserId"
+          :options="allUsers.filter(u => u.status !== 'GESTIONNAIRE_STOCK' && u.status !== 'CAISSIER')"
+          optionValue="id"
+          optionLabel="username"
+          placeholder="Filtrer par utilisateur"
+          class="filter-input"
+          showClear
+        >
+          <template #option="{ option }">
+            <div class="flex justify-between items-center gap-2">
+              <span>{{ option.username }}</span>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                :class="{
+                  'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                  'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                }"
+              >
+                {{ option.status }}
+              </span>
+            </div>
+          </template>
+
+          <template #selectedItem="{ option }">
+            <div class="flex justify-between items-center gap-2">
+              <span>{{ option.username }}</span>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full font-semibold"
+                :class="{
+                  'bg-emerald-50 text-emerald-600': option.status === 'ADMIN',
+                  'bg-teal-50 text-teal-600': option.status === 'CAISSIER',
+                }"
+              >
+                {{ option.status }}
+              </span>
+            </div>
+          </template>
+        </Select>
+      </div>
+
+      <div v-if="statusUser !='CAISSIER'" class="filter-group">
+        <label class="filter-label">
+          <i class="pi pi-users text-xs"></i>
+          Filtrer groupe
+        </label>
+
+        <Select
+          v-model="selectedGroup"
+          :options="[
+            { label: 'Aucun', value: null },
+            { label: 'Tous les Admins', value: 'ADMIN' },
+            { label: 'Tous les Caissiers', value: 'CAISSIER' }
+          ]"
+          optionLabel="label"
+          optionValue="value"
+          class="filter-input"
+          placeholder="Filtrer groupe"
+          showClear
+        />
+      </div>
+
+      <!-- Sélecteur de date -->
+      <div class="filter-group">
+        <label for="date-select" class="filter-label">
+          <i class="pi pi-calendar text-xs"></i>
+          Sélectionner une date
+        </label>
+        <InputText
+          id="date-select"
+          type="date"
+          v-model="selectDate.global.value"
+          class="filter-input"
+        />
+      </div>
+
+      <!-- Actions -->
+      <div class="filter-actions">
+        <Button
+          label="Générer le Rapport"
+          icon="pi pi-file-pdf"
+          severity="success"
+          @click="generatePDF"
+          class="action-btn"
+        />
+        <Button
+          label="Actualiser"
+          icon="pi pi-refresh"
+          severity="warning"
+          outlined
+          @click="forceRefresh"
+          class="action-btn"
+        />
+      </div>
+
+    </div>
 
 <!-- Dashboard Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
@@ -1404,24 +1458,13 @@ onMounted(() => {
 
 /* ── section filtre ── */
 
-
 .filters-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
   gap: 1rem;
-  padding: 1.25rem;
-  margin-bottom: 1.5rem;
-  background-color: #fff;
-  border: 1.5px solid var(--surface-100, #f1f5f9);
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-
-  /* ── Sticky ── */
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  align-items: flex-end;
 }
+
 
 :global(.dark) .filters-bar {
   background-color: #1e293b;
@@ -1449,18 +1492,18 @@ onMounted(() => {
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  flex: 1 1 220px; /* grandit/rétrécit, mais garde 220px comme base */
+  min-width: 160px;
 }
 
 .filter-label {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4b5563;
 }
 
 :global(.dark) .filter-label {
@@ -1473,9 +1516,19 @@ onMounted(() => {
 
 .filter-actions {
   display: flex;
-  gap: 0.6rem;
-  margin-left: auto;
-  align-self: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  align-items: center;
+}
+.action-btn {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+
+.filter-input {
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -1487,6 +1540,47 @@ onMounted(() => {
 
   .filter-actions :deep(.p-button) {
     flex: 1;
+  }
+}
+
+/* Tablette */
+@media (max-width: 768px) {
+  .filters-bar {
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    flex: 1 1 45%; /* 2 colonnes */
+    min-width: 140px;
+  }
+
+  .filter-actions {
+    flex: 1 1 100%;
+    justify-content: stretch;
+  }
+
+  .action-btn {
+    flex: 1 1 45%;
+  }
+}
+/* Mobile */
+@media (max-width: 480px) {
+  .filters-bar {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    flex: 1 1 100%; /* 1 colonne, pleine largeur */
+    min-width: 100%;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    flex: 1 1 100%;
+    width: 100%;
   }
 }
 

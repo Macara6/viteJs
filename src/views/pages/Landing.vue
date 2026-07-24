@@ -152,7 +152,37 @@ let highlightsObserver = null;
 
 
 
+const isPageLoading = ref(true);
+const MIN_LOADER_TIME = 500;
+
+
+function finishLoading(){
+  isPageLoading.value = false;
+}
+
+
+function initPageLoader(){
+  const startTime = performance.now();
+  const firstImage = new Image();
+
+  firstImage.src = slides[0];
+
+  const stop = () =>{
+
+    const elapsed = performance.now() - startTime;
+    const remaining = Math.max(MIN_LOADER_TIME - elapsed, 0);
+    setTimeout(finishLoading,remaining );
+  }
+
+    firstImage.onload = stop;
+    firstImage.onerror = stop;
+
+   setTimeout(finishLoading, 4000);
+
+}
+
 onMounted(() => {
+  initPageLoader();
   // Précharge les 2 premières images suivantes
   preloadImage(slides[1]);
   preloadImage(slides[2]);
@@ -268,25 +298,68 @@ const startStatsAnimation = () => {
 
     <div class="bg-white text-gray-800 font-sans">
 
+
+      <Transition
+        enter-active-class="transition-opacity duration-300"
+        leave-active-class="transition-opacity duration-500"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isPageLoading"
+          class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white"
+        >
+          <!-- Décoration fond subtile -->
+          <div class="absolute top-0 right-0 w-[400px] h-[400px] rounded-full
+                      bg-[#004D4A]/5 blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+          <div class="absolute bottom-0 left-0 w-[350px] h-[350px] rounded-full
+                      bg-[#004D4A]/5 blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
+
+          <!-- Logo -->
+          <div class="relative z-10 flex flex-col items-center">
+            <div class="relative mb-6">
+              <div class="absolute inset-0 rounded-2xl bg-[#004D4A]/10 blur-xl scale-125"></div>
+              <img
+                src="/demo/bila_icon_512.png"
+                class="relative h-16 w-16 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,77,74,0.15)]"
+                alt="BilaTech"
+              />
+            </div>
+
+            <!-- Spinner -->
+            <div class="loader-spinner mb-4"></div>
+
+            <!-- Texte -->
+            <p class="text-sm font-medium text-slate-400 tracking-wide">
+              Chargement en cours...
+            </p>
+          </div>
+
+          <!-- Barre de progression bas d'écran -->
+          <div class="absolute bottom-0 left-0 w-full h-0.5 bg-slate-100 overflow-hidden">
+            <div class="loader-bar"></div>
+          </div>
+        </div>
+      </Transition>
+
      <div id="home" class="landing-wrapper overflow-visible">
 
           <div class="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] lg:w-[88%] z-50">
 
             <!-- NAVBAR PRINCIPALE -->
-<div class="flex items-center justify-between px-5 py-2.5
-            rounded-2xl
-            bg-[#004D4A]/70 backdrop-blur-2xl
-            border border-white/10
-            shadow-[0_8px_32px_rgba(0,77,74,0.25)]">
+      <div class="flex items-center justify-between px-5 py-2.5
+                  rounded-2xl
+                  bg-[#004D4A]/70 backdrop-blur-2xl
+                  border border-white/10
+                  shadow-[0_8px_32px_rgba(0,77,74,0.25)]">
 
-  <!-- LOGO -->
-  <a href="#" class="flex items-center flex-shrink-0">
-    <img
-      src="/demo/bilatechblanc.png"
-      class="h-10 md:h-12 w-auto object-contain
-            drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-    />
-  </a>
+        <!-- LOGO -->
+        <a href="#" class="flex items-center flex-shrink-0">
+          <img
+            src="/demo/bilatechblanc.png"
+            class="h-10 md:h-12 w-auto object-contain
+                  drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
+          />
+        </a>
 
   <!-- DESKTOP MENU -->
   <ul class="hidden lg:flex items-center gap-1">
@@ -1401,6 +1474,32 @@ const startStatsAnimation = () => {
 
 
 <style scoped>
+/*   section loader */
+.loader-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(0, 77, 74, 0.12);
+  border-top-color: #004D4A;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loader-bar {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #004D4A, transparent);
+  animation: loading-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+/*   fin de la section*/
 
 .router-link-active:not([to="/login"]):not([to="/signup"]) {
   color: white;
