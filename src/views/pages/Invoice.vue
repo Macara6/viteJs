@@ -241,6 +241,7 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
 
     // Appliquer filtre utilisateur et date
     invoices.value = filteredInvoices.value;
+    console.log("factures :", filteredInvoices.value)
 
   } catch (err) {
     console.error(err);
@@ -1079,61 +1080,102 @@ onMounted(async () => {
               </div>
 
               <!-- ══════════════ TOTAUX ══════════════ -->
-              <div class="totals-block">
+            <div class="totals-block">
 
-                <div class="total-row">
-                  <span class="total-label">Sous-total</span>
-                  <div class="total-values">
-                    <span class="total-main">
-                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_total) }}
-                    </span>
-                    <span class="total-conv">
-                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_total) }})
-                    </span>
+              <div class="totals-grid">
+
+                <!-- ══════ COLONNE GAUCHE : détails du calcul ══════ -->
+                <div class="totals-col totals-col--details">
+
+                  <div class="total-row">
+                    <span class="total-label">Sous-total</span>
+                    <div class="total-values">
+                      <span class="total-main">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_total) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_total) }})
+                      </span>
+                    </div>
                   </div>
+
+                  <div class="total-row">
+                    <span class="total-label">Réduction</span>
+                    <div class="total-values">
+                      <span class="total-main">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="total-row tva">
+                    <span class="total-label">TVA</span>
+                    <div class="total-values">
+                      <span class="total-main danger">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
+                      </span>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div class="total-row">
-                  <span class="total-label">Réduction</span>
-                  <div class="total-values">
-                    <span class="total-main">
-                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                      {{ formatPrice( calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }}
-                    </span>
-                    <span class="total-conv">
-                      ({{ exchangeRate(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used))}})
-                    </span>
-                  </div>
-                </div>
+                <!-- ══════ COLONNE DROITE : montants clés ══════ -->
+                <div class="totals-col totals-col--summary">
 
-                <div class="total-row tva">
-                  <span class="total-label">TVA</span>
-                  <div class="total-values">
-                    <span class="total-main danger">
-                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
-                    </span>
-                    <span class="total-conv">
-                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
-                    </span>
+                  <div class="total-row final">
+                    <span class="total-label bold">TOTAL TTC</span>
+                    <div class="total-values">
+                      <span class="total-main bold primary">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div class="total-row final">
-                  <span class="total-label bold">TOTAL TTC</span>
-                  <div class="total-values">
-                    <span class="total-main bold primary">
-                      {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                      {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
-                    </span>
-                    <span class="total-conv">
-                      ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
-                    </span>
+                  <div class="total-row">
+                    <span class="total-label bold">Montant perçu</span>
+                    <div class="total-values">
+                      <span class="total-main bold">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_paid) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_paid) }})
+                      </span>
+                    </div>
                   </div>
+
+                  <div class="total-row">
+                    <span class="total-label bold">Reste</span>
+                    <div class="total-values">
+                      <span class="total-main bold success">
+                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.change) }}
+                      </span>
+                      <span class="total-conv">
+                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.change) }})
+                      </span>
+                    </div>
+                  </div>
+
                 </div>
 
               </div>
+
+            </div>
+              
             </div>
 
             <!-- Remplace uniquement le bloc invoice-footer et ajoute le QR -->
@@ -1702,6 +1744,83 @@ onMounted(async () => {
 }
 .btn-download:hover { background: #15803d; }
 
+
+/* detail facture reglage totaux */
+
+
+.totals-block {
+  width: 100%;
+  max-width: 100%; /* au cas où une règle parente limite la largeur */
+  margin-left: auto; /* pousse le bloc à occuper toute la largeur dispo, aligné à droite comme une facture classique */
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr; /* légèrement plus large à gauche pour les libellés */
+  gap: 0 2rem; /* plus d'air entre les deux colonnes */
+  align-items: start;
+  width: 100%;
+}
+
+.totals-col--details {
+  border-right: 1px dashed #e5e7eb;
+  padding-right: 2rem;
+  min-width: 0; /* évite que le texte ne casse la grille sur les montants longs */
+}
+
+.totals-col--summary {
+  padding-left: 0.5rem;
+  min-width: 0;
+}
+
+/* Empêche les montants de se tasser sur une ligne trop étroite */
+.total-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+  white-space: nowrap;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.45rem 0;
+}
+
+.total-label {
+  flex-shrink: 0;
+}
+
+/* Résumé (droite) un peu plus grand pour bien occuper l'espace */
+.totals-col--summary .total-main {
+  font-size: 0.95rem;
+}
+
+.totals-col--summary .total-row.final .total-main {
+  font-size: 1.1rem;
+}
+
+/* Responsive : repasse en une colonne sur petit écran */
+@media (max-width: 480px) {
+  .totals-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .totals-col--details {
+    border-right: none;
+    border-bottom: 1px dashed #e5e7eb;
+    padding-right: 0;
+    padding-bottom: 0.5rem;
+  }
+
+  .totals-col--summary {
+    padding-left: 0;
+  }
+}
 
 
 </style>
