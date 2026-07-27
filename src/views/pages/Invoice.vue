@@ -241,7 +241,7 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
 
     // Appliquer filtre utilisateur et date
     invoices.value = filteredInvoices.value;
-    console.log("factures :", filteredInvoices.value)
+    
 
   } catch (err) {
     console.error(err);

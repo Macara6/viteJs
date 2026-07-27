@@ -55,6 +55,7 @@ async function listPrinters() {
     }
 }
 
+
 // Test d'impression
 async function testPrint() {
     if (!selectedPrinter.value) {
@@ -64,6 +65,7 @@ async function testPrint() {
     const copies = Number(copyCount.value) || 1;
     try {
         const config = qz.configs.create(selectedPrinter.value);
+
 
         const data = [
             { type: 'raw', format: 'plain', data: '\x1B\x40' },
@@ -94,6 +96,7 @@ function savePrinter() {
         return;
     }
     localStorage.setItem('printerName', selectedPrinter.value);
+
     localStorage.setItem('printerCopyCount', copyCount.value); 
     toast.add({ severity: 'success', summary: 'Enregistré', detail: `Imprimante "${selectedPrinter.value}" et ${copyCount.value} copie(s) enregistrée(s).`, life: 3000 });
 }

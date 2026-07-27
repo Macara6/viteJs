@@ -112,6 +112,7 @@ const model = computed(() => {
         
               { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
               {label : "Imprimante",icon: 'pi pi-print', to:'/pages/printerConfig'},
+              {label :"Statistique", icon:'pi pi-chart-bar',to:'/pages/Statistic'},
               { label: 'Ma boutique', icon: 'pi pi-briefcase', to: '/pages/Boutique' },
              
               { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
