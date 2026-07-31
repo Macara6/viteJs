@@ -156,6 +156,7 @@ export async function createOrUpdateSecretKey(secretData){
         throw error;
     }
 }
+
 //fonction pour changer le mot de passe 
 export async function changePassword(oldPassword, newPassword){
     const CHANGE_PASSWORD_URL = `${API_BASE}change-password/`;
@@ -197,6 +198,8 @@ export async function confirmPasswordReset(token, newPassword){
         throw error;
     }
 }
+
+
 
 // fonction pour afficher les categorys
 export async function fetchCategorys(){
@@ -455,6 +458,7 @@ export async function fetchConnectionHistory(){
     }
    return allHistorys;
 }
+
 // fuction to fetch comments
 export async function fetchCommentsAPI(){
     const LIMIT = 200;
@@ -672,6 +676,33 @@ export async function fetchChartTotals(baseUserId, date){
     }catch(error){
          console.error("Erreur lors de la recuperation du totals:", error)
     }
+}
+
+// fonction pour la statistique 
+
+export async function  fetchStatistic(userId = null) {
+    const url_statistic = `${API_BASE}statistic/`;
+    const params = {};
+
+    if(userId){
+         params.user_id = userId;
+    }
+
+    try{
+        const response = await axios.get(url_statistic ,{
+            params:params,
+            headers :{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        
+        return response.data
+
+    }catch(error){
+        console.error('Error lors de la recuperation statistique :', error.response ? error.response.data : error);
+        throw error
+    }
+
 }
 
 
