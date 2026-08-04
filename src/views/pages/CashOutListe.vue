@@ -272,7 +272,7 @@ const findUser = (id) => {
 
               <!-- Filtre utilisateur + recherche -->
               <div class="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto">
-                <Select
+                <Select v-if="!isSuperUser"
                   v-model="selectedUserFilter"
                   :options="childUsers.map(u => ({
                     id: u.id,
@@ -365,12 +365,13 @@ const findUser = (id) => {
 
         <Column field="total_amount" header="TOTAL" style="min-width: 200px">
           <template #body="slotProps" v-if="isSuperUser">
-            <span class="font-semibold text-gray-800">USD {{ slotProps.data.total_amount }}</span>
+            <span class="font-semibold text-gray-800"> {{ slotProps.data.total_amount }} {{ slotProps.data.currency ||  "USD" }} </span>
           </template>
           <template #body="slotProps">
             <span class="font-semibold text-gray-800">
+               {{ slotProps.data.total_amount }}
               {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
-              {{ slotProps.data.total_amount }}
+
             </span>
           </template>
         </Column>
@@ -512,7 +513,7 @@ const findUser = (id) => {
 
               <Column field="amount" header="Montant" style="min-width: 150px">
                 <template #body="slotProps" v-if="isSuperUser">
-                  <span class="font-semibold text-gray-800">USD {{ slotProps.data.amount }}</span>
+                  <span class="font-semibold text-gray-800"> {{ slotProps.data.amount }}  {{ cashoutList.find((c) => c.id === selectedCashout)?.currency || "N/A" }}</span>
                 </template>
                 <template #body="slotProps" v-else>
                   <span class="font-semibold text-gray-800">

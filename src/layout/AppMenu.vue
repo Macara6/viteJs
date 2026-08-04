@@ -118,7 +118,7 @@ const model = computed(() => {
               { label: "Corbeille", icon: 'pi pi-trash', to:'/pages/Corbeille', badge:userDeletedCount},
             // { label: "dépôts", icon: 'pi pi-truck', to: '/pages/DepotProduct' },
               {
-                label: 'Notification',
+                label: 'Alertes',
                 icon: 'pi pi-fw pi-bell',
                 to: '/pages/Notification',
                 badge: lowStockCount,

@@ -124,7 +124,8 @@ async function initData() {
     updatePieChart()
 
   } catch (error) {
-    console.error('Erreur lors du chargement des données:', error)
+   
+
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données', life: 3000 })
   } finally {
     isLoading.value = false
@@ -520,7 +521,7 @@ async function updatePieChart() {
 
 
   } else {
-// 🔹 Cas normal : utilisateur + ses caissiers visibles
+//  Cas normal : utilisateur + ses caissiers visibles
 const allUsersOfBase = [
   { id: baseUserId, username: baseUserInfo.username, currency: baseUserInfo.currency },
   ...cashiers.map(c => ({
@@ -710,6 +711,7 @@ async function generatePDF() {
 
   // === PRÉPARATION DES DONNÉES PAR UTILISATEUR (logique inchangée) ===
   const tableData = allUsers.value.map(u => {
+
     const userInvoices = invoices.value.filter(inv =>
       inv.cashier === u.id &&
       new Date(inv.created_at).toISOString().split('T')[0] === selectedDateVal
@@ -738,6 +740,7 @@ async function generatePDF() {
       nbFacturesAnnulees: cancelledInvoices.length,
       totalFacturesAnnulees: cancelledInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0)
     }
+
   })
 
   // === TABLEAU ===

@@ -1486,13 +1486,13 @@ async function generatePdfInvoice(invoice) {
   transition: all .15s;
 }
 .btn-gift {
-  background: #f8fafc;
+  background: #bf9106;
   border: 1px solid #e2e8f0;
-  color: #94a3b8;
+  color: #f0f1f2;
 }
 
 /* ── Price tag ──────────────────────────────────────────── */
-.price-tag { color: #a5b4fc; font-weight: 600; font-size: 13px; }
+.price-tag { color: #0c4041; font-weight: 600; font-size: 13px; }
 .price-cell { color: #9ca3af; font-size: 12px; }
 .total-cell { color: #e2e8f0; font-weight: 600; }
 

@@ -297,7 +297,8 @@ async function downloadPDF() {
 
               <!-- Filtre utilisateur + recherche -->
               <div class="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto">
-                <Select
+
+                <Select v-if="!isSuperUser"
                   v-model="selectedUserFilter"
                   :options="childUsers.map(u => ({
                     id: u.id,
@@ -391,12 +392,14 @@ async function downloadPDF() {
 
         <Column field="total_amount" header="TOTAL" style="min-width: 200px">
           <template #body="slotProps" v-if="isSuperUser">
-            <span class="font-semibold text-gray-800">USD {{ slotProps.data.total_amount }}</span>
+            <span class="font-semibold text-gray-800"> {{ slotProps.data.total_amount }} {{ slotProps.data.currency }}  </span>
           </template>
+
           <template #body="slotProps" v-else>
             <span class="font-semibold text-gray-800">
-              {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
               {{ slotProps.data.total_amount }}
+              {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
+              
             </span>
           </template>
         </Column>
@@ -416,7 +419,7 @@ async function downloadPDF() {
           </template>
         </Column>
 
-        <Column field="user_name" header="DONATEUR" style="min-width: 200px">
+        <Column field="user_name" header="RECEVEUR" style="min-width: 200px">
           <template #body="slotProps">
             <div class="flex items-center gap-2">
               <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
@@ -473,7 +476,8 @@ async function downloadPDF() {
               KINSHASA, NGALIEMA, PIGEON, AV: NIWA, N°25
             </p>
             <p class="text-sm md:text-base text-gray-500">
-              Kinshasa, le {{ formate(new Date()) }}
+
+              Kinshasa, le {{ formatDate(new Date()) }}
             </p>
 
             <h2 class="text-lg font-semibold text-gray-800 pt-2">Reçu N°/: 000 /25</h2>
@@ -543,7 +547,10 @@ async function downloadPDF() {
 
             <Column field="amount" header="Montant" style="min-width: 150px">
               <template #body="slotProps" v-if="isSuperUser">
-                <span class="font-semibold text-gray-800">USD {{ slotProps.data.amount }}</span>
+                <span class="font-semibold text-gray-800">
+                {{ slotProps.data.amount }}  {{ EntryNoteList.find((c) => c.id === seletedEntryNote)?.currency || "N/A" }} 
+                
+                </span>
               </template>
               <template #body="slotProps" v-else>
                 <span class="font-semibold text-gray-800">
@@ -562,7 +569,7 @@ async function downloadPDF() {
             <div v-if="isSuperUser" class="flex justify-between items-center gap-6">
               <span class="text-sm text-gray-500 font-medium">Total</span>
               <span class="text-base md:text-lg font-bold text-gray-800">
-                {{ calculateTotal() }} USD
+                {{ calculateTotal() }}  {{ EntryNoteList.find((c) => c.id === seletedEntryNote)?.currency || "N/A" }}
               </span>
             </div>
             <div v-else class="flex justify-between items-center gap-6">

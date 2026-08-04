@@ -793,7 +793,7 @@ const startStatsAnimation = () => {
            style="transition: all 0.6s ease 0s">
         <div class="highlight-img-wrap">
           <img
-            src="/demo/pos_connexion.png"
+            src="/demo/pos_statistic.png"
             alt="Page connexion BilaSol"
             loading="lazy"
             decoding="async"
@@ -801,8 +801,8 @@ const startStatsAnimation = () => {
           />
         </div>
         <div class="highlight-label">
-          <i class="pi pi-lock text-xs"></i>
-          Connexion sécurisée
+          <i class="pi pi-sliders-v text-xs"></i>
+          statistiques
         </div>
       </div>
 
@@ -1139,7 +1139,7 @@ const startStatsAnimation = () => {
       </h3>
 
       <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
-        Disponible sur votre appareil · Version 1.8.8
+        Disponible sur votre appareil · Version 1.8.9
       </p>
 
       <!-- Badges store -->

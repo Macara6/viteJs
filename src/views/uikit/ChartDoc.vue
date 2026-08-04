@@ -243,6 +243,8 @@ watch(
                 <Chart type="bar" :data="barData" :options="barOptions"></Chart>
             </div>
         </div>
+
+        
         <div class="col-span-12 xl:col-span-6">
             <div class="card flex flex-col items-center">
                 <div class="font-semibold text-xl mb-4">Pie</div>
