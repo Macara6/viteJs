@@ -256,11 +256,11 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
 async function ViewDetailInvoice(invoiceId) {
   try {
     const details = await fetchInvoiceDetail(invoiceId);
-    selectedInvoices.value = invoiceId;
+    selectedInvoices.value = [invoiceId];
     invoiceDetails.value = details;
     showModal.value = true;
   } catch(err) {
-    console.error(err);
+    
     toast.add({ severity:'error', summary:'Erreur', detail:'Impossible de charger les détails', life:3000 });
   }
 }
@@ -439,6 +439,7 @@ async function verifySecret() {
     toast.add({ severity:'error', summary:'Erreur', detail:'Erreur de vérification', life:3000 });
   }
 }
+
 async function checkSecretKey(){
   try{
     const res = await checkSecretKeyStatus();

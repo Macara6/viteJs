@@ -82,9 +82,14 @@ const pendingCount = computed(() => pendingInvoices.value.length);
       
   });
 
-  function generateInvoiceNumber(){
+
+ function generateInvoiceNumber() {
     const now = new Date();
     const pad = (n, size = 2) => String(n).padStart(size, '0');
+
+    const random = Math.floor(Math.random() * 100000)
+        .toString()
+        .padStart(5, '0');
 
     return (
         now.getFullYear() +
@@ -93,14 +98,11 @@ const pendingCount = computed(() => pendingInvoices.value.length);
         pad(now.getHours()) +
         pad(now.getMinutes()) +
         pad(now.getSeconds()) +
-        pad(now.getMilliseconds(), 3)
+        random
     );
+}
 
-  }
 
-  const invoiceNumber =  generateInvoiceNumber()
-
- 
 
   async function getCustomers(){
     const response = await fetchCustomer();
@@ -534,6 +536,7 @@ function calculateChange() {
 
 
 async function createInvoice(){
+      const invoiceNumber =  generateInvoiceNumber()
       const finalTotal = totalAmount.value - pointsDiscount.value;
 
       if (finalTotal > 0 && amountPaid.value < finalTotal) {
