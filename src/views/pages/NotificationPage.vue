@@ -97,7 +97,7 @@ const filteredUsers = computed(() => {
 async function selectNotification(notification) {
     selectedNotification.value = notification;
 
-    console.log('notication selectionne :', selectedNotification.value)
+   
   
 
     if (screenWidth.value < 1024) {

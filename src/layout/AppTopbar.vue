@@ -2,7 +2,7 @@
 
 <script setup>
 import { useLayout } from '@/layout/composables/layout';
-import { fetchNotificationForUserAPI, fetchUserById, logoutAPI } from '@/service/Api';
+import { fetchNotificationForUserAPI, fetchUserById, logoutAPI, markAsReadAPI } from '@/service/Api';
 import Badge from 'primevue/badge';
 import { usePrimeVue } from 'primevue/config';
 import { computed, onMounted, ref } from 'vue';
@@ -44,7 +44,7 @@ onMounted(() => {
 onMounted(()=>  {
     username.value = localStorage.getItem('username');
     fetchUser();
-    getNotificationsUser();
+    setInterval(getNotificationsUser, 3000);
 
 });
 
@@ -62,7 +62,7 @@ async function getNotificationsUser() {
     const userId = localStorage.getItem('id')
     const response = await fetchNotificationForUserAPI(userId);
      notifications.value = response;
-      console.log('notifications utilisateur :', notifications.value);
+      
     
 }
 
@@ -90,11 +90,16 @@ const closeProfile = () => {
 // ── Helpers de style ──────────────────────────────────
 // ── Helpers ────────────────────────────────────────────
 
-function toggleExpand(notification) {
+async function toggleExpand(notification) {
     notification._expanded = !notification._expanded;
-
+  const notificationData = {
+        notification_id: notification.id,
+        user_id:localStorage.getItem('id')
+    }
+   
     if (!notification.is_read) {
-        markAsRead(notification); // ta fonction existante de marquage lu
+       await markAsReadAPI(notificationData);
+        await getNotificationsUser();
     }
 }
 
@@ -287,6 +292,7 @@ function notifIcon(notification) {
                 v-for="notification in notifications"
                 :key="notification.id"
                 class="notif-card"
+
                 :class="notifCardClass(notification)"
                 @click="toggleExpand(notification)"
             >

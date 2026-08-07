@@ -290,10 +290,12 @@ function  confirmDeleteMultiple(){
 
 }
 
+
 function confirmCancelInvoice(invoice){
   invoiceToCancel.value = invoice;
   cancelDialog.value = true;
 }
+
 
 function askSecretForCancel(){
   cancelDialog.value = false;

@@ -518,6 +518,22 @@ export async function fetchNotificationForUserAPI(userId){
     }
 }
 
+export async function markAsReadAPI(notificationData){
+
+    const URL_MARKASREAD = `${API_BASE}notification-mark-view/`;
+
+    try {
+        const response = await axios.post(URL_MARKASREAD, notificationData,{
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data;
+    }catch(error){
+        console.error('error to mark :',error)
+    }
+}
+
 
 
 
@@ -1319,6 +1335,21 @@ export async function reactivateSubscription(userId){
    }catch(error){
       console.log('Error reativating subscription: ',error.response?.data || error );
    }
+}
+
+export async function deleteSubscriptionAPI(userId) {
+    const URL_DELETE_SUB = `${API_BASE}subscription/reactivate/${userId}/`;
+    try{
+        const response = await axios.delete(URL_DELETE_SUB, {
+            headers :{
+                 'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        return response.data;
+    }catch(error){
+        console.error('error to delete subscription :', error);
+    }
+    
 }
 
 export const fetchSubscriptionByEmail = async (email) => {

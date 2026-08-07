@@ -350,14 +350,14 @@ const subBadgeClass = (type) => ({
 
 <template>
 <div class="settings-shell">
-
+ 
   <!-- ═══════════════ PROFIL BOUTIQUE ═══════════════ -->
   <div class="settings-card">
-
+ 
     <div class="card-header">
       <div class="card-title">
         <div class="title-icon">
-          <i class="pi pi-shop"></i>
+          <i class="pi pi-briefcase"></i>
         </div>
         <div>
           <h2>Profil de la Boutique</h2>
@@ -374,7 +374,7 @@ const subBadgeClass = (type) => ({
         @click="openEditDialog"
       />
     </div>
-
+ 
     <!-- Infos boutique -->
     <div class="info-grid">
       <div class="info-item">
@@ -414,16 +414,16 @@ const subBadgeClass = (type) => ({
         <span class="badge badge-green">{{ userProfile?.exchange_rate || '—' }}</span>
       </div>
     </div>
-
+ 
     <!-- Points fidélité -->
     <div class="loyalty-section">
       <div class="loyalty-header">
         <i class="pi pi-star-fill"></i>
         <span>Gestion des Points de Fidélité</span>
       </div>
-
+ 
       <div class="loyalty-cards">
-
+ 
         <div class="loyalty-card">
           <div class="loyalty-card-label">Valeur d'un point (Entrée)</div>
           <div class="loyalty-card-value green">
@@ -434,7 +434,7 @@ const subBadgeClass = (type) => ({
             <i class="pi pi-arrow-down-left"></i>
           </div>
         </div>
-
+ 
         <div class="loyalty-card">
           <div class="loyalty-card-label">Valeur d'un point (Sortie)</div>
           <div class="loyalty-card-value red">
@@ -445,7 +445,7 @@ const subBadgeClass = (type) => ({
             <i class="pi pi-arrow-up-right"></i>
           </div>
         </div>
-
+ 
         <div class="loyalty-card">
           <div class="loyalty-card-label">Statut du programme</div>
           <div class="loyalty-toggle-row">
@@ -464,14 +464,14 @@ const subBadgeClass = (type) => ({
             <i class="pi pi-power-off"></i>
           </div>
         </div>
-
+ 
       </div>
     </div>
   </div>
-
+ 
   <!-- ═══════════════ UTILISATEUR + ABONNEMENT ═══════════════ -->
   <div class="two-col-grid">
-
+ 
     <!-- Utilisateur -->
     <div class="settings-card">
       <div class="card-header">
@@ -485,7 +485,7 @@ const subBadgeClass = (type) => ({
           </div>
         </div>
       </div>
-
+ 
       <div class="info-grid">
         <div class="info-item info-item-full">
           <span class="info-label">Nom d'utilisateur</span>
@@ -500,7 +500,7 @@ const subBadgeClass = (type) => ({
           <span class="info-value">{{ user?.email || '—' }}</span>
         </div>
       </div>
-
+ 
       <div class="action-buttons">
         <button class="act-btn act-info" @click="openEditUserDialog">
           <i class="pi pi-user-edit"></i> Modifier
@@ -516,13 +516,13 @@ const subBadgeClass = (type) => ({
         </button>
       </div>
     </div>
-
+ 
     <!-- Abonnement -->
     <div v-if="userStatus == 'ADMIN'" class="settings-card">
       <div class="card-header">
         <div class="card-title">
           <div class="title-icon amber">
-            <i class="pi pi-crown"></i>
+            <i class="pi pi-server"></i>
           </div>
           <div>
             <h2>Abonnement</h2>
@@ -539,7 +539,7 @@ const subBadgeClass = (type) => ({
           {{ subscription.subscription_type }}
         </span>
       </div>
-
+ 
       <div class="info-grid">
         <div class="info-item">
           <span class="info-label">Début</span>
@@ -556,7 +556,7 @@ const subBadgeClass = (type) => ({
           </span>
         </div>
       </div>
-
+ 
       <div v-if="subscription" class="progress-section">
         <div class="progress-header">
           <span class="info-label">Durée restante</span>
@@ -575,71 +575,95 @@ const subBadgeClass = (type) => ({
         </div>
       </div>
     </div>
-
+ 
   </div>
 
-
-  <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '450px' }">
-    <div class="flex flex-col gap-4">
-      <div>
-        <label class="font-semibold mb-1 block">Nom de la boutique</label>
+ <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '560px' }" class="profile-dialog">
+    <div class="dialog-body">
+ 
+      <!-- Identité -->
+      <div class="field field-full">
+        <label class="field-label">Nom de la boutique</label>
         <InputText v-model="editedProfile.entrep_name" class="w-full" :invalid="submitted && !editedProfile.entrep_name" />
-        <small v-if="submitted && !editedProfile.entrep_name" class="text-red-500">Ce champ est requis.</small>
+        <small v-if="submitted && !editedProfile.entrep_name" class="field-error">Ce champ est requis.</small>
       </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">Numéro d'impôt</label>
-        <InputText v-model="editedProfile.impot_number" class="w-full" />
+ 
+      <!-- Identifiants légaux -->
+      <div class="field-section">
+        <span class="section-label">Identifiants légaux</span>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-label">Numéro d'impôt</label>
+            <InputText v-model="editedProfile.impot_number" class="w-full" />
+          </div>
+          <div class="field">
+            <label class="field-label">ID Nat</label>
+            <InputText v-model="editedProfile.id_nat" class="w-full" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">RCCM</label>
+            <InputText v-model="editedProfile.rccm_number" class="w-full" />
+          </div>
+        </div>
       </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">ID Nat</label>
-        <InputText v-model="editedProfile.id_nat" class="w-full" />
+ 
+      <!-- Coordonnées -->
+      <div class="field-section">
+        <span class="section-label">Coordonnées</span>
+        <div class="field-grid">
+          <div class="field field-full">
+            <label class="field-label">Téléphone</label>
+            <InputText v-model="editedProfile.phone_number" class="w-full" />
+          </div>
+          <div class="field field-full">
+            <label class="field-label">Adresse</label>
+            <InputText v-model="editedProfile.adress" class="w-full" />
+          </div>
+        </div>
       </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">RCCM</label>
-        <InputText v-model="editedProfile.rccm_number" class="w-full" />
+ 
+      <!-- Devise -->
+      <div class="field-section">
+        <span class="section-label">Devise &amp; change</span>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-label">Devise</label>
+            <select v-model="editedProfile.currency_preference" class="native-select">
+              <option value="CDF">CDF</option>
+              <option value="USD">USD</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Taux de change</label>
+            <InputText v-model="editedProfile.exchange_rate" class="w-full" />
+          </div>
+        </div>
       </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">Téléphone</label>
-        <InputText v-model="editedProfile.phone_number" class="w-full" />
+ 
+      <!-- Points de fidélité -->
+      <div class="field-section">
+        <span class="section-label">Points de fidélité</span>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-label">Valeur d'un point (Entrée)</label>
+            <InputText v-model="editedProfile.point_entry" class="w-full mono-input" />
+          </div>
+          <div class="field">
+            <label class="field-label">Valeur d'un point (Sortie)</label>
+            <InputText v-model="editedProfile.point_output" class="w-full mono-input" />
+          </div>
+        </div>
       </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">Adresse</label>
-        <InputText v-model="editedProfile.adress" class="w-full" />
-      </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">Devise</label>
-        <select v-model="editedProfile.currency_preference" class="w-full border rounded px-2 py-1">
-          <option value="CDF">CDF</option>
-          <option value="USD">USD</option>
-        </select>
-      </div>
+ 
     </div>
-    <div>
-        <label class="font-semibold mb-1 block">Taux de change</label>
-        <InputText v-model="editedProfile.exchange_rate" class="w-full" />
-      </div>
-     <div>
-
-        <label class="font-semibold mb-1 block">Valeur d'un point (Entrée)</label>
-        <InputText v-model="editedProfile.point_entry" class="w-full" />
-      </div>
-
-      <div>
-        <label class="font-semibold mb-1 block">Valeur d'un point (Sortie)</label>
-        <InputText v-model="editedProfile.point_output" class="w-full" />
-      </div>
-
+ 
     <template #footer>
       <Button label="Annuler" icon="pi pi-times" text @click="showDialog = false" />
       <Button label="Enregistrer" icon="pi pi-check" @click="saveProfile" />
     </template>
   </Dialog>
+
+
   <!-- Dialog Modification Utilisateur -->
   <Dialog v-model:visible="showDialogUpdateUser" header="Modifier mes informations" :modal="true" :style="{ width: '450px' }">
     <div class="flex flex-col gap-4">
@@ -777,241 +801,645 @@ const subBadgeClass = (type) => ({
 
 
 <style scoped>
-/* ── Shell ──────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+ 
+/* ─────────────────── Design tokens ─────────────────── */
 .settings-shell {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --border: #e6e8ef;
+  --border-strong: #d7dae3;
+  --text: #12141c;
+  --text-soft: #666b7a;
+  --text-faint: #9aa0ad;
+ 
+  --primary: #4f46e5;
+  --primary-soft: #eef0fd;
+  --success: #157a3d;
+  --success-soft: #e9f8ef;
+  --danger: #ae1f1f;
+  --danger-soft: #fbeaea;
+  --amber: #a15a06;
+  --amber-soft: #fbf1de;
+ 
+  --font-display: 'Manrope', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Inter', monospace;
+ 
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px;
-  background: #f1f5f9;
-  min-height: 100vh;
-  font-family: 'Inter', system-ui, sans-serif;
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  background: var(--bg);
+  font-family: var(--font-body);
+  color: var(--text);
 }
-
-/* ── Cards ──────────────────────────────────────────────── */
+ 
+.settings-shell * {
+  box-sizing: border-box;
+}
+ 
+/* ─────────────────── Card shell ─────────────────── */
 .settings-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 10px 10px;
 }
-
-/* ── Card header ────────────────────────────────────────── */
+ 
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+ 
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
+ 
 .card-title {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-.title-icon {
-  width: 40px; height: 40px;
-  background: #eef2ff;
-  color: #6366f1;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 17px;
-  flex-shrink: 0;
-}
-.title-icon.indigo { background: #eef2ff; color: #6366f1; }
-.title-icon.amber  { background: #fffbeb; color: #d97706; }
-
-.card-title h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-.card-subtitle {
-  font-size: 12px;
-  color: #94a3b8;
-  margin: 2px 0 0;
-}
-
-/* ── Info grid ──────────────────────────────────────────── */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-.info-item {
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-  border-radius: 10px;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.info-item-full { grid-column: 1 / -1; }
-.info-label {
-  font-size: 10px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-.info-value {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-}
-
-/* ── Badges ─────────────────────────────────────────────── */
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 12px; font-weight: 600;
-}
-.badge-green { background: #dcfce7; color: #16a34a; }
-.badge-red   { background: #fee2e2; color: #dc2626; }
-
-/* ── Loyalty section ────────────────────────────────────── */
-.loyalty-section {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
   gap: 14px;
 }
-.loyalty-header {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 13px; font-weight: 700;
-  color: #6366f1;
-  text-transform: uppercase; letter-spacing: 0.07em;
+ 
+.card-title h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
-.loyalty-header .pi { font-size: 14px; }
-
+ 
+.card-subtitle {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--text-soft);
+}
+ 
+.title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 16px;
+}
+ 
+.title-icon.indigo {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+ 
+.title-icon.amber {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+ 
+/* ─────────────────── Info grid ─────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 20px;
+}
+ 
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+ 
+.info-item-full {
+  grid-column: 1 / -1;
+}
+ 
+.info-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+ 
+.info-value {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+ 
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+ 
+.badge-green {
+  background: var(--success-soft);
+  color: var(--success);
+}
+ 
+.badge-red {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+ 
+/* ─────────────────── Loyalty section ─────────────────── */
+.loyalty-section {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+ 
+.loyalty-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+ 
+.loyalty-header .pi {
+  color: var(--amber);
+  font-size: 13px;
+}
+ 
 .loyalty-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 14px;
 }
+ 
 .loyalty-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 14px;
   position: relative;
   overflow: hidden;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+ 
+.loyalty-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--border-strong);
+}
+ 
+.loyalty-card:has(.loyalty-card-value.green)::before {
+  background: var(--success);
+}
+ 
+.loyalty-card:has(.loyalty-card-value.red)::before {
+  background: var(--danger);
+}
+ 
+.loyalty-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin-bottom: 10px;
+}
+ 
+.loyalty-card-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+ 
+.loyalty-card-value.green {
+  color: var(--success);
+}
+ 
+.loyalty-card-value.red {
+  color: var(--danger);
+}
+ 
+.loyalty-currency {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+ 
+.loyalty-card-icon {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 12px;
+}
+ 
+.loyalty-card-icon.red {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+ 
+.loyalty-card-icon.muted {
+  background: #f1f2f5;
+  color: var(--text-faint);
+}
+ 
+/* Toggle */
+.loyalty-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+ 
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.18s ease;
+}
+ 
+.toggle-switch:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+ 
+.toggle-on {
+  background: var(--success);
+}
+ 
+.toggle-off {
+  background: #d3d6de;
+}
+ 
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: left 0.18s ease;
+}
+ 
+.knob-on {
+  left: 20px;
+}
+ 
+.knob-off {
+  left: 2px;
+}
+ 
+.status-on {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success);
+}
+ 
+.status-off {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+ 
+/* ─────────────────── Account actions ─────────────────── */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+ 
+.act-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+ 
+.act-btn:hover {
+  transform: translateY(-1px);
+}
+ 
+.act-btn:active {
+  transform: translateY(0);
+}
+ 
+.act-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+ 
+.act-btn .pi {
+  font-size: 12.5px;
+}
+ 
+.act-info {
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border-strong));
+}
+ 
+.act-info:hover {
+  background: var(--primary-soft);
+}
+ 
+.act-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 25%, var(--border-strong));
+}
+ 
+.act-danger:hover {
+  background: var(--danger-soft);
+}
+ 
+.act-warning {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 25%, var(--border-strong));
+}
+ 
+.act-warning:hover {
+  background: var(--amber-soft);
+}
+ 
+/* ─────────────────── Subscription ─────────────────── */
+.subscription-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+ 
+.progress-section {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+ 
+.progress-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+ 
+.progress-pct {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+ 
+.progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: #edeef3;
+  overflow: hidden;
+}
+ 
+.progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+ 
+/* ─────────────────── Responsive ─────────────────── */
+@media (max-width: 860px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+ 
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+ 
+  .loyalty-cards {
+    grid-template-columns: 1fr;
+  }
+}
+ 
+@media (max-width: 480px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+ 
+  .card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+ 
+@media (prefers-reduced-motion: reduce) {
+  .settings-shell * {
+    transition: none !important;
+  }
+}
+
+
+
+
+
+/* ─────────────────── modale modification ─────────────────── */
+
+.profile-dialog {
+  --primary: #4f46e5;
+  --primary-soft: #eef0fd;
+  --border: #e6e8ef;
+  --border-strong: #d7dae3;
+  --text: #12141c;
+  --text-soft: #666b7a;
+  --text-faint: #9aa0ad;
+  --danger: #ae1f1f;
+  --danger-soft: #fbeaea;
+ 
+  --font-display: 'Manrope', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Inter', monospace;
+ 
+  font-family: var(--font-body);
+}
+ 
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+ 
+.field-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+ 
+.section-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+ 
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+ 
+.field {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
-.loyalty-card-label {
-  font-size: 11px; font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase; letter-spacing: 0.06em;
+ 
+.field-full {
+  grid-column: 1 / -1;
 }
-.loyalty-card-value {
-  font-size: 22px; font-weight: 800;
-  display: flex; align-items: baseline; gap: 4px;
+ 
+.field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
 }
-.loyalty-card-value.green { color: #16a34a; }
-.loyalty-card-value.red   { color: #dc2626; }
-.loyalty-currency { font-size: 12px; font-weight: 500; color: #94a3b8; }
-
-.loyalty-card-icon {
-  position: absolute;
-  top: 12px; right: 12px;
-  width: 28px; height: 28px;
-  background: #dcfce7; color: #16a34a;
+ 
+.field-error {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--danger);
+}
+ 
+.mono-input :deep(input) {
+  font-family: var(--font-mono);
+}
+ 
+.native-select {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s ease;
 }
-.loyalty-card-icon.red   { background: #fee2e2; color: #dc2626; }
-.loyalty-card-icon.muted { background: #f1f5f9; color: #94a3b8; }
-
-/* Toggle switch */
-.loyalty-toggle-row {
-  display: flex; align-items: center; gap: 8px; margin-top: 4px;
+ 
+.native-select:hover {
+  border-color: var(--primary);
 }
-.toggle-switch {
-  position: relative;
-  width: 46px; height: 26px;
-  border-radius: 99px; border: none;
-  cursor: pointer; transition: background .2s;
-  flex-shrink: 0;
+ 
+.native-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
 }
-.toggle-on  { background: #16a34a; }
-.toggle-off { background: #cbd5e1; }
-.toggle-knob {
-  position: absolute; top: 3px;
-  width: 20px; height: 20px;
-  background: #fff; border-radius: 50%;
-  transition: transform .2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+ 
+/* PrimeVue overrides, scoped to this dialog only */
+.profile-dialog :deep(.p-dialog-header) {
+  font-family: var(--font-display);
+  font-weight: 700;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
 }
-.knob-on  { transform: translateX(22px); }
-.knob-off { transform: translateX(3px); }
-.status-on  { font-size: 13px; font-weight: 700; color: #16a34a; }
-.status-off { font-size: 13px; font-weight: 700; color: #94a3b8; }
-
-/* ── Action buttons ─────────────────────────────────────── */
-.action-buttons {
-  display: flex; flex-wrap: wrap; gap: 8px;
+ 
+.profile-dialog :deep(.p-dialog-content) {
+  padding: 20px 22px;
 }
-.act-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 8px;
-  font-size: 12px; font-weight: 600;
-  border: none; cursor: pointer; transition: all .15s;
+ 
+.profile-dialog :deep(.p-dialog-footer) {
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
-.act-info    { background: #eef2ff; color: #4f46e5; }
-.act-info:hover    { background: #6366f1; color: #fff; }
-.act-danger  { background: #fee2e2; color: #dc2626; }
-.act-danger:hover  { background: #ef4444; color: #fff; }
-.act-warning { background: #fffbeb; color: #d97706; }
-.act-warning:hover { background: #f59e0b; color: #fff; }
-
-/* ── Subscription badge ─────────────────────────────────── */
-.subscription-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: 20px;
-  font-size: 12px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.06em;
+ 
+.profile-dialog :deep(.p-inputtext) {
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  font-size: 13.5px;
+  transition: border-color 0.15s ease;
 }
-.sub-basic    { background: #fee2e2; color: #991b1b; }
-.sub-medium   { background: #dcfce7; color: #15803d; }
-.sub-premium  { background: #dbeafe; color: #1d4ed8; }
-.sub-platinum { background: #fef9c3; color: #a16207; }
-.sub-diamond  { background: #f3e8ff; color: #7e22ce; }
-
-/* ── Progress ───────────────────────────────────────────── */
-.progress-section { display: flex; flex-direction: column; gap: 6px; }
-.progress-header {
-  display: flex; justify-content: space-between; align-items: center;
+ 
+.profile-dialog :deep(.p-inputtext:enabled:hover) {
+  border-color: var(--primary);
 }
-.progress-pct { font-size: 13px; font-weight: 700; color: #1e293b; }
-.progress-track {
-  height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden;
+ 
+.profile-dialog :deep(.p-inputtext:enabled:focus) {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-soft);
 }
-.progress-bar {
-  height: 100%; border-radius: 99px;
-  transition: width .5s ease;
+ 
+.profile-dialog :deep(.p-inputtext.p-invalid) {
+  border-color: var(--danger);
 }
-
-/* ── Two col ────────────────────────────────────────────── */
-.two-col-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-@media (max-width: 768px) {
-  .two-col-grid { grid-template-columns: 1fr; }
-  .loyalty-cards { grid-template-columns: 1fr; }
-  .info-grid { grid-template-columns: 1fr; }
+ 
+@media (max-width: 480px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -135,9 +135,11 @@ const confirmPayment = async ()=>{
       }, 2000);
       return;
     }
+
     
   }catch(error){
     console.log(error)
+    errorMessage.value="Paiement échoué. Réessayez.";
     let backendError =
     error.response?.data?.errors?.message ||
     error.response?.data.message ||

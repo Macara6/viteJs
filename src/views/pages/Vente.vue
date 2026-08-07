@@ -27,7 +27,9 @@ const tva_pro = ref(0);
 
 const userProfile = ref(null);
 const search = ref('');
+
 const toast = useToast();
+
 const barcodeSearch = ref('');
 
 

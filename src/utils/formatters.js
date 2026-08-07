@@ -1,10 +1,17 @@
 
 
 // src/utils/formatters.js
-export function formatPrice(value) {
-  if (value == null) return "0";
-  return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+ export function formatPrice(value) {
+  const number = Number(value || 0);
+
+  return number.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
+
+
 
 
 export  function formatDate (value ){
