@@ -50,10 +50,12 @@ const endDate = ref(null);
 
 onMounted(async () => {
   await getUserChildren();
-  selectedUserFilter.value = userId; // par défaut, utilisateur connecté
-  await refreshUserData(); // charge profil + cashouts
-   
+  selectedUserFilter.value = userId;
+  await loadCashOutAndUser(1);
+
 });
+
+
 
 
 const filterdCashOut = computed(() => {
@@ -68,19 +70,10 @@ const filterdCashOut = computed(() => {
   })
 })
 
-const totalAmountCDF = computed(() => {
-  return filterdCashOut.value
-    .filter(cas => cas.currency === 'CDF')
-    .reduce((sum, cas) => sum + parseFloat(cas.total_amount || 0), 0)
-    .toFixed(2);
-});
+const totalAmountCDF = ref(0);
 
-const totalAmountUSD = computed(() => {
-  return filterdCashOut.value
-    .filter(cas => cas.currency === 'USD')
-    .reduce((sum, cas) => sum + parseFloat(cas.total_amount || 0), 0)
-    .toFixed(2);
-});
+const totalAmountUSD = ref(0);
+  
 
 function resetDates(){
   startDate.value =null;
@@ -102,12 +95,31 @@ async function getUserChildren() {
 }
 
 /* ===================== Charger les cashouts ===================== */
-async function loadCashOutAndUser() {
+const currentPage = ref(1);
+const pageSize = ref(50);
+const totalCashouts = ref(0);
+const loadingCashouts = ref(false);
+
+
+const totalPages = computed(() =>
+  Math.ceil(totalCashouts.value / 50)
+);
+
+const canGoPrevious = computed(() => currentPage.value > 1);
+
+const canGoNext = computed(() => currentPage.value < totalPages.value);
+
+async function loadCashOutAndUser(page = 1) {
+  if (loadingCashouts.value) return;
+
   try {
+    loadingCashouts.value = true;
+    currentPage.value = page;
+
     const activeUserId = selectedUserFilter.value || userId;
 
-    const [cashouts, users] = await Promise.all([
-      fetchCashOut(activeUserId),
+    const [cashoutData, users] = await Promise.all([
+      fetchCashOut(activeUserId, currentPage.value),
       fetchUsers()
     ]);
 
@@ -116,14 +128,48 @@ async function loadCashOutAndUser() {
       return acc;
     }, {});
 
-    cashoutList.value = cashouts.map(cashout => ({
+    cashoutList.value = cashoutData.results.map(cashout => ({
       ...cashout,
       user_name: usersMap.value[cashout.user] || 'Inconnu'
     }));
+
+    totalCashouts.value = cashoutData.count;
+    totalAmountUSD.value = cashoutData.total_usd;
+    totalAmountCDF.value = cashoutData.total_cdf;
+
   } catch (error) {
     console.error('Erreur lors du chargement des bons de sortie:', error);
+  } finally {
+    loadingCashouts.value = false;
   }
 }
+
+function goToPreviousPage() {
+  if (canGoPrevious.value) {
+    loadCashOutAndUser(currentPage.value - 1);
+  }
+}
+
+function goToNextPage() {
+  if (canGoNext.value) {
+    loadCashOutAndUser(currentPage.value + 1);
+  }
+}
+
+function resetCashoutPagination() {
+  loadCashOutAndUser(1);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 /* =====================  Charger le profil utilisateur actif ===================== */
 async function fetchUserProfil() {
@@ -221,207 +267,237 @@ const findUser = (id) => {
         </div>
       </div>
 
-      <DataTable
-        :value="filterdCashOut"
-        scrollable
-        scrollHeight="400px"
-        class="mt-2"
-        :filters="filters"
-        stripedRows
-      >
+    <div class="cashout-table-container ">
+     
+          <DataTable
+            ref="cashoutTable"
+            :value="filterdCashOut"
+            scrollable
+            scrollHeight="400px"
+            class="mt-2"
+            :filters="filters"
+            stripedRows
+          >
 
-        <template #header>
-          <div class="flex flex-col gap-5 px-2 py-3">
+            <template #header>
+              <div class="flex flex-col gap-5 px-2 py-3">
 
-            <!-- Ligne 1 : Actions + Filtres de date -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- Ligne 1 : Actions + Filtres de date -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
-              <div class="flex flex-wrap gap-3 items-center">
-                <RouterLink to="/pages/CreateCashout">
-                  <Button
-                    label="Nouveau Dépasse"
-                    icon="pi pi-plus"
-                    class="shadow-sm"
-                  />
-                </RouterLink>
+                  <div class="flex flex-wrap gap-3 items-center">
+                    <RouterLink to="/pages/CreateCashout">
+                      <Button
+                        label="Nouveau Dépasse"
+                        icon="pi pi-plus"
+                        class="shadow-sm"
+                      />
+                    </RouterLink>
 
-                <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200">
-                  <Calendar
-                    v-model="startDate"
-                    placeholder="Date début"
-                    date-format="yy-mm-dd"
-                    show-icon
-                    class="w-40"
-                  />
-                  <i class="pi pi-arrow-right text-gray-400 text-xs"></i>
-                  <Calendar
-                    v-model="endDate"
-                    placeholder="Date fin"
-                    date-format="yy-mm-dd"
-                    show-icon
-                    class="w-40"
-                  />
-                  <Button
-                    icon="pi pi-refresh"
-                    class="p-button-text p-button-secondary"
-                    v-tooltip.top="'Réinitialiser les dates'"
-                    @click="resetDates"
-                  />
+                    <div class="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5 border border-gray-200">
+                      <Calendar
+                        v-model="startDate"
+                        placeholder="Date début"
+                        date-format="yy-mm-dd"
+                        show-icon
+                        class="w-40"
+                      />
+                      <i class="pi pi-arrow-right text-gray-400 text-xs"></i>
+                      <Calendar
+                        v-model="endDate"
+                        placeholder="Date fin"
+                        date-format="yy-mm-dd"
+                        show-icon
+                        class="w-40"
+                      />
+                      <Button
+                        icon="pi pi-refresh"
+                        class="p-button-text p-button-secondary"
+                        v-tooltip.top="'Réinitialiser les dates'"
+                        @click="resetDates"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Filtre utilisateur + recherche -->
+                  <div class="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto">
+                    <Select v-if="!isSuperUser"
+                      v-model="selectedUserFilter"
+                      @change="resetCashoutPagination"
+                      :options="childUsers.map(u => ({
+                        id: u.id,
+                        username: u.username,
+                        status: u.status
+                      })).filter(u => u.status !== 'GESTIONNAIRE_STOCK')"
+                      optionLabel="username"
+                      optionValue="id"
+                      placeholder="Sélectionner utilisateur"
+                      class="w-full sm:w-60"
+                      showClear
+                    >
+                      <template #option="slotProps">
+                        <div class="flex items-center justify-between w-full">
+                          <span class="text-sm">{{ slotProps.option.username }}</span>
+                          <span
+                            class="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                            :class="{
+                              'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
+                              'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
+                              'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                            }"
+                          >
+                            {{ slotProps.option.status }}
+                          </span>
+                        </div>
+                      </template>
+
+                      <template #seletectItem="slotProps">
+                        <div v-if="slotProps.value" class="flex items-center gap-2">
+                          <span class="text-sm">{{ slotProps.value.username }}</span>
+                          <span
+                            class="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                            :class="{
+                              'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
+                              'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
+                            }"
+                          >
+                            {{ slotProps.value.status }}
+                          </span>
+                        </div>
+                        <span v-else class="text-sm text-gray-400">Sélectionner utilisateur</span>
+                      </template>
+                    </Select>
+
+                    <span class="relative flex items-center w-full sm:w-64">
+                      <i
+                        v-if="!filters['global'].value"
+                        class="pi pi-search absolute left-3 text-gray-400 text-sm"
+                      ></i>
+                      <InputText
+                        v-model="filters['global'].value"
+                        placeholder="       Rechercher..."
+                        class="w-full pl-9 py-2 text-sm rounded-lg"
+                      />
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Ligne 2 : Totaux sous forme de cartes -->
+                <div class="flex flex-wrap gap-4">
+                  <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 min-w-[180px]">
+                    <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                      <i class="pi pi-money-bill text-green-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500">Total CDF</div>
+                      <div class="text-base font-bold text-green-700">{{ totalAmountCDF }}</div>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 min-w-[180px]">
+                    <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                      <i class="pi pi-dollar text-blue-600 text-sm"></i>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500">Total USD</div>
+                      <div class="text-base font-bold text-blue-700">{{ totalAmountUSD }}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </template>
 
-              <!-- Filtre utilisateur + recherche -->
-              <div class="flex flex-wrap gap-3 items-center justify-end w-full lg:w-auto">
-                <Select v-if="!isSuperUser"
-                  v-model="selectedUserFilter"
-                  :options="childUsers.map(u => ({
-                    id: u.id,
-                    username: u.username,
-                    status: u.status
-                  })).filter(u => u.status !== 'GESTIONNAIRE_STOCK')"
-                  optionLabel="username"
-                  optionValue="id"
-                  placeholder="Sélectionner utilisateur"
-                  class="w-full sm:w-60"
-                  showClear
-                >
-                  <template #option="slotProps">
-                    <div class="flex items-center justify-between w-full">
-                      <span class="text-sm">{{ slotProps.option.username }}</span>
-                      <span
-                        class="px-2 py-0.5 rounded-full text-[11px] font-medium"
-                        :class="{
-                          'bg-green-100 text-green-700': slotProps.option.status === 'ADMIN',
-                          'bg-blue-100 text-blue-700': slotProps.option.status === 'CAISSIER',
-                          'bg-gray-200 text-gray-700': slotProps.option.status === 'GESTIONNAIRE_STOCK'
-                        }"
-                      >
-                        {{ slotProps.option.status }}
-                      </span>
-                    </div>
-                  </template>
+            <Column field="id" header="ID" style="min-width: 90px">
+              <template #body="slotProps">
+                <span class="text-gray-500 font-mono text-sm">{{ slotProps.data.id }}</span>
+              </template>
+            </Column>
 
-                  <template #seletectItem="slotProps">
-                    <div v-if="slotProps.value" class="flex items-center gap-2">
-                      <span class="text-sm">{{ slotProps.value.username }}</span>
-                      <span
-                        class="px-2 py-0.5 rounded-full text-[11px] font-medium"
-                        :class="{
-                          'bg-green-100 text-green-700': slotProps.value.status === 'ADMIN',
-                          'bg-blue-100 text-blue-700': slotProps.value.status === 'CAISSIER'
-                        }"
-                      >
-                        {{ slotProps.value.status }}
-                      </span>
-                    </div>
-                    <span v-else class="text-sm text-gray-400">Sélectionner utilisateur</span>
-                  </template>
-                </Select>
+            <Column field="total_amount" header="TOTAL" style="min-width: 200px">
 
-                <span class="relative flex items-center w-full sm:w-64">
-                  <i
-                    v-if="!filters['global'].value"
-                    class="pi pi-search absolute left-3 text-gray-400 text-sm"
-                  ></i>
-                  <InputText
-                    v-model="filters['global'].value"
-                    placeholder="       Rechercher..."
-                    class="w-full pl-9 py-2 text-sm rounded-lg"
-                  />
+             
+
+              <template #body="slotProps">
+                <span class="font-semibold text-gray-800">
+                  {{ slotProps.data.total_amount }}
+                  {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
+
                 </span>
-              </div>
-            </div>
+              </template>
 
-            <!-- Ligne 2 : Totaux sous forme de cartes -->
-            <div class="flex flex-wrap gap-4">
-              <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 min-w-[180px]">
-                <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
-                  <i class="pi pi-money-bill text-green-600 text-sm"></i>
+            </Column>
+
+            <Column field="motif" header="DEMANDEUR" style="min-width: 200px">
+              <template #body="slotProps">
+                <span class="text-gray-700">{{ slotProps.data.motif }}</span>
+              </template>
+            </Column>
+
+            <Column field="created_at" header="DATE" style="min-width: 200px">
+              <template #body="slotProps">
+                <span class="text-gray-500 text-sm">
+                  <i class="pi pi-calendar mr-1 text-xs"></i>
+                  {{ formatDate(slotProps.data.created_at) }}
+                </span>
+              </template>
+            </Column>
+
+            <Column field="user_name" header="DONATEUR" style="min-width: 200px">
+              <template #body="slotProps">
+                <div class="flex items-center gap-2">
+                  <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
+                    {{ slotProps.data.user_name?.charAt(0)?.toUpperCase() }}
+                  </div>
+                  <span class="text-gray-700 text-sm">{{ slotProps.data.user_name }}</span>
                 </div>
-                <div>
-                  <div class="text-xs text-gray-500">Total CDF</div>
-                  <div class="text-base font-bold text-green-700">{{ totalAmountCDF }}</div>
+              </template>
+            </Column>
+
+            <Column header="ACTION" style="min-width: 130px">
+              <template #body="slotProps">
+                <div class="flex gap-2">
+                  <Button
+                    icon="pi pi-eye"
+                    class="p-button-sm p-button-rounded p-button-outlined p-button-info"
+                    v-tooltip.top="'Voir le détail'"
+                    @click="ViewDetailCashout(slotProps.data.id)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    class="p-button-sm p-button-rounded p-button-outlined"
+                    severity="danger"
+                    v-tooltip.top="'Supprimer'"
+                    @click="deleteToCahOut(slotProps.data)"
+                  />
                 </div>
-              </div>
+              </template>
+            </Column>
+          </DataTable>
+         
+         <div class="flex items-center justify-between gap-3 py-3">
+          <Button
+            label="Précédent"
+            icon="pi pi-chevron-left"
+            :disabled="!canGoPrevious || loadingCashouts"
+            @click="goToPreviousPage"
+          />
 
-              <div class="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 min-w-[180px]">
-                <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
-                  <i class="pi pi-dollar text-blue-600 text-sm"></i>
-                </div>
-                <div>
-                  <div class="text-xs text-gray-500">Total USD</div>
-                  <div class="text-base font-bold text-blue-700">{{ totalAmountUSD }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
+          <span class="text-sm text-gray-500">
+            Page {{ currentPage }} / {{ totalPages || 1 }}
+            - {{ totalCashouts }} bons de sortie
+          </span>
 
-        <Column field="id" header="ID" style="min-width: 90px">
-          <template #body="slotProps">
-            <span class="text-gray-500 font-mono text-sm">{{ slotProps.data.id }}</span>
-          </template>
-        </Column>
+          <Button
+            label="Suivant"
+            icon="pi pi-chevron-right"
+            iconPos="right"
+            :disabled="!canGoNext || loadingCashouts"
+            @click="goToNextPage"
+          />
+        </div>
+       
+        </div>
 
-        <Column field="total_amount" header="TOTAL" style="min-width: 200px">
-          <template #body="slotProps" v-if="isSuperUser">
-            <span class="font-semibold text-gray-800"> {{ slotProps.data.total_amount }} {{ slotProps.data.currency ||  "USD" }} </span>
-          </template>
-          <template #body="slotProps">
-            <span class="font-semibold text-gray-800">
-               {{ slotProps.data.total_amount }}
-              {{ slotProps.data.currency || (userProfile ? userProfile.currency_preference : "N/A") }}
-
-            </span>
-          </template>
-        </Column>
-
-        <Column field="motif" header="DEMANDEUR" style="min-width: 200px">
-          <template #body="slotProps">
-            <span class="text-gray-700">{{ slotProps.data.motif }}</span>
-          </template>
-        </Column>
-
-        <Column field="created_at" header="DATE" style="min-width: 200px">
-          <template #body="slotProps">
-            <span class="text-gray-500 text-sm">
-              <i class="pi pi-calendar mr-1 text-xs"></i>
-              {{ formatDate(slotProps.data.created_at) }}
-            </span>
-          </template>
-        </Column>
-
-        <Column field="user_name" header="DONATEUR" style="min-width: 200px">
-          <template #body="slotProps">
-            <div class="flex items-center gap-2">
-              <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xs font-semibold">
-                {{ slotProps.data.user_name?.charAt(0)?.toUpperCase() }}
-              </div>
-              <span class="text-gray-700 text-sm">{{ slotProps.data.user_name }}</span>
-            </div>
-          </template>
-        </Column>
-
-        <Column header="ACTION" style="min-width: 130px">
-          <template #body="slotProps">
-            <div class="flex gap-2">
-              <Button
-                icon="pi pi-eye"
-                class="p-button-sm p-button-rounded p-button-outlined p-button-info"
-                v-tooltip.top="'Voir le détail'"
-                @click="ViewDetailCashout(slotProps.data.id)"
-              />
-              <Button
-                icon="pi pi-trash"
-                class="p-button-sm p-button-rounded p-button-outlined"
-                severity="danger"
-                v-tooltip.top="'Supprimer'"
-                @click="deleteToCahOut(slotProps.data)"
-              />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
     </div>
   
    <!-- Dialog responsive -->

@@ -53,19 +53,9 @@ import { computed, onMounted, ref, watch } from 'vue';
      })
    })
 
-const totalAmountCDF = computed(() => {
-  return filterdEntryNote.value
-      .filter(ent => ent.currency ==='CDF')
-      .reduce((sum, ent) => sum + parseFloat(ent.total_amount || 0), 0)
-      .toFixed(2);
-})
+const totalAmountCDF = ref(0)
 
-const totalAmountUSD = computed(() => {
-  return filterdEntryNote.value
-      .filter(ent => ent.currency ==='USD')
-      .reduce((sum, ent) => sum + parseFloat(ent.total_amount || 0), 0)
-      .toFixed(2);
-})
+const totalAmountUSD = ref(0);
 
 
 function resetDates(){
@@ -76,7 +66,7 @@ function resetDates(){
     await refreshUserData();
    })
    async function refreshUserData(){
-    await Promise.all([fetchUserProfil(),loadEntryNoteAndUser()]);
+    await Promise.all([fetchUserProfil(),loadEntryNoteAndUser(1)]);
    }
 
    // Récuper les enfants
@@ -90,27 +80,76 @@ function resetDates(){
    }
 
    // charger les bons d'entré
-   async function loadEntryNoteAndUser(){
+   const loadingEntryNote = ref(false);
+   const currentPage = ref(1);
+   const totalEntry = ref(0);
+
+  const totalPages = computed(() =>
+  Math.ceil(totalEntry.value / 50)
+);
+
+const canGoPrevious = computed(() => currentPage.value > 1);
+
+const canGoNext = computed(() => currentPage.value < totalPages.value);
+
+
+  async function loadEntryNoteAndUser(page = 1) {
+  if (loadingEntryNote.value) return;
+
+  try {
+    loadingEntryNote.value = true;
+
     const activeUserId = selectedUserFilter.value || userId;
-     try{
-        const [EntryNotes, users] =await Promise.all([
-            fechEntryNote(activeUserId),
-            fetchUsers()
-        ]);
+    currentPage.value = page;
 
-        usersMap.value = users.reduce((acc, user) => {
-            acc[user.id] = user.username;
-            return acc;
-        }, {});
+    const [entryNoteData, users] = await Promise.all([
+      fechEntryNote(activeUserId, currentPage.value),
+      fetchUsers()
+    ]);
 
-        EntryNoteList.value = EntryNotes.map(EntryNote => ({
-            ...EntryNote,
-            user_name: usersMap.value[EntryNote.user] || 'Inconnu'
-        }));
-     } catch(error){
-        console.error('Erreur lors du chargment des bons');
-     }
-   }
+    usersMap.value = users.reduce((acc, user) => {
+      acc[user.id] = user.username;
+      return acc;
+    }, {});
+
+    EntryNoteList.value = entryNoteData.results.map(entryNote => ({
+      ...entryNote,
+      user_name: usersMap.value[entryNote.user] || 'Inconnu'
+    }));
+
+    totalEntry.value = entryNoteData.count;
+    totalAmountUSD.value = entryNoteData.total_usd;
+    totalAmountCDF.value = entryNoteData.total_cdf;
+
+  } catch (error) {
+    console.error('Erreur lors du chargement des bons:', error);
+  } finally {
+    loadingEntryNote.value = false;
+  }
+}
+
+   function goToPreviousPage() {
+  if (canGoPrevious.value) {
+    loadCashOutAndUser(currentPage.value - 1);
+  }
+}
+
+
+function goToNextPage() {
+  if (canGoNext.value) {
+    loadCashOutAndUser(currentPage.value + 1);
+  }
+}
+function resetEntryPagination() {
+  loadEntryNoteAndUser(1)
+}
+
+
+
+
+
+
+
 
    // charger le profil utilisateur actif
    async function fetchUserProfil(){
@@ -451,6 +490,29 @@ async function downloadPDF() {
           </template>
         </Column>
       </DataTable>
+         <div class="flex items-center justify-between gap-3 py-3">
+          <Button
+            label="Précédent"
+            icon="pi pi-chevron-left"
+            :disabled="!canGoPrevious || loadingEntryNote"
+            @click="goToPreviousPage"
+          />
+
+          <span class="text-sm text-gray-500">
+            Page {{ currentPage }} / {{ totalPages || 1 }}
+            - {{ totalEntry }} bons d'entrée
+          </span>
+
+          <Button
+            label="Suivant"
+            icon="pi pi-chevron-right"
+            iconPos="right"
+            :disabled="!canGoNext || loadingEntryNote"
+            @click="goToNextPage"
+          />
+        </div>
+
+
     </div>
   </div>
 

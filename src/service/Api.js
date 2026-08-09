@@ -1387,22 +1387,44 @@ export async function fetchCashoutAllUsers() {
 
 
 
-export async function fetchCashOut(userId){
-    const CASHOUT_URL = `${API_BASE}cashouts/?user=${userId}`;
 
-    try{
+export async function fetchCashOut(userId, page = 1, limit = 50) {
+    const offset = (page - 1) * limit;
+
+    const CASHOUT_URL =
+        `${API_BASE}cashouts/?user=${userId}&limit=${limit}&offset=${offset}`;
+
+    try {
         const response = await axios.get(CASHOUT_URL, {
-            headers :{
-                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
             }
         });
-        console.log('Caoush Lis', response.data);
-        return response.data.results;
-    } catch(error){
-        console.error('error fecthing user:', error)
+
+        console.log('Cash Out List:', response.data);
+
+        return {
+            results: response.data.results || [],
+            count: response.data.count || 0,
+            next: response.data.next,
+            previous: response.data.previous,
+
+            total_usd: response.data.total_usd || 0,
+           total_cdf: response.data.total_cdf || 0,
+        };
+
+    } catch (error) {
+        console.error('Error fetching cashouts:', error);
         throw error;
     }
 }
+
+
+
+
+
+
+
 export async function fetchCashOutDetail(cashoutId){
     const URL = `${API_BASE}cashoutDetail/?cashout=${cashoutId}`;
 
@@ -1492,8 +1514,10 @@ export async function fetchEntryNoteAllUser() {
 }
 
 
-export async function fechEntryNote(userId){
-    const FECHING_ENTRYNOTE = `${API_BASE}entryNote/?user=${userId}`;
+export async function fechEntryNote(userId, page =1 , limit = 50){
+    const offset = (page - 1 )* limit
+    const FECHING_ENTRYNOTE = 
+     `${API_BASE}entryNote/?user=${userId}&limit=${limit}&offset=${offset}`;
 
     try{
         const response = await axios.get(FECHING_ENTRYNOTE, {
@@ -1502,7 +1526,17 @@ export async function fechEntryNote(userId){
             }
         });
         console.log('EntryNote liste', response.data);
-        return response.data.results;
+        
+        return {
+            results:response.data.results || [],
+            count:response.data.count || 0,
+            next: response.data.next,
+            previous: response.data.previous,
+
+            total_usd: response.data.total_usd || 0,
+           total_cdf: response.data.total_cdf || 0,
+        };
+
     }catch(error){
         console.error('error feching user', error)
         throw error;

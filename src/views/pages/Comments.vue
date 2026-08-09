@@ -132,7 +132,7 @@ const sendReplyNotification = async () => {
 
     const response = await replyNoficationAPI(data);
 
-    console.log('response :');
+    
 
     toast.add({
       severity:'success',
