@@ -154,6 +154,11 @@ const router = createRouter({
                     component: () => import('@/views/pages/Subscription.vue'),
                     meta:{ requiresAuth: true}
                 },
+                {
+                    path:'/pages/SubscriptionInvoice',
+                    name:'Facturation',
+                    component:() => import('@/views/pages/SubcriptionInvoice.vue')
+                },
 
                 {
                     path:'/pages/Notification/',

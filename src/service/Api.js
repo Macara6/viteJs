@@ -1320,22 +1320,28 @@ export async function fecthSubscriptionByUserId(userId){
      }
 }
 // fonction pour reactivé l'abonnement 
-export async function reactivateSubscription(userId){
+export async function reactivateSubscription(userId, status){
    const REACTIVATE_URL = `${API_BASE}subscription/reactivate/${userId}/`;
-
    try{
-       const response = await axios.post(REACTIVATE_URL, {}, {
+       const response = await axios.post(REACTIVATE_URL,
+        {
+            status:status
+       },
+       {
             headers:{
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }
        });
-       console.log('Subscription reactivated: ', response.data);
+       
        return response.data;
 
    }catch(error){
       console.log('Error reativating subscription: ',error.response?.data || error );
+      throw error;
    }
 }
+
+
 
 export async function deleteSubscriptionAPI(userId) {
     const URL_DELETE_SUB = `${API_BASE}subscription/reactivate/${userId}/`;

@@ -18,6 +18,12 @@ const filters1 = ref({
 const deletelDialog = ref(false); 
 
 const subscriptionTodelete = ref(null); 
+
+const showReactivateModal = ref(false);
+const selectedSubscription = ref(null);
+const isReactivating = ref(false);
+
+
 onMounted(async () => {
    
     await loadSubscriptionAndUser();
@@ -61,14 +67,39 @@ async function loadSubscriptionAndUser() {
 }
 
 async function handleReativate(subscription) {
-    try {
-        await reactivateSubscription(subscription.user);
-        await loadSubscriptionAndUser();
-    } catch (error) {
-        console.error("Erreur lors de la réactivation :", error);
-        alert("Échec de réactivation");
-    }
+    selectedSubscription.value = subscription;
+    showReactivateModal.value = true
 }
+
+async function confirmReactivate(status){
+  if(!selectedSubscription.value) return;
+
+  try{
+      isReactivating.value = true;
+      const userId = selectedSubscription.value.user;
+      await reactivateSubscription(userId, status);
+      showReactivateModal.value = false;
+      selectedSubscription.value = null;
+      await loadSubscriptionAndUser();
+
+  }catch(e){
+      console.error(
+            "Erreur lors de la réactivation :",
+            e
+        );
+
+        alert(
+            e.response?.data?.detail ||
+            "Échec de la réactivation"
+        );
+  }finally{
+    isReactivating.value = false;
+  }
+
+
+}
+
+
 
 function confirmDelete(subscription){
     subscriptionTodelete.value = subscription;
@@ -330,15 +361,19 @@ function initials(name) {
     <Column header="Action" bodyClass="text-center" style="min-width: 9rem">
       <template #body="slotProps">
         <div class="flex items-center justify-center gap-1.5">
+
           <Button
               label="Réactiver"
               icon="pi pi-refresh"
               size="small"
               severity="success"
               class="!text-xs"
+              :loading="isReactivating"
+              :disabled="isReactivating"
               @click="handleReativate(slotProps.data)"
               v-if="getStatus(slotProps.data.end_date) === 'Expiré'"
           />
+
           <Button
               icon="pi pi-trash"
               size="small"
@@ -370,6 +405,61 @@ function initials(name) {
       </template>
     </Dialog>
 
+    <Dialog
+        v-model:visible="showReactivateModal"
+        modal
+        :draggable="false"
+        :style="{ width: '460px' }"
+      >
+        <template #header>
+          <div class="flex items-center gap-3">
+            <span class="reactivate-icon">
+              <i class="pi pi-refresh"></i>
+            </span>
+            <div>
+              <h3 class="reactivate-title">Réactivation de l'abonnement</h3>
+              <p class="reactivate-subtitle">Confirmez le statut du paiement avant de continuer</p>
+            </div>
+          </div>
+        </template>
+    
+        <div class="reactivate-body">
+          <Message severity="warnig" :closable="false">
+            Le client a-t-il déjà effectué le paiement de son abonnement ?
+          </Message>
+        </div>
+    
+        <template #footer>
+          <div class="reactivate-footer">
+            <Button
+              label="Annuler"
+              icon="pi pi-times"
+              text
+              severity="secondary"
+              :disabled="isReactivating"
+              @click="showReactivateModal = false"
+            />
+    
+            <div class="reactivate-actions">
+              <Button
+                label="Pas encore payé"
+                icon="pi pi-clock"
+                severity="warning"
+                outlined
+               
+                @click="confirmReactivate('unpaid')"
+              />
+              <Button
+                label="Payé"
+                icon="pi pi-check"
+                severity="success"
+
+                @click="confirmReactivate('paid')"
+              />
+            </div>
+          </div>
+        </template>
+      </Dialog>
 
   </div>
 </template>
@@ -482,5 +572,53 @@ function initials(name) {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+
+/* modal pour reabonnement */
+
+
+.reactivate-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  color: var(--p-primary-color);
+  font-size: 16px;
+}
+ 
+.reactivate-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+ 
+.reactivate-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--p-text-muted-color);
+}
+ 
+.reactivate-body {
+  padding-top: 4px;
+  padding-bottom: 8px;
+}
+ 
+.reactivate-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+ 
+.reactivate-actions {
+  display: flex;
+  gap: 8px;
 }
 </style>

@@ -84,6 +84,7 @@ const model = computed(() => {
           //{ label: 'Nouveau Bon de sortie', icon: 'pi pi-tag', to: '/pages/CreateCashout' },
           //{ label: "Nouveau Bon D'entrée", icon: 'pi pi-check-square', to: '/pages/CreateEntryNote' },
           { label: "Entrées", icon: 'pi pi-arrow-circle-down', to: '/pages/EntryNoteList' },
+          { label:"Facturation", icon:"pi pi-tags", to:"/pages/SubscriptionInvoice"},
           { label: "Paiement Collectés", icon:'pi pi-database', to:'/pages/PaymentList'},
           { label: "commentaires",icon:"pi pi-comments", to:"/pages/Comments",badge:commentsIsRead},
           { label: 'Inbox', icon:'pi pi-inbox', to:'/pages/NotificationPage'},

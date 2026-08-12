@@ -322,6 +322,7 @@ const progressPercent = computed(()=> {
     if (!subscription.value || !subscription.value.start_date || !subscription.value.end_date){
         return 0;
     }
+
     const start = new Date(subscription.value.start_date);
     const end = new Date(subscription.value.end_date);
     const now = new Date();
@@ -332,6 +333,7 @@ const progressPercent = computed(()=> {
     const remainingPercent = ((totalDuration - elapsed) / totalDuration) * 100;
     return Math.max(0, Math.min(100, Math.round(remainingPercent)));
 })
+const proges = ref(0);
 
 const subBadgeClass = (type) => ({
   BASIC:     'sub-basic',
@@ -563,6 +565,7 @@ const subBadgeClass = (type) => ({
           <span class="progress-pct">{{ progressPercent }}%</span>
         </div>
         <div class="progress-track">
+        
           <div
             class="progress-bar"
             :style="{
@@ -571,11 +574,15 @@ const subBadgeClass = (type) => ({
                 ? 'linear-gradient(90deg,#6366f1,#818cf8)'
                 : 'linear-gradient(90deg,#16a34a,#4ade80)'
             }"
+            
           ></div>
+    
         </div>
       </div>
     </div>
  
+
+
   </div>
 
  <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '560px' }" class="profile-dialog">
