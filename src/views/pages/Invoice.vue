@@ -256,8 +256,10 @@ async function loadInvoicesByUser(userId, forceRefresh = false) {
 async function ViewDetailInvoice(invoiceId) {
   try {
     const details = await fetchInvoiceDetail(invoiceId);
-    selectedInvoices.value = [invoiceId];
+    selectedInvoices.value = invoiceId;
     invoiceDetails.value = details;
+    console.log('invoice detail :', invoiceDetails.value );
+    console.log('invoice seletected :', selectedInvoices.value);
     showModal.value = true;
   } catch(err) {
     
