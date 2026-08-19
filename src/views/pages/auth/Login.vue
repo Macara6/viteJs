@@ -112,9 +112,8 @@ const handleLogin = async() => {
 
 </script>
 
-
 <template>
-<div class="min-h-screen flex items-center justify-center bg-white px-4 overflow-hidden relative">
+<div class="min-h-screen flex items-center justify-center bg-white px-4 py-8 overflow-hidden relative">
 
   <!-- Décorations fond -->
   <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
@@ -126,13 +125,13 @@ const handleLogin = async() => {
   <div class="relative w-full max-w-md z-10">
     <div class="bg-white rounded-3xl border border-slate-100
                 shadow-[0_8px_40px_rgba(0,77,74,0.10)]
-                p-8 sm:p-10">
+                p-6 sm:p-8 md:p-10">
 
       <!-- LOGO + TITRE -->
       <div class="text-center mb-8">
         <img
-          src="/demo/bilatechslogan.png"
-          class="h-14 mx-auto mb-5 object-contain"
+          src="/demo/bila_icon_512.png"
+          class="h-16 sm:h-20 w-auto mx-auto mb-5 object-contain drop-shadow-sm"
           alt="BilaTech"
         />
 
@@ -140,7 +139,7 @@ const handleLogin = async() => {
           Connexion
         </h2>
         <p class="text-slate-500 text-sm mt-1.5">
-          Accédez à votre espace BilaTech
+          Accédez à votre espace Bila-Sol
         </p>
       </div>
 

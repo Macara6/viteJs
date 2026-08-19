@@ -11,7 +11,22 @@
   });
 }
 
-
+export function formatDateTime(value) {
+  if(value != null){
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+    const date = new Date(value);
+    return date.toLocaleDateString('sv-SE', options).replace(' ', ' à ');
+  }else{
+    return "N/A"
+  }
+}
 
 
 export  function formatDate (value ){
@@ -38,3 +53,17 @@ export function statusCheck(is_blocked){
 export function checkSubMod(is_free){
   return is_free ? "GRATUIT" : "PAIYANT";
 }
+
+export function checkInvoice(status){
+  if(status == "paid")return "PAYÉ"
+  if(status == "unpaid") return "EN ATTENTE"
+
+  return "INCONNU";
+}
+export function invoiceSeverity(status){
+  if(status =="paid") return "success";
+  if(status =="unpaid") return "warn";
+
+  return "secondary";
+}
+

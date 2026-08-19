@@ -1340,6 +1340,77 @@ export async function reactivateSubscription(userId, status){
       throw error;
    }
 }
+// fonction pour afficher l'historique de payement abonnement
+
+export async function fetchSubscriHistoryInovoice(page = 1, limit = 50) {
+    const offset = (page - 1) * limit;
+    const HISTORY_INVOICES_SUB = 
+       `${API_BASE}subscriptionHistory/?limit=${limit}&offset=${offset}`;
+    
+       try{
+          const response = await axios.get(HISTORY_INVOICES_SUB, {
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`,
+            }
+          });
+          return {
+            results: response.data.results,
+            count: response.data.count || 0,
+            next: response.data.next,
+            previous: response.data.previous,
+            total_paid_amount: response.data.total_paid_amount,
+            total_unpaid_amount:response.data.total_unpaid_amount
+          }
+
+       }catch(error){
+         console.error('Error fetching invoices subscription ', error);
+         throw error;
+       }
+
+    
+}
+export async function confirmPayementSubcriptionAPI(invoice_id){
+    const CONFIRMURL = `${API_BASE}subscriptionHistory/`;
+     try{
+        const response = await axios.patch(CONFIRMURL, 
+            {
+              invoice_id:invoice_id
+            },
+            {
+                headers:{
+                    'Authorization':`Bearer ${localStorage.getItem('token')}`
+                }
+
+            });
+            return response.data;
+     }catch(error){
+        console.error('error lors de la confirmation :', error);
+     }
+}
+
+export async function deleteInvoiceSubscriptionAPI(invoice_id){
+    const DELETE_INVOICE_SUB = `${API_BASE}subscriptionHistory/`;
+    try{
+        const response = await axios.delete(DELETE_INVOICE_SUB,
+            
+            {
+               data :{
+                 invoice_id:invoice_id
+               },
+
+                headers:{
+                    'Authorization':`Bearer ${localStorage.getItem('token')}`
+                }
+            }
+        );
+            return response.data
+    }catch(error){
+        console.error('error to delete invoice :', error)
+    }
+    
+}
+
+
 
 
 

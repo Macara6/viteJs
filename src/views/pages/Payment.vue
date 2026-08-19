@@ -174,7 +174,7 @@ const confirmPayment = async ()=>{
       <!-- HEADER -->
       <div class="text-center mb-8">
         <img
-          src="/demo/bilatechslogan.png"
+          src="/demo/bila_icon_512.png"
           class="h-12 mx-auto mb-4 object-contain"
           alt="BilaTech"
         />
@@ -336,7 +336,7 @@ const confirmPayment = async ()=>{
 
         <!-- MÉTHODES DE PAIEMENT -->
         <div class="grid grid-cols-2 gap-3">
-
+       <!-- MÉTHODES DE PAIEMENT 
           <button
             @click="choosePayment('visa')"
             class="payment-method-card"
@@ -349,7 +349,7 @@ const confirmPayment = async ()=>{
             />
             <p class="text-xs font-semibold text-slate-600 mt-2">Carte bancaire</p>
           </button>
-
+            -->
           <button
             @click="choosePayment('mpesa')"
             class="payment-method-card"
