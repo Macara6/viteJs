@@ -11,6 +11,7 @@ export async function login(usernam, password, rememberMe) {
             password: password,
             remember_me: rememberMe
         });
+        
         const { id, username, email, token, refresh , is_superuser, status} = response.data;
         
         localStorage.setItem('token',token);

@@ -1139,7 +1139,7 @@ const startStatsAnimation = () => {
       </h3>
 
       <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
-        Disponible sur votre appareil · Version 1.9.0
+        Disponible sur votre appareil · Version 1.9.1
       </p>
 
       <!-- Badges store -->
