@@ -566,7 +566,7 @@ async function downloadPDF() {
           </template>
 
           <p class="text-sm md:text-base text-gray-500 pt-2">
-            Date : {{ formatDate(new Date()) }}
+            Date : {{ formatDate(EntryNoteList.find((c) => c.id === seletedEntryNote)?.created_at) }}
           </p>
 
           <div class="pt-3 space-y-1">

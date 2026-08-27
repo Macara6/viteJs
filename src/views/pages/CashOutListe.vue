@@ -404,6 +404,7 @@ const findUser = (id) => {
                     </div>
                   </div>
                 </div>
+
               </div>
             </template>
 
@@ -541,7 +542,7 @@ const findUser = (id) => {
             </template>
 
             <p class="text-sm md:text-base text-gray-500 pt-2">
-              Date : {{ formatDate(new Date()) }}
+              Date : {{ formatDate( cashoutList.find((c) => c.id === selectedCashout)?.created_at) }}
             </p>
 
             <div class="pt-3 space-y-1">
@@ -685,6 +686,7 @@ const findUser = (id) => {
         />
       </template>
     </Dialog>
+
   </div>
 </template>
 

@@ -11,7 +11,6 @@ export async function login(usernam, password, rememberMe) {
             password: password,
             remember_me: rememberMe
         });
-        
         const { id, username, email, token, refresh , is_superuser, status} = response.data;
         
         localStorage.setItem('token',token);
@@ -279,6 +278,7 @@ export async function deleteCategorie(categoryId) {
 
 // fonction pour creer un nouveau produit 
 export async function  createProductAPI(productData){
+
     const CREATE_PRODUCT_URL= `${API_BASE}productCreate/`;
     try{
         const response = await axios.post(CREATE_PRODUCT_URL,productData,{
