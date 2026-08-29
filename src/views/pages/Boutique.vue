@@ -15,6 +15,9 @@ import {
 import { formatDate } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const userProfile = ref(null);
 const user = ref(null);
@@ -37,6 +40,9 @@ const isCreatingSecret = ref(false);
 const userId = localStorage.getItem('id');
 
 const showChangePasswordDialog = ref(false);
+const showRechargeDialog = ref(false);
+
+
 
 const { showAlert } = useGlobalAlert()
 
@@ -333,6 +339,7 @@ const progressPercent = computed(()=> {
     const remainingPercent = ((totalDuration - elapsed) / totalDuration) * 100;
     return Math.max(0, Math.min(100, Math.round(remainingPercent)));
 })
+
 const proges = ref(0);
 
 const subBadgeClass = (type) => ({
@@ -343,6 +350,45 @@ const subBadgeClass = (type) => ({
   DIAMOND:   'sub-diamond',
 }[type] ?? '')
 
+// bloc pour le recharge
+
+const showDialogRecharge = () =>{
+  showRechargeDialog.value = true;
+
+}
+
+const rechargeAmount = ref('')
+const paymentMethod = ref('') 
+const phone = ref('')
+
+const choosePayment = (method) => {
+   paymentMethod.value = method 
+
+  }
+
+const processRecharge = async () => {
+
+  if(!rechargeAmount)return;
+
+  if (!paymentMethod.value) { return } 
+  
+  if (phone.value.length !== 9) { return }
+
+  const  recharge_data = {
+    user: localStorage.getItem('id'),
+    phone_number: `+243${phone.value}`,
+    provider: paymentMethod.value,
+    amount:rechargeAmount.value
+  }
+
+  
+     // const response = rechargeBalanceAPI(data);
+    user.value.balance =  rechargeAmount.value
+    showRechargeDialog.value = false
+
+ 
+
+}
 
 
 
@@ -354,236 +400,595 @@ const subBadgeClass = (type) => ({
 <div class="settings-shell">
  
   <!-- ═══════════════ PROFIL BOUTIQUE ═══════════════ -->
-  <div class="settings-card">
- 
-    <div class="card-header">
-      <div class="card-title">
-        <div class="title-icon">
-          <i class="pi pi-briefcase"></i>
-        </div>
-        <div>
-          <h2>Profil de la Boutique</h2>
-          <p class="card-subtitle">Informations légales et commerciales</p>
-        </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 text-slate-600">
+        <i class="pi pi-briefcase text-lg"></i>
       </div>
-      <Button
-        v-if="userStatus == 'ADMIN'"
-        :label="userProfile ? 'Modifier' : 'Créer le profil'"
-        icon="pi pi-pencil"
-        rounded
-        outlined
-        size="small"
-        @click="openEditDialog"
-      />
-    </div>
- 
-    <!-- Infos boutique -->
-    <div class="info-grid">
-      <div class="info-item">
-        <span class="info-label">Nom</span>
-        <span class="info-value">{{ userProfile?.entrep_name || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">N° Impôt</span>
-        <span class="info-value">{{ userProfile?.impot_number || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">ID Nat</span>
-        <span class="info-value">{{ userProfile?.id_nat || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">RCCM</span>
-        <span class="info-value">{{ userProfile?.rccm_number || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Téléphone</span>
-        <span class="info-value">{{ userProfile?.phone_number || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Type d'activité</span>
-        <span class="info-value">{{ userProfile?.type_of_activity || '—' }}</span>
-      </div>
-      <div class="info-item info-item-full">
-        <span class="info-label">Adresse</span>
-        <span class="info-value">{{ userProfile?.adress || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Devise</span>
-        <span class="info-value">{{ userProfile?.currency_preference || '—' }}</span>
-      </div>
-      <div class="info-item">
-        <span class="info-label">Taux de change</span>
-        <span class="badge badge-green">{{ userProfile?.exchange_rate || '—' }}</span>
+      <div>
+        <h2 class="text-base font-semibold text-gray-900 m-0">Profil de la Boutique</h2>
+        <p class="text-sm text-gray-500 m-0">Informations légales et commerciales</p>
       </div>
     </div>
- 
-    <!-- Points fidélité -->
-    <div class="loyalty-section">
-      <div class="loyalty-header">
-        <i class="pi pi-star-fill"></i>
-        <span>Gestion des Points de Fidélité</span>
-      </div>
- 
-      <div class="loyalty-cards">
- 
-        <div class="loyalty-card">
-          <div class="loyalty-card-label">Valeur d'un point (Entrée)</div>
-          <div class="loyalty-card-value green">
-            {{ userProfile?.point_entry || 0 }}
-            <span class="loyalty-currency">{{ userProfile?.currency_preference }}</span>
-          </div>
-          <div class="loyalty-card-icon">
-            <i class="pi pi-arrow-down-left"></i>
-          </div>
-        </div>
- 
-        <div class="loyalty-card">
-          <div class="loyalty-card-label">Valeur d'un point (Sortie)</div>
-          <div class="loyalty-card-value red">
-            {{ userProfile?.point_output || 0 }}
-            <span class="loyalty-currency">{{ userProfile?.currency_preference }}</span>
-          </div>
-          <div class="loyalty-card-icon red">
-            <i class="pi pi-arrow-up-right"></i>
-          </div>
-        </div>
- 
-        <div class="loyalty-card">
-          <div class="loyalty-card-label">Statut du programme</div>
-          <div class="loyalty-toggle-row">
-            <button
-              @click="togglePoints"
-              class="toggle-switch"
-              :class="userProfile?.point_is_activate ? 'toggle-on' : 'toggle-off'"
-            >
-              <span class="toggle-knob" :class="userProfile?.point_is_activate ? 'knob-on' : 'knob-off'"></span>
-            </button>
-            <span :class="userProfile?.point_is_activate ? 'status-on' : 'status-off'">
-              {{ userProfile?.point_is_activate ? 'Activé' : 'Désactivé' }}
-            </span>
-          </div>
-          <div class="loyalty-card-icon" :class="userProfile?.point_is_activate ? '' : 'muted'">
-            <i class="pi pi-power-off"></i>
-          </div>
-        </div>
- 
-      </div>
-    </div>
+    <Button
+      v-if="userStatus == 'ADMIN'"
+      :label="userProfile ? 'Modifier' : 'Créer le profil'"
+      icon="pi pi-pencil"
+      rounded
+      outlined
+      size="small"
+      @click="openEditDialog"
+    />
   </div>
+
+  <!-- INFOS BOUTIQUE -->
+    <div class="px-6 py-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Nom</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.entrep_name || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">N° Impôt</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.impot_number || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">ID Nat</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.id_nat || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">RCCM</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.rccm_number || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Téléphone</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.phone_number || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Type d'activité</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.type_of_activity || '—' }}</span>
+        </div>
+
+        <div class="sm:col-span-2 lg:col-span-2 flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Adresse</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.adress || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Devise</span>
+          <span class="text-sm font-semibold text-gray-900">{{ userProfile?.currency_preference || '—' }}</span>
+        </div>
+
+        <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Taux de change</span>
+          <Tag :value="userProfile?.exchange_rate ? String(userProfile.exchange_rate) : '—'" severity="success" class="w-fit !rounded-full !px-3 !py-1" />
+        </div>
+
+      </div>
+    </div>
+
+    <Divider class="!my-0" />
+
+  <!-- POINTS FIDÉLITÉ -->
+      <div class="px-6 py-5">
+        <div class="flex items-center gap-2 mb-4">
+          <i class="pi pi-star-fill text-amber-500"></i>
+          <span class="text-sm font-semibold text-gray-800">Gestion des Points de Fidélité</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <!-- Point entrée -->
+          <div class="relative overflow-hidden p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600">
+              <i class="pi pi-arrow-down-left text-sm"></i>
+            </div>
+            <div class="text-xs font-medium text-emerald-700/80 uppercase tracking-wide mb-2">
+              Valeur d'un point (Entrée)
+            </div>
+            <div class="text-xl font-bold text-emerald-700">
+              {{ userProfile?.point_entry || 0 }}
+              <span class="text-sm font-medium text-emerald-600/70">{{ userProfile?.currency_preference }}</span>
+            </div>
+          </div>
+
+          <!-- Point sortie -->
+          <div class="relative overflow-hidden p-4 rounded-xl bg-rose-50 border border-rose-100">
+            <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-rose-100 text-rose-600">
+              <i class="pi pi-arrow-up-right text-sm"></i>
+            </div>
+            <div class="text-xs font-medium text-rose-700/80 uppercase tracking-wide mb-2">
+              Valeur d'un point (Sortie)
+            </div>
+            <div class="text-xl font-bold text-rose-700">
+              {{ userProfile?.point_output || 0 }}
+              <span class="text-sm font-medium text-rose-600/70">{{ userProfile?.currency_preference }}</span>
+            </div>
+          </div>
+
+          <!-- Statut programme -->
+          <div
+            class="relative overflow-hidden p-4 rounded-xl border"
+            :class="userProfile?.point_is_activate
+              ? 'bg-indigo-50 border-indigo-100'
+              : 'bg-gray-50 border-gray-200'"
+          >
+            <div
+              class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg"
+              :class="userProfile?.point_is_activate
+                ? 'bg-indigo-100 text-indigo-600'
+                : 'bg-gray-200 text-gray-400'"
+            >
+              <i class="pi pi-power-off text-sm"></i>
+            </div>
+            <div
+              class="text-xs font-medium uppercase tracking-wide mb-3"
+              :class="userProfile?.point_is_activate ? 'text-indigo-700/80' : 'text-gray-500'"
+            >
+              Statut du programme
+            </div>
+            <div class="flex items-center gap-3">
+              <InputSwitch
+                :modelValue="userProfile?.point_is_activate"
+                @click="togglePoints"
+              />
+              <span
+                class="text-sm font-semibold"
+                :class="userProfile?.point_is_activate ? 'text-indigo-700' : 'text-gray-500'"
+              >
+                {{ userProfile?.point_is_activate ? 'Activé' : 'Désactivé' }}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
  
   <!-- ═══════════════ UTILISATEUR + ABONNEMENT ═══════════════ -->
   <div class="two-col-grid">
  
     <!-- Utilisateur -->
-    <div class="settings-card">
-      <div class="card-header">
-        <div class="card-title">
-          <div class="title-icon indigo">
-            <i class="pi pi-user"></i>
-          </div>
-          <div>
-            <h2>Mon compte</h2>
-            <p class="card-subtitle">Identité et sécurité</p>
-          </div>
-        </div>
-      </div>
- 
-      <div class="info-grid">
-        <div class="info-item info-item-full">
-          <span class="info-label">Nom d'utilisateur</span>
-          <span class="info-value">{{ user?.username || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Nom complet</span>
-          <span class="info-value">{{ user?.first_name || '—' }} {{ user?.last_name || '' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Email</span>
-          <span class="info-value">{{ user?.email || '—' }}</span>
-        </div>
-      </div>
- 
-      <div class="action-buttons">
-        <button class="act-btn act-info" @click="openEditUserDialog">
-          <i class="pi pi-user-edit"></i> Modifier
-        </button>
-        <button class="act-btn act-danger" @click="openChangePasswordDialog">
-          <i class="pi pi-lock"></i> Mot de passe
-        </button>
-        <button class="act-btn act-warning" @click="openSecretKeyDialog">
-          <i class="pi pi-key"></i> {{ hasSecretKey ? 'Code secret' : 'Créer code' }}
-        </button>
-        <button v-if="hasSecretKey" class="act-btn act-danger" @click="openDeleteDialog">
-          <i class="pi pi-trash"></i> Supprimer code
-        </button>
-      </div>
-    </div>
- 
-    <!-- Abonnement -->
-    <div v-if="userStatus == 'ADMIN'" class="settings-card">
-      <div class="card-header">
-        <div class="card-title">
-          <div class="title-icon amber">
-            <i class="pi pi-server"></i>
-          </div>
-          <div>
-            <h2>Abonnement</h2>
-            <p class="card-subtitle">Plan et validité</p>
-          </div>
-        </div>
-        <span
-          v-if="subscription?.subscription_type"
-          class="subscription-badge"
-          :class="subBadgeClass(subscription.subscription_type)"
-        >
-          <i v-if="['MEDIUM','PREMIUM'].includes(subscription.subscription_type)" class="pi pi-verified"></i>
-          <i v-if="['PLATINUM','DIAMOND'].includes(subscription.subscription_type)" class="pi pi-shield"></i>
-          {{ subscription.subscription_type }}
-        </span>
-      </div>
- 
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-label">Début</span>
-          <span class="info-value">{{ formatDate(subscription?.start_date) }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Fin</span>
-          <span class="info-value">{{ formatDate(subscription?.end_date) }}</span>
-        </div>
-        <div class="info-item info-item-full">
-          <span class="info-label">Statut</span>
-          <span :class="status(subscription?.is_active) === 'Actif' ? 'badge badge-green' : 'badge badge-red'">
-            {{ status(subscription?.is_active) }}
-          </span>
-        </div>
-      </div>
- 
-      <div v-if="subscription" class="progress-section">
-        <div class="progress-header">
-          <span class="info-label">Durée restante</span>
-          <span class="progress-pct">{{ progressPercent }}%</span>
-        </div>
-        <div class="progress-track">
-        
-          <div
-            class="progress-bar"
-            :style="{
-              width: progressPercent + '%',
-              background: subscription.subscription_type === 'PREMIUM'
-                ? 'linear-gradient(90deg,#6366f1,#818cf8)'
-                : 'linear-gradient(90deg,#16a34a,#4ade80)'
-            }"
-            
-          ></div>
-    
-        </div>
-      </div>
-    </div>
- 
+   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
+      <!-- HEADER -->
+      <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50/60 to-white">
+        <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-indigo-100 text-indigo-600">
+          <i class="pi pi-user text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-gray-900 m-0">Mon compte</h2>
+          <p class="text-sm text-gray-500 m-0">Identité et sécurité</p>
+        </div>
+      </div>
+
+      <!-- INFOS -->
+      <div class="px-6 py-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div class="sm:col-span-2 flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Nom d'utilisateur</span>
+            <span class="text-sm font-semibold text-gray-900">{{ user?.username || '—' }}</span>
+          </div>
+
+          <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Nom complet</span>
+            <span class="text-sm font-semibold text-gray-900">
+              {{ user?.first_name || '—' }} {{ user?.last_name || '' }}
+            </span>
+          </div>
+
+          <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Email</span>
+            <span class="text-sm font-semibold text-gray-900 truncate">{{ user?.email || '—' }}</span>
+          </div>
+
+          <!-- BALANCE mise en avant -->
+          <div class="sm:col-span-2 flex items-center justify-between p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600">
+                <i class="pi pi-wallet"></i>
+              </div>
+              <span class="text-sm font-medium text-emerald-700">Balance, disponible bientôt</span>
+            </div>
+            <span class="text-lg font-bold text-emerald-700">{{ user?.balance ||'-' }} USD</span>
+          </div>
+
+        </div>
+      </div>
+
+      <Divider class="!my-0" />
+
+      <!-- ACTIONS -->
+      <div class="px-6 py-5 flex flex-wrap gap-2">
+        <Button
+          label="Modifier"
+          icon="pi pi-user-edit"
+          severity="info"
+          outlined
+          size="small"
+          @click="openEditUserDialog"
+        />
+        <Button
+          label="Mot de passe"
+          icon="pi pi-lock"
+          severity="danger"
+          outlined
+          size="small"
+          @click="openChangePasswordDialog"
+        />
+        <Button
+          :label="hasSecretKey ? 'Code secret' : 'Créer code'"
+          icon="pi pi-key"
+          severity="warning"
+          outlined
+          size="small"
+          @click="openSecretKeyDialog"
+        />
+        <Button
+          v-if="hasSecretKey"
+          label="Supprimer code"
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          size="small"
+          @click="openDeleteDialog"
+        />
+        <!-- 
+        <Button
+          v-if="hasSecretKey"
+          label="Recharger balance"
+          icon="pi pi-send"
+          severity="gren"
+          outlined
+          size="small"
+          @click="showDialogRecharge"
+        />
+        -->
+      </div>
+
+    </div>
+ 
+   <!-- Abonnement -->
+<div v-if="userStatus == 'ADMIN'" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-amber-50/60 to-white">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-100 text-amber-600">
+        <i class="pi pi-server text-lg"></i>
+      </div>
+      <div>
+        <h2 class="text-base font-semibold text-gray-900 m-0">Abonnement</h2>
+        <p class="text-sm text-gray-500 m-0">Plan et validité</p>
+      </div>
+    </div>
+
+    <Tag
+      v-if="subscription?.subscription_type"
+      :value="subscription.subscription_type"
+      :class="subBadgeClass(subscription.subscription_type)"
+      class="!px-3 !py-1.5 !rounded-full !text-xs !font-semibold"
+    >
+      <template #icon>
+        <i
+          v-if="['MEDIUM','PREMIUM'].includes(subscription.subscription_type)"
+          class="pi pi-verified mr-1"
+        ></i>
+        <i
+          v-if="['PLATINUM','DIAMOND'].includes(subscription.subscription_type)"
+          class="pi pi-shield mr-1"
+        ></i>
+      </template>
+    </Tag>
+  </div>
+
+  <!-- CONTENU -->
+  <div class="px-6 py-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Infos texte -->
+    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+      <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Début</span>
+        <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.start_date) }}</span>
+      </div>
+
+      <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Fin</span>
+        <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.end_date) }}</span>
+      </div>
+
+      <div class="sm:col-span-2 flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Statut</span>
+        <Tag
+          :value="status(subscription?.is_active)"
+          :severity="status(subscription?.is_active) === 'Actif' ? 'success' : 'danger'"
+          class="!rounded-full !px-3 !py-1"
+        />
+      </div>
+
+    </div>
+
+    <!-- Knob progression -->
+    <div
+      v-if="subscription"
+      class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gray-50 border border-gray-100"
+    >
+      <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Durée restante</span>
+      <Knob
+        :modelValue="progressPercent"
+        :min="0"
+        :max="100"
+        :size="120"
+        readonly
+        :valueTemplate="'{value}%'"
+        :valueColor="subscription.subscription_type === 'PREMIUM' ? '#6366f1' : '#16a34a'"
+        rangeColor="#e5e7eb"
+      />
+    </div>
 
   </div>
+  </div>
+  </div>
+
+
+<Dialog
+    v-model:visible="showRechargeDialog"
+    :modal="true"
+    :style="{ width: '560px' }"
+    :closable="false"
+    class="recharge-dialog"
+>
+    <div class="space-y-7">
+
+        <!-- HEADER -->
+        <div class="flex flex-col items-center text-center gap-3 pt-2">
+            <div class="flex items-center justify-center w-14 h-14 rounded-2xl bg-[#004D4A]/10 text-[#004D4A]">
+                <i class="pi pi-wallet text-2xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">
+                    Recharger votre balance
+                </h2>
+                <p class="text-sm text-slate-500 mt-1 max-w-sm">
+                    Rechargez votre solde pour permettre le renouvellement
+                    automatique de votre abonnement.
+                </p>
+            </div>
+        </div>
+
+        <!-- MONTANT -->
+        <div class="space-y-2">
+            <label class="text-sm font-semibold text-slate-700">
+                Montant à recharger
+            </label>
+
+            <div class="flex items-center gap-3 border border-slate-200 rounded-xl
+                        px-4 bg-white transition-all
+                        focus-within:border-[#004D4A] focus-within:ring-4 focus-within:ring-[#004D4A]/10">
+
+                <i class="pi pi-dollar text-slate-300"></i>
+
+                <input
+                    v-model="rechargeAmount"
+                    type="number"
+                    min="1"
+                    placeholder="Ex : 10"
+                    class="flex-1 py-3.5 outline-none text-slate-800 text-base font-medium bg-transparent"
+                />
+
+                <span class="text-xs font-bold text-[#004D4A] bg-[#004D4A]/10 px-2.5 py-1 rounded-lg">
+                    USD
+                </span>
+            </div>
+        </div>
+
+        <!-- TITRE PAIEMENT -->
+        <div class="flex items-center gap-3">
+            <div class="h-px flex-1 bg-slate-100"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                Choisissez un moyen de paiement
+            </p>
+            <div class="h-px flex-1 bg-slate-100"></div>
+        </div>
+
+        <!-- MÉTHODES DE PAIEMENT -->
+        <div class="grid grid-cols-3 gap-3">
+
+            <!-- M-PESA -->
+            <button
+                type="button"
+                @click="choosePayment('mpesa')"
+                class="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
+                :class="paymentMethod === 'mpesa'
+                    ? 'border-[#004D4A] bg-[#004D4A]/5 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+            >
+                <i
+                    v-if="paymentMethod === 'mpesa'"
+                    class="pi pi-check-circle absolute -top-2 -right-2 text-[#004D4A] bg-white rounded-full text-base"
+                ></i>
+                <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/0/03/M-pesa-logo.png"
+                    class="h-8 w-full object-contain"
+                    alt="M-Pesa"
+                />
+                <p class="text-xs font-semibold text-slate-600">
+                    M-Pesa
+                </p>
+            </button>
+
+            <!-- AIRTEL -->
+            <button
+                type="button"
+                @click="choosePayment('airtel')"
+                class="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
+                :class="paymentMethod === 'airtel'
+                    ? 'border-[#004D4A] bg-[#004D4A]/5 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+            >
+                <i
+                    v-if="paymentMethod === 'airtel'"
+                    class="pi pi-check-circle absolute -top-2 -right-2 text-[#004D4A] bg-white rounded-full text-base"
+                ></i>
+                <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Airtel_logo-01.png"
+                    class="h-8 w-full object-contain"
+                    alt="Airtel Money"
+                />
+                <p class="text-xs font-semibold text-slate-600">
+                    Airtel Money
+                </p>
+            </button>
+
+            <!-- ORANGE -->
+            <button
+                type="button"
+                @click="choosePayment('orange')"
+                class="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
+                :class="paymentMethod === 'orange'
+                    ? 'border-[#004D4A] bg-[#004D4A]/5 shadow-sm'
+                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
+            >
+                <i
+                    v-if="paymentMethod === 'orange'"
+                    class="pi pi-check-circle absolute -top-2 -right-2 text-[#004D4A] bg-white rounded-full text-base"
+                ></i>
+                <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg"
+                    class="h-8 w-full object-contain"
+                    alt="Orange Money"
+                />
+                <p class="text-xs font-semibold text-slate-600">
+                    Orange Money
+                </p>
+            </button>
+
+        </div>
+
+        <!-- FORMULAIRE MOBILE MONEY -->
+        <div
+            v-if="['mpesa', 'airtel', 'orange'].includes(paymentMethod)"
+            class="space-y-4 animate-fadein"
+        >
+
+            <!-- NUMÉRO -->
+            <div class="space-y-2">
+                <label class="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    <i class="pi pi-phone text-[#004D4A]"></i>
+                    Numéro de téléphone
+                </label>
+
+                <div class="flex items-center border border-slate-200 rounded-xl overflow-hidden
+                            bg-white transition-all
+                            focus-within:border-[#004D4A] focus-within:ring-4 focus-within:ring-[#004D4A]/10">
+
+                    <span class="text-sm font-bold text-[#004D4A] bg-[#004D4A]/5 px-3.5 py-3.5">
+                        +243
+                    </span>
+
+                    <div class="w-px h-6 bg-slate-200"></div>
+
+                    <input
+                        v-model="phone"
+                        type="tel"
+                        maxlength="9"
+                        inputmode="numeric"
+                        placeholder="812 345 678"
+                        class="flex-1 px-3.5 py-3.5 outline-none text-slate-800 font-medium bg-transparent"
+                    />
+                </div>
+
+                <p class="text-xs text-slate-400 flex items-center gap-1">
+                    <i class="pi pi-info-circle text-[10px]"></i>
+                    9 chiffres uniquement, sans l'indicatif (+243)
+                </p>
+            </div>
+
+            <!-- RÉSUMÉ -->
+            <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-slate-500">
+                        Moyen de paiement
+                    </span>
+                    <span class="text-sm font-bold text-slate-800">
+                        {{
+                            paymentMethod === 'mpesa'
+                                ? 'M-Pesa'
+                                : paymentMethod === 'airtel'
+                                    ? 'Airtel Money'
+                                    : 'Orange Money'
+                        }}
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center mt-3">
+                    <span class="text-sm text-slate-500">
+                        Numéro
+                    </span>
+                    <span class="text-sm font-semibold text-slate-800">
+                        +243 {{ phone }}
+                    </span>
+                </div>
+
+                <div class="border-t border-slate-200 mt-4 pt-4 flex justify-between items-center">
+                    <span class="font-semibold text-slate-700">
+                        Total
+                    </span>
+                    <span class="font-bold text-xl text-[#004D4A]">
+                        {{ rechargeAmount || 0 }} <span class="text-sm font-semibold">USD</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOUTONS -->
+        <div class="flex justify-end gap-3 pt-2">
+
+            <button
+                type="button"
+                @click="showRechargeDialog = false"
+                class="px-5 py-2.5 rounded-xl border border-slate-200
+                       text-slate-600 font-semibold transition-colors
+                       hover:bg-slate-50 hover:border-slate-300"
+            >
+                Annuler
+            </button>
+
+            <button
+                type="button"
+                @click="processRecharge"
+                :disabled="
+                    !rechargeAmount ||
+                    !paymentMethod ||
+                    phone.length !== 9
+                "
+                class="px-6 py-2.5 rounded-xl bg-[#004D4A] text-white
+                       font-semibold shadow-sm shadow-[#004D4A]/20
+                       transition-all
+                       disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
+                       hover:bg-[#003936] hover:shadow-md"
+            >
+                <i class="pi pi-wallet mr-2"></i>
+                Recharger
+            </button>
+
+        </div>
+    </div>
+</Dialog>
+
 
  <Dialog v-model:visible="showDialog" header="Modifier le Profil" :modal="true" :style="{ width: '560px' }" class="profile-dialog">
     <div class="dialog-body">

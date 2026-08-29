@@ -26,6 +26,7 @@ const router = createRouter({
                     name: 'button',
                     component: () => import('@/views/uikit/ButtonDoc.vue')
                 },
+
                 {
                     path: '/uikit/table',
                     name: 'table',
@@ -191,6 +192,7 @@ const router = createRouter({
                     component: () => import('@/views/pages/PrintCashout.vue'),
                      meta: { requiresAuth: true }
                 },
+
                 {
                     path:'/pages/EntryNoteList',
                     name:'EntryNote',
@@ -239,7 +241,9 @@ const router = createRouter({
                     name:'NotificationPage',
                     component:() => import('@/views/pages/NotificationPage.vue'),
                     meta:{ requiresAuth: true }
-                }
+                },
+
+
                 
             ]
         },
@@ -270,6 +274,12 @@ const router = createRouter({
          path:'/Payment',
          name:'Payment',
          component: () => import('@/views/pages/Payment.vue')
+        },
+
+        {
+            path:'/Recharge',
+            name:'Recharge',
+            component:() => import('@/views/pages/RechargeBalance.vue')
         },
 
         {

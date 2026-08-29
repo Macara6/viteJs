@@ -1664,6 +1664,26 @@ export const paySubscription = async (data) => {
     return response.data
 }
 
+
+// fuction to add recharge balance
+export async function  rechargeBalanceAPI(data) {
+    const URL_RECHARGE = `${API_BASE}rechargeBalance/`;
+    try{
+        const respons = await axios.post(URL_RECHARGE,{
+            data:data,
+            headers:{
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        return respons.data
+
+    }catch(error){
+        console.error("error lors du traitement :", error);
+        
+    }
+    
+}
+
 // function to fetch payement trans
 export async function fetchPayements(){
    

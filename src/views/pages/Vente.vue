@@ -629,7 +629,6 @@ async function createInvoice(){
       }
 }
 
-
 // annuler la facture 
 
 function confirmCancelInvoice(){
