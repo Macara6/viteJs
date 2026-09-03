@@ -1667,10 +1667,11 @@ export const paySubscription = async (data) => {
 
 // fuction to add recharge balance
 export async function  rechargeBalanceAPI(data) {
-    const URL_RECHARGE = `${API_BASE}rechargeBalance/`;
+    const URL_RECHARGE = `${API_BASE}recharge/`;
+    
     try{
-        const respons = await axios.post(URL_RECHARGE,{
-            data:data,
+        const respons = await axios.post(URL_RECHARGE,data,{
+    
             headers:{
                 'Authorization':`Bearer ${localStorage.getItem('token')}`
             }

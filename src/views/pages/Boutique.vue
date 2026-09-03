@@ -9,6 +9,7 @@ import {
   createUserProfl,
   deleteSecretKey,
   fecthSubscriptionByUserId, fetchUserById, fetchUserProfilById,
+  rechargeBalanceAPI,
   togglePoint,
   updateUserAPI, updateUserProfile
 } from '@/service/Api';
@@ -360,6 +361,7 @@ const showDialogRecharge = () =>{
 const rechargeAmount = ref('')
 const paymentMethod = ref('') 
 const phone = ref('')
+const isLoading = ref(false)
 
 const choosePayment = (method) => {
    paymentMethod.value = method 
@@ -381,16 +383,22 @@ const processRecharge = async () => {
     amount:rechargeAmount.value
   }
 
-  
-     // const response = rechargeBalanceAPI(data);
-    user.value.balance =  rechargeAmount.value
+  try{
+    isLoading.value = true
+    const response = await rechargeBalanceAPI(recharge_data)
+    user.value.balance = response.newBalance
     showRechargeDialog.value = false
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'echarge a été enregistrée avec succès', life: 3000 });
+  
+  }catch(error){
+    console.error("error :", error)
+    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
 
- 
-
+  }finally{
+    isLoading.value = false;
+  }
+  
 }
-
-
 
 
 
@@ -599,7 +607,7 @@ const processRecharge = async () => {
               <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600">
                 <i class="pi pi-wallet"></i>
               </div>
-              <span class="text-sm font-medium text-emerald-700">Balance, disponible bientôt</span>
+              <span class="text-sm font-medium text-emerald-700">Balance</span>
             </div>
             <span class="text-lg font-bold text-emerald-700">{{ user?.balance ||'-' }} USD</span>
           </div>
@@ -644,9 +652,8 @@ const processRecharge = async () => {
           size="small"
           @click="openDeleteDialog"
         />
-        <!-- 
+        <!--   -->
         <Button
-          v-if="hasSecretKey"
           label="Recharger balance"
           icon="pi pi-send"
           severity="gren"
@@ -654,7 +661,7 @@ const processRecharge = async () => {
           size="small"
           @click="showDialogRecharge"
         />
-        -->
+      
       </div>
 
     </div>
@@ -971,18 +978,27 @@ const processRecharge = async () => {
                 type="button"
                 @click="processRecharge"
                 :disabled="
+                    isLoading ||
                     !rechargeAmount ||
                     !paymentMethod ||
                     phone.length !== 9
                 "
                 class="px-6 py-2.5 rounded-xl bg-[#004D4A] text-white
-                       font-semibold shadow-sm shadow-[#004D4A]/20
-                       transition-all
-                       disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none
-                       hover:bg-[#003936] hover:shadow-md"
+                      font-semibold shadow-sm shadow-[#004D4A]/20
+                      transition-all
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                      disabled:shadow-none
+                      hover:bg-[#003936] hover:shadow-md"
             >
-                <i class="pi pi-wallet mr-2"></i>
-                Recharger
+                <template v-if="isLoading">
+                    <i class="pi pi-spin pi-spinner mr-2"></i>
+                    Traitement...
+                </template>
+
+                <template v-else>
+                    <i class="pi pi-wallet mr-2"></i>
+                    Recharger
+                </template>
             </button>
 
         </div>

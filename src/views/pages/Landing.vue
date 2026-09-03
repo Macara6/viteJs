@@ -99,6 +99,8 @@ const slides = [
   "/demo/Photos-inf.png",
 ];
 
+const heroImage = '/demo/busness.png' 
+
 let interval = null;
 let observer = null;
 
@@ -346,20 +348,19 @@ const startStatsAnimation = () => {
           <div class="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] lg:w-[88%] z-50">
 
             <!-- NAVBAR PRINCIPALE -->
-      <div class="flex items-center justify-between px-5 py-2.5
-                  rounded-2xl
-                  bg-[#004D4A]/70 backdrop-blur-2xl
-                  border border-white/10
-                  shadow-[0_8px_32px_rgba(0,77,74,0.25)]">
+   <div class="flex items-center justify-between px-5 py-2.5
+            rounded-2xl
+            bg-white/70 backdrop-blur-2xl
+            border border-slate-200/60
+            shadow-[0_8px_32px_rgba(0,0,0,0.06)]">
 
-        <!-- LOGO -->
-        <a href="#" class="flex items-center flex-shrink-0">
-          <img
-            src="/demo/bilatechblanc.png"
-            class="h-10 md:h-12 w-auto object-contain
-                  drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
-          />
-        </a>
+  <!-- LOGO -->
+  <a href="#" class="flex items-center flex-shrink-0">
+    <img
+      src="/demo/bila_icon_512.png"
+      class="h-9 md:h-10 w-auto object-contain"
+    />
+  </a>
 
   <!-- DESKTOP MENU -->
   <ul class="hidden lg:flex items-center gap-1">
@@ -367,8 +368,8 @@ const startStatsAnimation = () => {
       <button
         type="button"
         @click="item.action()"
-        class="px-4 py-2 rounded-xl text-sm font-medium text-white/75
-              hover:text-white hover:bg-white/10
+        class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600
+              hover:text-slate-900 hover:bg-slate-100/80
               transition-all duration-200 cursor-pointer block
               bg-transparent border-none outline-none"
       >
@@ -381,18 +382,18 @@ const startStatsAnimation = () => {
   <div class="hidden lg:flex items-center gap-2 flex-shrink-0">
     <router-link
       to="/login"
-      class="px-4 py-2 rounded-xl text-sm font-medium text-white/80
-             hover:text-white hover:bg-white/10
-             transition-all duration-200"
+      class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600
+            hover:text-slate-900 hover:bg-slate-100/80
+            transition-all duration-200"
     >
       Se connecter
     </router-link>
 
     <router-link
       to="/signup"
-      class="px-5 py-2 rounded-xl text-sm font-semibold text-[#004D4A]
-             bg-white hover:bg-white/90 hover:scale-[1.02]
-             transition-all duration-200 shadow-sm"
+      class="px-5 py-2 rounded-full text-sm font-semibold text-white
+            bg-[#004D4A] hover:bg-[#00615c] hover:scale-[1.02]
+            transition-all duration-200"
     >
       Commencer →
     </router-link>
@@ -402,8 +403,8 @@ const startStatsAnimation = () => {
   <button
     @click="toggleMenu"
     class="lg:hidden w-9 h-9 flex items-center justify-center
-           rounded-xl bg-white/10 border border-white/20
-           text-white transition hover:bg-white/20"
+           rounded-xl bg-slate-100 border border-slate-200
+           text-slate-700 transition hover:bg-slate-200"
   >
     <i :class="isMobileMenuOpen ? 'pi pi-times' : 'pi pi-bars'" class="text-sm"></i>
   </button>
@@ -474,315 +475,227 @@ const startStatsAnimation = () => {
 
   </div>
 
-    <section
-    ref="heroRef"
-    id="hero"
-    class="relative h-screen max-h-[700px] min-h-[560px] overflow-hidden"
-  >
-    <!-- SLIDES IMAGES -->
-    <TransitionGroup name="hero-fade">
-      <img
-        v-for="(slide, index) in slides"
-        v-show="index === currentIndex"
-        :key="slide"
-        :src="slide"
-        :fetchpriority="index === 0 ? 'high' : 'low'"
-        :loading="index === 0 ? 'eager' : 'lazy'"
-        decoding="async"
-        alt=""
-        class="absolute inset-0 w-full h-full object-cover"
-      />
-    </TransitionGroup>
+  <section
+  ref="heroRef"
+  id="hero"
+  class="relative overflow-hidden bg-white"
+>
+  <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-24 lg:py-32">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
 
-    <!-- OVERLAY GRADIENT -->
-    <div class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/50 to-black/20 z-10"></div>
-    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10"></div>
+      <!-- COLONNE TEXTE (GAUCHE) -->
+      <div class="flex flex-col animate-hero-in">
 
-    <!-- CONTENT -->
-  <div class="relative z-20 flex flex-col justify-center h-full px-6 md:px-16 lg:px-24 max-w-7xl mx-auto">
-
-  <!-- Badge -->
-  <div class="flex mb-6">
-    <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full
-                 bg-[#004D4A]/80 backdrop-blur-sm border border-[#004D4A]
-                 text-white text-xs font-semibold tracking-wide uppercase
-                 shadow-md shadow-[#004D4A]/20">
-      <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-      Solutions numériques pour entreprises
-    </span>
-  </div>
-
-  <!-- Titre -->
-  <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight max-w-3xl">
-    <span class="block text-white/70 text-lg sm:text-xl md:text-2xl font-light mb-3 tracking-wide">
-      Pilotez et digitalisez votre entreprise
-    </span>
-    <span class="bg-gradient-to-r from-[#7BB661] via-white to-[#F9A825] bg-clip-text text-transparent">
-      avec BilaSol.
-    </span>
-  </h1>
-
-  <!-- Description -->
-  <p class="text-base md:text-lg text-white/70 mt-5 max-w-xl leading-relaxed">
-    Point de vente, gestion logistique, suivi des stocks et bien plus —
-    une plateforme <span class="text-yellow-400 font-semibold">rapide</span>,
-    <span class="text-green-400 font-semibold">fiable</span> et
-    <span class="text-white font-semibold">accessible</span>,
-    pensée pour simplifier chaque étape de votre activité.
-  </p>
-
-  <!-- Points clés -->
-  <div class="flex flex-wrap gap-x-6 gap-y-2 mt-6">
-    <span class="flex items-center gap-2 text-sm text-white/80">
-      <i class="pi pi-check-circle text-green-400 text-xs"></i>
-      Gestion de point de vente
-    </span>
-    <span class="flex items-center gap-2 text-sm text-white/80">
-      <i class="pi pi-check-circle text-green-400 text-xs"></i>
-      Logistique &amp; stocks
-    </span>
-    <span class="flex items-center gap-2 text-sm text-white/80">
-      <i class="pi pi-check-circle text-green-400 text-xs"></i>
-      Suivi en temps réel
-    </span>
-  </div>
-
-  <!-- CTA -->
-  <div class="flex flex-col sm:flex-row gap-3 mt-8">
-    <button
-      @click="$router.push('/signup')"
-      class="px-7 py-3 rounded-xl text-sm font-bold text-white
-             bg-[#004D4A] hover:bg-[#006660]
-             shadow-lg shadow-[#004D4A]/30
-             hover:shadow-xl hover:shadow-[#004D4A]/40
-             hover:scale-[1.02] active:scale-[0.98]
-             transition-all duration-200"
-    >
-      Démarrer gratuitement
-    </button>
-
-    <button
-      @click="$router.push('/login')"
-      class="group px-7 py-3 rounded-xl text-sm font-semibold text-white
-             bg-white/10 backdrop-blur-sm border border-white/25
-             hover:bg-white/20 hover:border-white/40 hover:scale-[1.02]
-             active:scale-[0.98]
-             transition-all duration-200"
-    >
-      Se connecter
-      <span class="inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
-    </button>
-  </div>
-
-  <!-- Indicateurs slides -->
-  <div class="flex items-center gap-2 mt-10">
-    <button
-      v-for="(_, index) in slides"
-      :key="index"
-      @click="goToSlide(index)"
-      class="transition-all duration-300 rounded-full"
-      :class="index === currentIndex
-        ? 'w-6 h-2 bg-white'
-        : 'w-2 h-2 bg-white/40 hover:bg-white/60'"
-    />
-  </div>
-
-</div>
-
-    <!-- BARRE PROGRESSION -->
-    <div class="absolute bottom-0 left-0 z-30 h-0.5 bg-[#004D4A] transition-all duration-[6000ms] ease-linear"
-         :style="{ width: isRunning ? '100%' : '0%' }">
-    </div>
-
-  </section>
-
-<!-- Animation simple via Tailwind CSS -->
-    <div id="features" class="relative py-20 px-7 lg:px-24 bg-white overflow-hidden">
-      <!-- Décoration fond -->
-      <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
-                  bg-[#004D4A]/5 blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-      <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full
-                  bg-[#004D4A]/5 blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
-
-      <!-- HEADER -->
-      <div class="relative text-center max-w-3xl mx-auto mb-20 z-10">
-
-        <!-- Badge -->
-        <span class="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full
-                    bg-[#004D4A]/8 border border-[#004D4A]/20
-                    text-[#004D4A] text-xs font-semibold tracking-widest uppercase">
-          <span class="w-1.5 h-1.5 rounded-full bg-[#004D4A]"></span>
-          Nos Applications
-        </span>
-
-        <!-- Titre -->
-        <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-800 tracking-tight leading-tight">
-          Des solutions pensées
-          <span class="relative inline-block">
-            <span class="text-[#004D4A]"> pour votre croissance</span>
-            <span class="absolute -bottom-1 left-0 w-full h-0.5 bg-[#004D4A]/30 rounded-full"></span>
-          </span>
-        </h2>
-
-        <!-- Description -->
-        <p class="mt-6 text-slate-500 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-          Nous accompagnons les entreprises dans leur transformation digitale avec des solutions fiables, performantes et évolutives.
+        <!-- Eyebrow -->
+        <p class="text-sm font-semibold text-[#004D4A] tracking-wide mb-5">
+          BilaSol
         </p>
 
+        <!-- Titre -->
+        <h1 class="text-[2.75rem] sm:text-5xl md:text-6xl font-semibold text-slate-900 leading-[1.05] tracking-tight max-w-xl">
+          Pilotez votre entreprise.
+          <span class="block text-slate-400 mt-1">
+            Plus simplement.
+          </span>
+        </h1>
+
+        <!-- Description -->
+        <p class="text-lg md:text-xl text-slate-500 mt-7 max-w-md leading-relaxed font-normal">
+          Point de vente, logistique et suivi des stocks réunis
+          dans une seule plateforme, pensée pour aller à l'essentiel.
+        </p>
+
+        <!-- CTA -->
+        <div class="flex items-center gap-8 mt-10">
+          <button
+            @click="$router.push('/signup')"
+            class="px-8 py-3.5 rounded-full text-[15px] font-semibold text-white
+                  bg-[#004D4A] hover:bg-[#00615c]
+                  transition-all duration-300 ease-out
+                  hover:scale-[1.03] active:scale-[0.97]"
+          >
+            Démarrer gratuitement
+          </button>
+
+          <button
+            @click="$router.push('/login')"
+            class="group text-[15px] font-semibold text-[#004D4A]
+                  transition-colors duration-200 hover:text-[#00332f]"
+          >
+            Se connecter
+            <span class="inline-block transition-transform duration-200 group-hover:translate-x-1 ml-0.5">›</span>
+          </button>
+        </div>
+
+        <!-- Points clés -->
+    
+
       </div>
 
-      <!-- CARDS -->
-      <div class="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 z-10 max-w-6xl mx-auto">
+      <!-- COLONNE IMAGE (DROITE) -->
+      <div class="relative flex items-center justify-center animate-hero-in-delayed">
+        <img
+          :src="heroImage"
+          alt="Aperçu de la plateforme BilaSol"
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          class="w-full max-w-lg object-contain"
+        />
+      </div>
 
-        <!-- POS -->
-        <div class="feature-card group">
-          <div class="feature-card-inner">
+    </div>
+  </div>
+</section>
 
-            <div class="feature-icon-wrap bg-[#004D4A]/8 group-hover:bg-[#004D4A] transition-colors duration-300">
-              <i class="pi pi-calculator text-xl text-[#004D4A] group-hover:text-white transition-colors duration-300"></i>
-            </div>
+<!-- Animation simple via Tailwind CSS -->
+<div id="features" class="relative py-18 lg:py-24 px-6 lg:px-20 bg-white">
 
-            <div class="flex-1">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-base font-bold text-slate-800">POS</h3>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
-                  Disponible
-                </span>
-              </div>
+  <!-- HEADER -->
+  <div class="text-center max-w-2xl mx-auto mb-20">
 
-              <p class="text-sm text-slate-500 leading-relaxed">
-                Une application complète pour la gestion des ventes, des stocks, de la facturation et de la comptabilité.
-              </p>
+    <p class="text-sm font-semibold text-[#004D4A] tracking-wide mb-4">
+      Nos applications
+    </p>
 
-              <div class="mt-4 flex items-center gap-1.5 text-[#004D4A] text-xs font-semibold">
-                <i class="pi pi-check-circle text-green-400 text-xs"></i>
-                <span>Disponible</span>
-              </div>
-            </div>
+    <h2 class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight leading-[1.1]">
+      Des solutions pensées
+      <span class="block text-slate-400 mt-1">pour votre croissance.</span>
+    </h2>
 
-          </div>
-        </div>
+    <p class="mt-6 text-lg text-slate-500 leading-relaxed max-w-xl mx-auto">
+      Nous accompagnons les entreprises dans leur transformation digitale
+      avec des outils fiables, performants et évolutifs.
+    </p>
 
-        <!-- COLIS -->
-        <div class="feature-card group opacity-75">
-          <div class="feature-card-inner">
+  </div>
 
-            <div class="feature-icon-wrap bg-amber-50 group-hover:bg-amber-500 transition-colors duration-300">
-              <i class="pi pi-truck text-xl text-amber-500 group-hover:text-white transition-colors duration-300"></i>
-            </div>
+  <!-- CARDS -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
 
-            <div class="flex-1">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-base font-bold text-slate-800">Logistique & stocks </h3>
-                <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-500">
-                  Bientôt
-                </span>
-              </div>
+    <!-- POS -->
+    <div class="group rounded-3xl border border-slate-100 p-8 transition-all duration-300 hover:border-slate-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
 
-              <p class="text-sm text-slate-400 leading-relaxed italic">
-                Suivi, livraison et gestion complète de vos colis en temps réel.
-              </p>
+      <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-[#004D4A]/8 mb-6">
+        <i class="pi pi-calculator text-lg text-[#004D4A]"></i>
+      </div>
 
-              <div class="mt-4 flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
-                <i class="pi pi-clock text-[10px]"></i>
-                <span>En développement</span>
-              </div>
-            </div>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-slate-900">POS</h3>
+        <span class="text-xs font-medium text-emerald-600">
+          Disponible
+        </span>
+      </div>
 
-          </div>
-        </div>
+      <p class="text-[15px] text-slate-500 leading-relaxed">
+        Une application complète pour la gestion des ventes, des stocks,
+        de la facturation et de la comptabilité.
+      </p>
+
+    </div>
+
+    <!-- COLIS -->
+    <div class="group rounded-3xl border border-slate-100 p-8 transition-all duration-300 hover:border-slate-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+
+      <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 mb-6">
+        <i class="pi pi-truck text-lg text-slate-400"></i>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-slate-900">Logistique &amp; stocks</h3>
+        <span class="text-xs font-medium text-slate-400">
+          Bientôt
+        </span>
+      </div>
+
+      <p class="text-[15px] text-slate-400 leading-relaxed">
+        Suivi, livraison et gestion complète de vos colis en temps réel.
+      </p>
+
+    </div>
 
     <!-- ECOLE -->
-    <div class="feature-card group opacity-75">
-      <div class="feature-card-inner">
+    <div class="group rounded-3xl border border-slate-100 p-8 transition-all duration-300 hover:border-slate-200 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
 
-        <div class="feature-icon-wrap bg-violet-50 group-hover:bg-violet-500 transition-colors duration-300">
-          <i class="pi pi-briefcase text-xl text-violet-500 group-hover:text-white transition-colors duration-300"></i>
-        </div>
-
-        <div class="flex-1">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-base font-bold text-slate-800">Gestion écoles</h3>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-500">
-              Bientôt
-            </span>
-          </div>
-
-          <p class="text-sm text-slate-400 leading-relaxed italic">
-            Gestion des élèves, des notes, des présences et des paiements scolaires.
-          </p>
-
-          <div class="mt-4 flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
-            <i class="pi pi-clock text-[10px]"></i>
-            <span>En développement</span>
-          </div>
-        </div>
-
+      <div class="flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-50 mb-6">
+        <i class="pi pi-briefcase text-lg text-slate-400"></i>
       </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-slate-900">Gestion écoles</h3>
+        <span class="text-xs font-medium text-slate-400">
+          Bientôt
+        </span>
+      </div>
+
+      <p class="text-[15px] text-slate-400 leading-relaxed">
+        Gestion des élèves, des notes, des présences et des paiements scolaires.
+      </p>
+
     </div>
 
   </div>
 
   <!-- STATS BAND -->
+  <div ref="statsRef" class="max-w-5xl mx-auto mt-24 pt-16 border-t border-slate-100">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-10">
 
-    <div ref="statsRef" class="relative z-10 max-w-6xl mx-auto mt-16">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-        <div class="stat-pill">
-          <span class="stat-number">{{ animatedStats[0] }}+</span>
-          <span class="stat-label">Entreprises</span>
+      <div class="text-center">
+        <div class="text-4xl md:text-5xl font-semibold text-slate-900 tracking-tight">
+          {{ animatedStats[0] }}<span class="text-[#004D4A]">+</span>
         </div>
-
-        <div class="stat-pill">
-          <span class="stat-number">{{ animatedStats[1] }}%</span>
-          <span class="stat-label">Disponibilité</span>
-        </div>
-
-        <div class="stat-pill">
-          <span class="stat-number">{{ animatedStats[2] }}/7</span>
-          <span class="stat-label">Support</span>
-        </div>
-
-        <div class="stat-pill">
-          <span class="stat-number">{{ animatedStats[3] }} pays</span>
-          <span class="stat-label">Présence</span>
-        </div>
-
+        <div class="text-sm text-slate-400 mt-2">Entreprises</div>
       </div>
+
+      <div class="text-center">
+        <div class="text-4xl md:text-5xl font-semibold text-slate-900 tracking-tight">
+          {{ animatedStats[1] }}<span class="text-[#004D4A]">%</span>
+        </div>
+        <div class="text-sm text-slate-400 mt-2">Disponibilité</div>
+      </div>
+
+      <div class="text-center">
+        <div class="text-4xl md:text-5xl font-semibold text-slate-900 tracking-tight">
+          {{ animatedStats[2] }}<span class="text-[#004D4A]">/7</span>
+        </div>
+        <div class="text-sm text-slate-400 mt-2">Support</div>
+      </div>
+
+      <div class="text-center">
+        <div class="text-4xl md:text-5xl font-semibold text-slate-900 tracking-tight">
+          {{ animatedStats[3] }}
+        </div>
+        <div class="text-sm text-slate-400 mt-2">Pays de présence</div>
+      </div>
+
     </div>
+  </div>
 
 </div>
 
-<div id="highlights" class="relative py-18 px-5 lg:px-24 bg-white overflow-hidden">
 
-  <!-- Décorations fond -->
-  <div class="absolute top-0 left-0 w-[600px] h-[600px] rounded-full
-              bg-[#004D4A]/4 blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-  <div class="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full
-              bg-[#004D4A]/4 blur-3xl translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+<div id="highlights" class="relative py-18 lg:py-32 px-6 lg:px-20 bg-white">
 
   <!-- HEADER -->
-  <div class="relative text-center max-w-3xl mx-auto mb-16 z-10">
+  <div class="text-center max-w-2xl mx-auto mb-20">
 
-    <span class="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full
-                 bg-[#004D4A]/8 border border-[#004D4A]/20
-                 text-[#004D4A] text-xs font-semibold tracking-widest uppercase">
-      <span class="w-1.5 h-1.5 rounded-full bg-[#004D4A]"></span>
+    <p class="text-sm font-semibold text-[#004D4A] tracking-wide mb-4">
       Nouvelle génération · 2026
-    </span>
+    </p>
 
-    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-800 tracking-tight leading-tight">
-      Une gestion intelligente avec
-      <span class="text-[#004D4A]"> Bila-Sol POS</span>
+    <h2 class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight leading-[1.1]">
+      Une gestion intelligente
+      <span class="block text-slate-400 mt-1">avec Bila-Sol POS.</span>
     </h2>
 
-    <p class="mt-5 text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
-      Centralisez vos ventes, vos stocks et vos performances dans une plateforme fluide, rapide et conçue pour évoluer avec votre entreprise.
+    <p class="mt-6 text-lg text-slate-500 leading-relaxed max-w-xl mx-auto">
+      Centralisez vos ventes, vos stocks et vos performances dans une
+      plateforme fluide, rapide et conçue pour évoluer avec votre entreprise.
     </p>
 
   </div>
 
-  <!-- IMAGES -->
+  <!-- IMAGES (disposition inchangée) -->
   <div ref="highlightsRef" class="relative z-10 max-w-5xl mx-auto mb-20">
 
     <div class="flex flex-col sm:flex-row justify-center items-end gap-6">
@@ -802,7 +715,7 @@ const startStatsAnimation = () => {
         </div>
         <div class="highlight-label">
           <i class="pi pi-sliders-v text-xs"></i>
-          statistiques
+          Statistiques
         </div>
       </div>
 
@@ -849,35 +762,36 @@ const startStatsAnimation = () => {
   </div>
 
   <!-- FEATURES GRID -->
-  <div class="relative z-10 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-5 mb-16">
+  <div class="relative z-10 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10 mb-24 pt-16 border-t border-slate-100">
 
-    <div class="highlight-feature">
-      <div class="highlight-feature-icon bg-[#004D4A]/8 text-[#004D4A]">
-        <i class="pi pi-bolt"></i>
+    <div>
+      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-[#004D4A]/8">
+        <i class="pi pi-bolt text-[#004D4A]"></i>
       </div>
-      <h4 class="text-sm font-bold text-slate-800 mt-3">Rapide à déployer</h4>
-      <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-        Opérationnel en moins de 24h, sans configuration complexe.
+      <h4 class="text-base font-semibold text-slate-900 mt-4">Rapide à déployer</h4>
+      <p class="text-[15px] text-slate-500 mt-1.5 leading-relaxed">
+        Opérationnel en moins de 24 heures, sans configuration complexe.
       </p>
     </div>
 
-    <div class="highlight-feature">
-      <div class="highlight-feature-icon bg-emerald-50 text-emerald-600">
-        <i class="pi pi-sliders-h"></i>
+    <div>
+      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-50">
+        <i class="pi pi-sliders-h text-slate-500"></i>
       </div>
-      <h4 class="text-sm font-bold text-slate-800 mt-3">Simple à utiliser</h4>
-      <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-        Interface intuitive, pensée pour tous les profils d'utilisateurs.
+      <h4 class="text-base font-semibold text-slate-900 mt-4">Simple à utiliser</h4>
+      <p class="text-[15px] text-slate-500 mt-1.5 leading-relaxed">
+        Une interface intuitive, pensée pour tous les profils d'utilisateurs.
       </p>
     </div>
 
-    <div class="highlight-feature">
-      <div class="highlight-feature-icon bg-amber-50 text-amber-500">
-        <i class="pi pi-shield"></i>
+    <div>
+      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-50">
+        <i class="pi pi-shield text-slate-500"></i>
       </div>
-      <h4 class="text-sm font-bold text-slate-800 mt-3">Sécurisé et fiable</h4>
-      <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-        Données protégées, sauvegardes automatiques et disponibilité garantie.
+      <h4 class="text-base font-semibold text-slate-900 mt-4">Sécurisé et fiable</h4>
+      <p class="text-[15px] text-slate-500 mt-1.5 leading-relaxed">
+        Vos données restent protégées grâce à des sauvegardes automatiques
+        et une disponibilité continue.
       </p>
     </div>
 
@@ -885,50 +799,37 @@ const startStatsAnimation = () => {
 
   <!-- FOOTER TEXT -->
   <div class="relative z-10 text-center">
-    <div class="inline-flex items-center gap-3 px-6 py-3 rounded-2xl
-                bg-[#004D4A]/6 border border-[#004D4A]/15">
-      <span class="text-sm font-semibold text-[#004D4A]">Gestion</span>
-      <span class="w-1 h-1 rounded-full bg-[#004D4A]/40"></span>
-      <span class="text-sm font-semibold text-[#004D4A]">Performance</span>
-      <span class="w-1 h-1 rounded-full bg-[#004D4A]/40"></span>
-      <span class="text-sm font-semibold text-[#004D4A]">Sécurité</span>
-    </div>
+    <p class="inline-flex items-center gap-3 text-sm font-medium text-slate-400">
+      <span>Gestion</span>
+      <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+      <span>Performance</span>
+      <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+      <span>Sécurité</span>
+    </p>
   </div>
 
 </div>
-
-
-<div id="pricing" class="relative py-20 px-6 lg:px-24 bg-white overflow-hidden">
-
-  <!-- Décorations fond -->
-  <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full
-              bg-[#004D4A]/4 blur-3xl translate-x-1/3 -translate-y-1/2 pointer-events-none"></div>
-  <div class="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full
-              bg-[#004D4A]/4 blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+<div id="pricing" class="relative pt-8 pb-24 lg:pb-32 px-6 lg:px-20 bg-white">
 
   <!-- HEADER -->
-  <div class="relative text-center max-w-3xl mx-auto mb-16 z-10">
+  <div class="text-center max-w-2xl mx-auto mb-16">
 
-    <span class="inline-flex items-center gap-2 mb-5 px-4 py-1.5 rounded-full
-                 bg-[#004D4A]/8 border border-[#004D4A]/20
-                 text-[#004D4A] text-xs font-semibold tracking-widest uppercase">
-      <span class="w-1.5 h-1.5 rounded-full bg-[#004D4A]"></span>
+    <p class="text-sm font-semibold text-[#004D4A] tracking-wide mb-4">
       Tarifs
-    </span>
+    </p>
 
-    <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-800 tracking-tight leading-tight">
+    <h2 class="text-4xl sm:text-5xl font-semibold text-slate-900 tracking-tight leading-[1.1]">
       Tarifs simples,
-      <span class="text-[#004D4A]"> puissants et transparents</span>
+      <span class="block text-slate-400 mt-1">puissants et transparents.</span>
     </h2>
 
-    <p class="mt-5 text-base md:text-lg text-slate-500 max-w-xl mx-auto leading-relaxed">
+    <p class="mt-6 text-lg text-slate-500 leading-relaxed max-w-xl mx-auto">
       Choisissez un plan adapté à votre business.
       <span class="font-semibold text-slate-700">Sans engagement, évolutif et flexible.</span>
     </p>
 
     <!-- Badge 30 jours -->
-    <div class="inline-flex items-center gap-2 mt-5 px-5 py-2.5 rounded-full
-                bg-emerald-50 border border-emerald-200">
+    <div class="inline-flex items-center gap-2 mt-6 px-5 py-2.5 rounded-full bg-emerald-50">
       <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
       <span class="text-sm text-emerald-700">
         Créez votre compte et profitez de
@@ -939,169 +840,212 @@ const startStatsAnimation = () => {
   </div>
 
   <!-- GRID TARIFS -->
-  <div class="relative z-10 max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 items-start">
+ <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch">
 
-    <!-- ── BASIC ── -->
-    <div class="pricing-card group">
-      <div class="pricing-badge bg-slate-100 text-slate-600">
-        ESSENTIEL
-      </div>
+  <!-- ── BASIC ── -->
+  <div class="flex flex-col h-full rounded-[28px] border border-slate-100 bg-white p-8 transition-all duration-300 hover:border-slate-200">
+    <span class="text-[11px] font-semibold tracking-widest text-slate-400 uppercase">
+      Essentiel
+    </span>
 
-      <h3 class="pricing-title text-slate-800 mt-5">BASIC</h3>
+    <h3 class="text-lg font-semibold text-slate-900 mt-3">BASIC</h3>
 
-      <div class="pricing-price-wrap">
-        <span class="pricing-old-price">$19.99</span>
-        <div class="pricing-price text-slate-800">
-          $9.99
-          <span class="pricing-period">/mois</span>
-        </div>
-      </div>
-
-      <ul class="pricing-features">
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> Gestion des Ventes</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> Gestion des Stocks</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> Rapports journaliers</li>
-      </ul>
-
-      <router-link to="/signup" class="pricing-cta pricing-cta--outline">
-        Commencer
-      </router-link>
-    </div>
-
-    <!-- ── MEDIUM ── -->
-    <div class="pricing-card pricing-card--medium group">
-      <div class="pricing-badge bg-amber-400 text-black">
-        RECOMMANDÉ ⭐
-      </div>
-
-      <h3 class="pricing-title text-slate-800 mt-5">MEDIUM</h3>
-
-      <div class="pricing-price-wrap">
-        <span class="pricing-old-price">$29.99</span>
-        <div class="pricing-price text-slate-800">
-          $19.99
-          <span class="pricing-period">/mois</span>
-        </div>
-      </div>
-
-      <ul class="pricing-features">
-        <li><i class="pi pi-check text-amber-500 text-xs"></i> (Tout Basic) +</li>
-        <li><i class="pi pi-check text-amber-500 text-xs"></i> Rapport et bilans quotidiens</li>
-        <li><i class="pi pi-check text-amber-500 text-xs"></i> Accès aux historiques de ventes</li>
-        <li><i class="pi pi-check text-amber-500 text-xs"></i> Accès aux statistiques en temps réel</li>
-      </ul>
-
-      <router-link to="/signup" class="pricing-cta pricing-cta--amber">
-        Commencer
-      </router-link>
-    </div>
-
-    <!-- ── PREMIUM (featured) ── -->
-    <div class="pricing-card pricing-card--premium group relative">
-
-      <!-- Badge flottant -->
-      <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
-        <span class="inline-flex items-center gap-1.5 px-4 py-1 rounded-full
-                     bg-[#004D4A] text-white text-xs font-bold shadow-lg shadow-[#004D4A]/30">
-          ⭐ POPULAIRE
-        </span>
-      </div>
-
-      <div class="pricing-badge bg-[#004D4A]/10 text-[#004D4A] mt-4">
-        BEST VALUE
-      </div>
-
-      <h3 class="pricing-title text-[#004D4A] mt-5">PREMIUM</h3>
-
-      <div class="pricing-price-wrap">
-        <span class="pricing-old-price">$49.99</span>
-        <div class="pricing-price text-[#004D4A] text-5xl">
-          $39.99
-          <span class="pricing-period">/mois</span>
-        </div>
-      </div>
-
-      <ul class="pricing-features">
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> (Tout Medium) +</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> 1 Point de vente</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> 1 Admin</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> 1 Caissier</li>
-      </ul>
-
-      <router-link to="/signup" class="pricing-cta pricing-cta--teal">
-        Commencer maintenant
-      </router-link>
-    </div>
-
-    <!-- ── PLATINUM ── -->
-    <div class="pricing-card group">
-      <div class="pricing-badge bg-slate-200 text-slate-600">
-        PLATINUM
-      </div>
-
-      <h3 class="pricing-title text-slate-800 mt-5">PLATINUM</h3>
-
-      <div class="pricing-price-wrap">
-        <span class="pricing-old-price">$69.99</span>
-        <div class="pricing-price text-slate-800">
-          $59.99
-          <span class="pricing-period">/mois</span>
-        </div>
-      </div>
-
-      <ul class="pricing-features">
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> (Tout Premium) +</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> Ajout 2 points de vente</li>
-        <li><i class="pi pi-check text-[#004D4A] text-xs"></i> Multi-users</li>
-      </ul>
-
-      <router-link to="/signup" class="pricing-cta pricing-cta--outline">
-        Commencer
-      </router-link>
-    </div>
-
-    <!-- ── DIAMOND ── -->
-    <div class="pricing-card pricing-card--diamond group relative overflow-hidden">
-
-      <!-- Glow décoratif interne -->
-      <div class="absolute inset-0 bg-gradient-to-br from-cyan-50 to-white pointer-events-none rounded-3xl"></div>
-
-      <div class="relative z-10">
-        <div class="pricing-badge bg-cyan-100 text-cyan-700 border border-cyan-200">
-          💎 DIAMOND MAX
-        </div>
-
-        <h3 class="pricing-title text-cyan-700 mt-5">DIAMOND</h3>
-
-        <div class="mt-5 mb-4">
-          <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full
-                      bg-cyan-50 border border-cyan-200
-                      text-cyan-700 text-xs font-semibold">
-            <i class="pi pi-sliders-h text-xs"></i>
-            Personnalisez votre application
-          </div>
-        </div>
-
-        <p class="text-sm text-slate-500 text-center leading-relaxed px-2 mb-4">
-          DIAMOND — Personnalisez chaque détail pour une application qui vous ressemble vraiment.
-        </p>
-
-        <ul class="pricing-features">
-          <li><i class="pi pi-check text-cyan-500 text-xs"></i> (Tout Platinum) +</li>
-          <li><i class="pi pi-check text-cyan-500 text-xs"></i> Points de vente illimités</li>
-          <li><i class="pi pi-check text-cyan-500 text-xs"></i> Support dédié prioritaire</li>
-        </ul>
-
-        
-         <a href="mailto:support@bilatech.org?subject=Demande%20offre%20DIAMOND&body=Bonjour,%20je%20souhaite%20personnaliser%20mon%20application."
-          class="pricing-cta pricing-cta--cyan"
-        >
-          Demander une offre
-        </a>
+    <div class="mt-6">
+      <span class="text-sm text-slate-300 line-through">$19.99</span>
+      <div class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">
+        $9.99
+        <span class="text-sm font-normal text-slate-400">/mois</span>
       </div>
     </div>
 
+    <div class="h-px bg-slate-100 my-6"></div>
+
+    <ul class="space-y-3.5 text-[14px] text-slate-500">
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Gestion des Ventes
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Gestion des Stocks
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Rapports journaliers
+      </li>
+    </ul>
+
+    <router-link
+      to="/signup"
+      class="mt-auto pt-8 flex items-center justify-center w-full py-3 rounded-full text-sm font-medium
+             text-slate-700 border border-slate-200
+             transition-all duration-200 hover:border-slate-300"
+    >
+      Commencer
+    </router-link>
   </div>
+
+  <!-- ── MEDIUM ── -->
+  <div class="flex flex-col h-full rounded-[28px] border border-slate-100 bg-white p-8 transition-all duration-300 hover:border-slate-200">
+    <span class="text-[11px] font-semibold tracking-widest text-slate-400 uppercase">
+      Recommandé
+    </span>
+
+    <h3 class="text-lg font-semibold text-slate-900 mt-3">MEDIUM</h3>
+
+    <div class="mt-6">
+      <span class="text-sm text-slate-300 line-through">$29.99</span>
+      <div class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">
+        $19.99
+        <span class="text-sm font-normal text-slate-400">/mois</span>
+      </div>
+    </div>
+
+    <div class="h-px bg-slate-100 my-6"></div>
+
+    <ul class="space-y-3.5 text-[14px] text-slate-500">
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> (Tout Basic) +
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Rapport et bilans quotidiens
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Accès aux historiques de ventes
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Accès aux statistiques en temps réel
+      </li>
+    </ul>
+
+    <router-link
+      to="/signup"
+      class="mt-auto pt-8 flex items-center justify-center w-full py-3 rounded-full text-sm font-medium
+             text-slate-700 border border-slate-200
+             transition-all duration-200 hover:border-slate-300"
+    >
+      Commencer
+    </router-link>
+  </div>
+
+  <!-- ── PREMIUM (featured) ── -->
+<div class="relative flex flex-col h-full rounded-[28px] border-2 border-orange-400 bg-white p-8 shadow-[0_20px_50px_rgba(251,146,60,0.15)]">
+
+  <span class="text-[11px] font-semibold tracking-widest text-orange-500 uppercase">
+    Best value
+  </span>
+
+  <h3 class="text-lg font-semibold text-slate-900 mt-3">PREMIUM</h3>
+
+  <div class="mt-6">
+    <span class="text-sm text-slate-300 line-through">$49.99</span>
+    <div class="text-4xl font-semibold text-slate-900 mt-1 tracking-tight">
+      $39.99
+      <span class="text-sm font-normal text-slate-400">/mois</span>
+    </div>
+  </div>
+
+  <div class="h-px bg-slate-100 my-6"></div>
+
+  <ul class="space-y-3.5 text-[14px] text-slate-500">
+    <li class="flex items-start gap-2.5">
+      <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> (Tout Medium) +
+    </li>
+    <li class="flex items-start gap-2.5">
+      <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> 1 Point de vente
+    </li>
+    <li class="flex items-start gap-2.5">
+      <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> 1 Admin
+    </li>
+    <li class="flex items-start gap-2.5">
+      <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> 1 Caissier
+    </li>
+  </ul>
+
+  <router-link
+    to="/signup"
+    class="mt-auto pt-8 flex items-center justify-center w-full py-3.5 rounded-full text-sm font-semibold text-white
+           bg-orange-500 transition-all duration-200 hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98]"
+  >
+    Commencer maintenant
+  </router-link>
+</div>
+
+  <!-- ── PLATINUM ── -->
+  <div class="flex flex-col h-full rounded-[28px] border border-slate-100 bg-white p-8 transition-all duration-300 hover:border-slate-200">
+    <span class="text-[11px] font-semibold tracking-widest text-slate-400 uppercase">
+      Platinum
+    </span>
+
+    <h3 class="text-lg font-semibold text-slate-900 mt-3">PLATINUM</h3>
+
+    <div class="mt-6">
+      <span class="text-sm text-slate-300 line-through">$69.99</span>
+      <div class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">
+        $59.99
+        <span class="text-sm font-normal text-slate-400">/mois</span>
+      </div>
+    </div>
+
+    <div class="h-px bg-slate-100 my-6"></div>
+
+    <ul class="space-y-3.5 text-[14px] text-slate-500">
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> (Tout Premium) +
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Ajout 2 points de vente
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Multi-users
+      </li>
+    </ul>
+
+    <router-link
+      to="/signup"
+      class="mt-auto pt-8 flex items-center justify-center w-full py-3 rounded-full text-sm font-medium
+             text-slate-700 border border-slate-200
+             transition-all duration-200 hover:border-slate-300"
+    >
+      Commencer
+    </router-link>
+  </div>
+
+  <!-- ── DIAMOND ── -->
+  <div class="flex flex-col h-full rounded-[28px] border border-slate-100 bg-white p-8 transition-all duration-300 hover:border-slate-200">
+
+    <span class="text-[11px] font-semibold tracking-widest text-slate-400 uppercase">
+      Diamond max
+    </span>
+
+    <h3 class="text-lg font-semibold text-slate-900 mt-3">DIAMOND</h3>
+
+    <p class="text-[14px] text-slate-500 leading-relaxed mt-6">
+      Personnalisez chaque détail pour une application qui vous ressemble vraiment.
+    </p>
+
+    <div class="h-px bg-slate-100 my-6"></div>
+
+    <ul class="space-y-3.5 text-[14px] text-slate-500">
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> (Tout Platinum) +
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Points de vente illimités
+      </li>
+      <li class="flex items-start gap-2.5">
+        <i class="pi pi-check text-[11px] text-slate-300 mt-1"></i> Support dédié prioritaire
+      </li>
+    </ul>
+
+    
+     <a href="mailto:support@bilatech.org?subject=Demande%20offre%20DIAMOND&body=Bonjour,%20je%20souhaite%20personnaliser%20mon%20application."
+      class="mt-auto pt-8 flex items-center justify-center w-full py-3 rounded-full text-sm font-medium
+             text-slate-700 border border-slate-200
+             transition-all duration-200 hover:border-slate-300"
+    >
+      Demander une offre
+    </a>
+  </div>
+
+</div>
 
 </div>
 
@@ -1335,112 +1279,124 @@ const startStatsAnimation = () => {
 
 </div>
 
-<div class="relative py-20 px-6 lg:px-24 bg-[#004D4A] overflow-hidden">
-
-  <!-- Décorations fond -->
-  <div class="absolute top-0 right-0 w-[500px] h-[500px] rounded-full
-              bg-white/5 blur-3xl translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
-  <div class="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full
-              bg-black/10 blur-3xl -translate-x-1/3 translate-y-1/3 pointer-events-none"></div>
+<div class="relative py-20 px-6 lg:px-24 bg-[#003836] overflow-hidden">
 
   <div class="relative z-10 max-w-7xl mx-auto">
 
     <!-- GRID PRINCIPAL -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 pb-12
-                border-b border-white/10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-12 pb-14 border-b border-white/10">
 
       <!-- LOGO + DESC -->
-      <div class="lg:col-span-2 flex flex-col gap-5">
-        <img
-          src="/demo/bilatechblanc.png"
-          class="h-12 w-auto object-contain"
-          alt="BilaTech"
-        />
+      <div class="lg:col-span-2 flex flex-col gap-6">
 
-        <p class="text-white/60 text-sm leading-relaxed max-w-xs">
-          Plateforme digitale intelligente pour la gestion moderne de votre business.
+        <!-- Plan dédié pour le logo -->
+        <div class="relative inline-flex w-fit">
+          <div class="absolute inset-0 -m-4 rounded-2xl bg-white"></div>
+          <img
+            src="/demo/bilatechblanc.png"
+            class="relative h-20 md:h-39 w-auto object-contain"
+            alt="BilaTech"
+          />
+        </div>
+
+        <p class="text-white/50 text-sm leading-relaxed max-w-xs">
+          Plateforme digitale intelligente pour la gestion moderne de votre business.<br/>
+          Développé par Bilatech 
         </p>
 
         <!-- Réseaux sociaux -->
-        <div class="flex items-center gap-3 mt-1">
-          
-          <a  href="https://www.linkedin.com/company/bilatech-rdc/"
+        <div class="flex items-center gap-2 mt-1">
+
+          <a href="https://www.linkedin.com/company/bilatech-rdc/"
             target="_blank"
-            class="footer-social-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-full
+                   bg-white/5 text-white/60
+                   transition-all duration-200 hover:bg-white/10 hover:text-white"
             title="LinkedIn"
           >
             <i class="pi pi-linkedin text-sm"></i>
           </a>
-          
-           <a href="https://www.instagram.com/bilatech_africa"
+
+          <a href="https://www.instagram.com/bilatech_africa"
             target="_blank"
-            class="footer-social-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-full
+                   bg-white/5 text-white/60
+                   transition-all duration-200 hover:bg-white/10 hover:text-white"
             title="Instagram"
           >
             <i class="pi pi-instagram text-sm"></i>
           </a>
-          
-          <a  href="https://www.facebook.com"
+
+          <a href="https://www.facebook.com"
             target="_blank"
-            class="footer-social-btn"
+            class="flex items-center justify-center w-9 h-9 rounded-full
+                   bg-white/5 text-white/60
+                   transition-all duration-200 hover:bg-white/10 hover:text-white"
             title="Facebook"
           >
             <i class="pi pi-facebook text-sm"></i>
           </a>
+
         </div>
       </div>
 
       <!-- CONTACT -->
-      <div class="flex flex-col gap-3">
-        <h4 class="footer-heading">Contact</h4>
-        <a href="mailto:support@bilatech.org" class="footer-link">
-          <i class="pi pi-envelope text-xs"></i>
+      <div class="flex flex-col gap-4">
+        <h4 class="text-[11px] font-semibold tracking-widest text-white/40 uppercase">
+          Contact
+        </h4>
+        <a href="mailto:support@bilatech.org" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-envelope text-xs text-white/30"></i>
           support@bilatech.org
         </a>
-        <a href="tel:+243992937586" class="footer-link">
-          <i class="pi pi-phone text-xs"></i>
+        <a href="tel:+243992937586" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-phone text-xs text-white/30"></i>
           +243 992 937 586
         </a>
-        <a href="tel:+243811465276" class="footer-link">
-          <i class="pi pi-phone text-xs"></i>
+        <a href="tel:+243811465276" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-phone text-xs text-white/30"></i>
           +243 811 465 276
         </a>
       </div>
 
       <!-- ADRESSE -->
-      <div class="flex flex-col gap-3">
-        <h4 class="footer-heading">Adresse</h4>
-        <div class="footer-link cursor-default">
-          <i class="pi pi-map-marker text-xs"></i>
+      <div class="flex flex-col gap-4">
+        <h4 class="text-[11px] font-semibold tracking-widest text-white/40 uppercase">
+          Adresse
+        </h4>
+        <div class="flex items-center gap-2.5 text-sm text-white/60">
+          <i class="pi pi-map-marker text-xs text-white/30"></i>
           Kinshasa, RDC
         </div>
-        <div class="footer-link cursor-default">
-          <i class="pi pi-building text-xs"></i>
+        <div class="flex items-center gap-2.5 text-sm text-white/60">
+          <i class="pi pi-building text-xs text-white/30"></i>
           Ngaliema
         </div>
-        <div class="footer-link cursor-default">
-          <i class="pi pi-map text-xs"></i>
+        <div class="flex items-center gap-2.5 text-sm text-white/60">
+          <i class="pi pi-map text-xs text-white/30"></i>
           Av. Niwa, N°25
         </div>
       </div>
 
       <!-- LÉGAL -->
-      <div class="flex flex-col gap-3">
-        <h4 class="footer-heading">Légal</h4>
-        <a href="#" class="footer-link">
-          <i class="pi pi-shield text-xs"></i>
+      <div class="flex flex-col gap-4">
+        <h4 class="text-[11px] font-semibold tracking-widest text-white/40 uppercase">
+          Légal
+        </h4>
+        <a href="#" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-shield text-xs text-white/30"></i>
           Politique de marque
         </a>
-        <a href="#" class="footer-link">
-          <i class="pi pi-lock text-xs"></i>
+        <a href="#" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-lock text-xs text-white/30"></i>
           Confidentialité
         </a>
-        <a href="#" class="footer-link">
-          <i class="pi pi-file text-xs"></i>
+        <a href="#" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-file text-xs text-white/30"></i>
           Conditions
         </a>
-        <a href="#" class="footer-link">
-          <i class="pi pi-info-circle text-xs"></i>
+        <a href="#" class="flex items-center gap-2.5 text-sm text-white/60 transition-colors hover:text-white">
+          <i class="pi pi-info-circle text-xs text-white/30"></i>
           Bilatech 2026
         </a>
       </div>
@@ -1450,13 +1406,13 @@ const startStatsAnimation = () => {
     <!-- COPYRIGHT -->
     <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
 
-      <p class="text-white/40 text-xs">
+      <p class="text-white/35 text-xs">
         © 2026 BilaTech — Tous droits réservés
       </p>
 
       <div class="flex items-center gap-1.5">
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="text-white/40 text-xs">
+        <span class="text-white/35 text-xs">
           Tous systèmes opérationnels
         </span>
       </div>
@@ -1467,6 +1423,7 @@ const startStatsAnimation = () => {
 
 </div>
 
+
   </div>
 
   </div>
@@ -1475,29 +1432,24 @@ const startStatsAnimation = () => {
 
 <style scoped>
 /*   section loader */
-.loader-spinner {
-  width: 34px;
-  height: 34px;
-  border: 3px solid rgba(0, 77, 74, 0.12);
-  border-top-color: #004D4A;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+/* À placer dans le <style> du composant, ou globalement */
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.animate-hero-in {
+  animation: hero-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.loader-bar {
-  height: 100%;
-  width: 40%;
-  background: linear-gradient(90deg, transparent, #004D4A, transparent);
-  animation: loading-slide 1.2s ease-in-out infinite;
-}
-
-@keyframes loading-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
+.animate-hero-in-delayed {
+  animation: hero-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 }
 /*   fin de la section*/
 
