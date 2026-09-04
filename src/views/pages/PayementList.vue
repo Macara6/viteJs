@@ -257,6 +257,9 @@ const getProviderLogo = (provider) => {
     if(provider.includes("orange")){
         return "https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg"
     }
+    if(provider.includes("bilasol-pay")){
+        return "/demo/bila_icon_512.png"
+    }
     return "";
 } 
 

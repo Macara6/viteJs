@@ -173,8 +173,8 @@ function notifIcon(notification) {
             <button class="layout-menu-button layout-topbar-action" @click="onMenuToggle">
                 <i class="pi pi-bars"></i>
             </button>
-            <router-link to="/pages/Produit" class="layout-topbar-logo">
-                <img src="/demo/bilatechslogan.png" alt="BilaTech Logo" class="h-12 mx-auto" />
+            <router-link to="#" class="layout-topbar-logo">
+                <img src="/demo/bila_icon_512.png" alt="BilaTech Logo" class="h-12 mx-auto" />
             </router-link>
         </div>
 

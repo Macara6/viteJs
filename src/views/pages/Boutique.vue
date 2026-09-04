@@ -370,7 +370,7 @@ const choosePayment = (method) => {
 
 const processRecharge = async () => {
 
-  if(!rechargeAmount)return;
+  if(!rechargeAmount.value)return;
 
   if (!paymentMethod.value) { return } 
   
@@ -388,11 +388,17 @@ const processRecharge = async () => {
     const response = await rechargeBalanceAPI(recharge_data)
     user.value.balance = response.newBalance
     showRechargeDialog.value = false
+
     toast.add({ severity: 'success', summary: 'Succès', detail: 'echarge a été enregistrée avec succès', life: 3000 });
   
   }catch(error){
     console.error("error :", error)
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
+    const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Une erreur est survenue lors de la recharge"
+    console.log('message :', message)
 
   }finally{
     isLoading.value = false;
@@ -405,34 +411,35 @@ const processRecharge = async () => {
 </script>
 
 <template>
-<div class="settings-shell">
- 
+  
+<div class="flex flex-col gap-6">
+
   <!-- ═══════════════ PROFIL BOUTIQUE ═══════════════ -->
   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
-  <!-- HEADER -->
-  <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
-    <div class="flex items-center gap-4">
-      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 text-slate-600">
-        <i class="pi pi-briefcase text-lg"></i>
+    <!-- HEADER -->
+    <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-slate-50 to-white">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-100 text-slate-600">
+          <i class="pi pi-briefcase text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-gray-900 m-0">Profil de la Boutique</h2>
+          <p class="text-sm text-gray-500 m-0">Informations légales et commerciales</p>
+        </div>
       </div>
-      <div>
-        <h2 class="text-base font-semibold text-gray-900 m-0">Profil de la Boutique</h2>
-        <p class="text-sm text-gray-500 m-0">Informations légales et commerciales</p>
-      </div>
+      <Button
+        v-if="userStatus == 'ADMIN'"
+        :label="userProfile ? 'Modifier' : 'Créer le profil'"
+        icon="pi pi-pencil"
+        rounded
+        outlined
+        size="small"
+        @click="openEditDialog"
+      />
     </div>
-    <Button
-      v-if="userStatus == 'ADMIN'"
-      :label="userProfile ? 'Modifier' : 'Créer le profil'"
-      icon="pi pi-pencil"
-      rounded
-      outlined
-      size="small"
-      @click="openEditDialog"
-    />
-  </div>
 
-  <!-- INFOS BOUTIQUE -->
+    <!-- INFOS BOUTIQUE -->
     <div class="px-6 py-5">
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
@@ -478,7 +485,11 @@ const processRecharge = async () => {
 
         <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
           <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Taux de change</span>
-          <Tag :value="userProfile?.exchange_rate ? String(userProfile.exchange_rate) : '—'" severity="success" class="w-fit !rounded-full !px-3 !py-1" />
+          <Tag
+            :value="userProfile?.exchange_rate ? String(userProfile.exchange_rate) : '—'"
+            severity="success"
+            class="w-fit !rounded-full !px-3 !py-1"
+          />
         </div>
 
       </div>
@@ -486,88 +497,88 @@ const processRecharge = async () => {
 
     <Divider class="!my-0" />
 
-  <!-- POINTS FIDÉLITÉ -->
-      <div class="px-6 py-5">
-        <div class="flex items-center gap-2 mb-4">
-          <i class="pi pi-star-fill text-amber-500"></i>
-          <span class="text-sm font-semibold text-gray-800">Gestion des Points de Fidélité</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-
-          <!-- Point entrée -->
-          <div class="relative overflow-hidden p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-            <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600">
-              <i class="pi pi-arrow-down-left text-sm"></i>
-            </div>
-            <div class="text-xs font-medium text-emerald-700/80 uppercase tracking-wide mb-2">
-              Valeur d'un point (Entrée)
-            </div>
-            <div class="text-xl font-bold text-emerald-700">
-              {{ userProfile?.point_entry || 0 }}
-              <span class="text-sm font-medium text-emerald-600/70">{{ userProfile?.currency_preference }}</span>
-            </div>
-          </div>
-
-          <!-- Point sortie -->
-          <div class="relative overflow-hidden p-4 rounded-xl bg-rose-50 border border-rose-100">
-            <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-rose-100 text-rose-600">
-              <i class="pi pi-arrow-up-right text-sm"></i>
-            </div>
-            <div class="text-xs font-medium text-rose-700/80 uppercase tracking-wide mb-2">
-              Valeur d'un point (Sortie)
-            </div>
-            <div class="text-xl font-bold text-rose-700">
-              {{ userProfile?.point_output || 0 }}
-              <span class="text-sm font-medium text-rose-600/70">{{ userProfile?.currency_preference }}</span>
-            </div>
-          </div>
-
-          <!-- Statut programme -->
-          <div
-            class="relative overflow-hidden p-4 rounded-xl border"
-            :class="userProfile?.point_is_activate
-              ? 'bg-indigo-50 border-indigo-100'
-              : 'bg-gray-50 border-gray-200'"
-          >
-            <div
-              class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg"
-              :class="userProfile?.point_is_activate
-                ? 'bg-indigo-100 text-indigo-600'
-                : 'bg-gray-200 text-gray-400'"
-            >
-              <i class="pi pi-power-off text-sm"></i>
-            </div>
-            <div
-              class="text-xs font-medium uppercase tracking-wide mb-3"
-              :class="userProfile?.point_is_activate ? 'text-indigo-700/80' : 'text-gray-500'"
-            >
-              Statut du programme
-            </div>
-            <div class="flex items-center gap-3">
-              <InputSwitch
-                :modelValue="userProfile?.point_is_activate"
-                @click="togglePoints"
-              />
-              <span
-                class="text-sm font-semibold"
-                :class="userProfile?.point_is_activate ? 'text-indigo-700' : 'text-gray-500'"
-              >
-                {{ userProfile?.point_is_activate ? 'Activé' : 'Désactivé' }}
-              </span>
-            </div>
-          </div>
-
-        </div>
+    <!-- POINTS FIDÉLITÉ -->
+    <div class="px-6 py-5">
+      <div class="flex items-center gap-2 mb-4">
+        <i class="pi pi-star-fill text-amber-500"></i>
+        <span class="text-sm font-semibold text-gray-800">Gestion des Points de Fidélité</span>
       </div>
 
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+        <!-- Point entrée -->
+        <div class="relative overflow-hidden p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+          <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600">
+            <i class="pi pi-arrow-down-left text-sm"></i>
+          </div>
+          <div class="text-xs font-medium text-emerald-700/80 uppercase tracking-wide mb-2">
+            Valeur d'un point (Entrée)
+          </div>
+          <div class="text-xl font-bold text-emerald-700">
+            {{ userProfile?.point_entry || 0 }}
+            <span class="text-sm font-medium text-emerald-600/70">{{ userProfile?.currency_preference }}</span>
+          </div>
+        </div>
+
+        <!-- Point sortie -->
+        <div class="relative overflow-hidden p-4 rounded-xl bg-rose-50 border border-rose-100">
+          <div class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg bg-rose-100 text-rose-600">
+            <i class="pi pi-arrow-up-right text-sm"></i>
+          </div>
+          <div class="text-xs font-medium text-rose-700/80 uppercase tracking-wide mb-2">
+            Valeur d'un point (Sortie)
+          </div>
+          <div class="text-xl font-bold text-rose-700">
+            {{ userProfile?.point_output || 0 }}
+            <span class="text-sm font-medium text-rose-600/70">{{ userProfile?.currency_preference }}</span>
+          </div>
+        </div>
+
+        <!-- Statut programme -->
+        <div
+          class="relative overflow-hidden p-4 rounded-xl border"
+          :class="userProfile?.point_is_activate
+            ? 'bg-indigo-50 border-indigo-100'
+            : 'bg-gray-50 border-gray-200'"
+        >
+          <div
+            class="flex items-center justify-center absolute top-3 right-3 w-8 h-8 rounded-lg"
+            :class="userProfile?.point_is_activate
+              ? 'bg-indigo-100 text-indigo-600'
+              : 'bg-gray-200 text-gray-400'"
+          >
+            <i class="pi pi-power-off text-sm"></i>
+          </div>
+          <div
+            class="text-xs font-medium uppercase tracking-wide mb-3"
+            :class="userProfile?.point_is_activate ? 'text-indigo-700/80' : 'text-gray-500'"
+          >
+            Statut du programme
+          </div>
+          <div class="flex items-center gap-3">
+            <InputSwitch
+              :modelValue="userProfile?.point_is_activate"
+              @click="togglePoints"
+            />
+            <span
+              class="text-sm font-semibold"
+              :class="userProfile?.point_is_activate ? 'text-indigo-700' : 'text-gray-500'"
+            >
+              {{ userProfile?.point_is_activate ? 'Activé' : 'Désactivé' }}
+            </span>
+          </div>
+        </div>
+
+      </div>
     </div>
- 
+
+  </div>
+
   <!-- ═══════════════ UTILISATEUR + ABONNEMENT ═══════════════ -->
-  <div class="two-col-grid">
- 
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
     <!-- Utilisateur -->
-   <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
       <!-- HEADER -->
       <div class="flex items-center gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50/60 to-white">
@@ -609,7 +620,7 @@ const processRecharge = async () => {
               </div>
               <span class="text-sm font-medium text-emerald-700">Balance</span>
             </div>
-            <span class="text-lg font-bold text-emerald-700">{{ user?.balance ||'-' }} USD</span>
+            <span class="text-lg font-bold text-emerald-700">{{ user?.balance || '-' }} USD</span>
           </div>
 
         </div>
@@ -652,102 +663,103 @@ const processRecharge = async () => {
           size="small"
           @click="openDeleteDialog"
         />
-        <!--   -->
         <Button
           label="Recharger balance"
           icon="pi pi-send"
-          severity="gren"
+          severity="success"
           outlined
           size="small"
           @click="showDialogRecharge"
         />
-      
       </div>
 
     </div>
- 
-   <!-- Abonnement -->
-<div v-if="userStatus == 'ADMIN'" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
-  <!-- HEADER -->
-  <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-amber-50/60 to-white">
-    <div class="flex items-center gap-4">
-      <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-100 text-amber-600">
-        <i class="pi pi-server text-lg"></i>
-      </div>
-      <div>
-        <h2 class="text-base font-semibold text-gray-900 m-0">Abonnement</h2>
-        <p class="text-sm text-gray-500 m-0">Plan et validité</p>
-      </div>
-    </div>
+    <!-- Abonnement -->
+    <div v-if="userStatus == 'ADMIN'" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
-    <Tag
-      v-if="subscription?.subscription_type"
-      :value="subscription.subscription_type"
-      :class="subBadgeClass(subscription.subscription_type)"
-      class="!px-3 !py-1.5 !rounded-full !text-xs !font-semibold"
-    >
-      <template #icon>
-        <i
-          v-if="['MEDIUM','PREMIUM'].includes(subscription.subscription_type)"
-          class="pi pi-verified mr-1"
-        ></i>
-        <i
-          v-if="['PLATINUM','DIAMOND'].includes(subscription.subscription_type)"
-          class="pi pi-shield mr-1"
-        ></i>
-      </template>
-    </Tag>
-  </div>
+      <!-- HEADER -->
+      <div class="flex items-center justify-between gap-4 px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-amber-50/60 to-white">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-amber-100 text-amber-600">
+            <i class="pi pi-server text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-gray-900 m-0">Abonnement</h2>
+            <p class="text-sm text-gray-500 m-0">Plan et validité</p>
+          </div>
+        </div>
 
-  <!-- CONTENU -->
-  <div class="px-6 py-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-    <!-- Infos texte -->
-    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-      <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
-        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Début</span>
-        <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.start_date) }}</span>
-      </div>
-
-      <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
-        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Fin</span>
-        <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.end_date) }}</span>
-      </div>
-
-      <div class="sm:col-span-2 flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-        <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Statut</span>
         <Tag
-          :value="status(subscription?.is_active)"
-          :severity="status(subscription?.is_active) === 'Actif' ? 'success' : 'danger'"
-          class="!rounded-full !px-3 !py-1"
-        />
+          v-if="subscription?.subscription_type"
+          :value="subscription.subscription_type"
+          :class="subBadgeClass(subscription.subscription_type)"
+          class="!px-3 !py-1.5 !rounded-full !text-xs !font-semibold"
+        >
+          <template #icon>
+            <i
+              v-if="['MEDIUM','PREMIUM'].includes(subscription.subscription_type)"
+              class="pi pi-verified mr-1"
+            ></i>
+            <i
+              v-if="['PLATINUM','DIAMOND'].includes(subscription.subscription_type)"
+              class="pi pi-shield mr-1"
+            ></i>
+          </template>
+        </Tag>
       </div>
 
+      <!-- CONTENU -->
+      <div class="px-6 py-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Infos texte -->
+        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Début</span>
+            <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.start_date) }}</span>
+          </div>
+
+          <div class="flex flex-col gap-1 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Fin</span>
+            <span class="text-sm font-semibold text-gray-900">{{ formatDate(subscription?.end_date) }}</span>
+          </div>
+
+          <div class="sm:col-span-2 flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Statut</span>
+            <Tag
+              :value="status(subscription?.is_active)"
+              :severity="status(subscription?.is_active) === 'Actif' ? 'success' : 'danger'"
+              class="!rounded-full !px-3 !py-1"
+            />
+          </div>
+
+        </div>
+
+        <!-- Knob progression -->
+        <div
+          v-if="subscription"
+          class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gray-50 border border-gray-100"
+        >
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Durée restante</span>
+          <Knob
+            :modelValue="progressPercent"
+            :min="0"
+            :max="100"
+            :size="120"
+            readonly
+            :valueTemplate="'{value}%'"
+            :valueColor="subscription.subscription_type === 'PREMIUM' ? '#6366f1' : '#16a34a'"
+            rangeColor="#e5e7eb"
+          />
+        </div>
+
+      </div>
     </div>
 
-    <!-- Knob progression -->
-    <div
-      v-if="subscription"
-      class="flex flex-col items-center justify-center gap-2 p-4 rounded-xl bg-gray-50 border border-gray-100"
-    >
-      <span class="text-xs font-medium text-gray-400 uppercase tracking-wide">Durée restante</span>
-      <Knob
-        :modelValue="progressPercent"
-        :min="0"
-        :max="100"
-        :size="120"
-        readonly
-        :valueTemplate="'{value}%'"
-        :valueColor="subscription.subscription_type === 'PREMIUM' ? '#6366f1' : '#16a34a'"
-        rangeColor="#e5e7eb"
-      />
-    </div>
+  </div>
 
-  </div>
-  </div>
-  </div>
+
 
 
 <Dialog
@@ -837,50 +849,10 @@ const processRecharge = async () => {
             </button>
 
             <!-- AIRTEL -->
-            <button
-                type="button"
-                @click="choosePayment('airtel')"
-                class="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
-                :class="paymentMethod === 'airtel'
-                    ? 'border-[#004D4A] bg-[#004D4A]/5 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
-            >
-                <i
-                    v-if="paymentMethod === 'airtel'"
-                    class="pi pi-check-circle absolute -top-2 -right-2 text-[#004D4A] bg-white rounded-full text-base"
-                ></i>
-                <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Airtel_logo-01.png"
-                    class="h-8 w-full object-contain"
-                    alt="Airtel Money"
-                />
-                <p class="text-xs font-semibold text-slate-600">
-                    Airtel Money
-                </p>
-            </button>
+            
 
             <!-- ORANGE -->
-            <button
-                type="button"
-                @click="choosePayment('orange')"
-                class="group relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all"
-                :class="paymentMethod === 'orange'
-                    ? 'border-[#004D4A] bg-[#004D4A]/5 shadow-sm'
-                    : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'"
-            >
-                <i
-                    v-if="paymentMethod === 'orange'"
-                    class="pi pi-check-circle absolute -top-2 -right-2 text-[#004D4A] bg-white rounded-full text-base"
-                ></i>
-                <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Orange_logo.svg"
-                    class="h-8 w-full object-contain"
-                    alt="Orange Money"
-                />
-                <p class="text-xs font-semibold text-slate-600">
-                    Orange Money
-                </p>
-            </button>
+
 
         </div>
 

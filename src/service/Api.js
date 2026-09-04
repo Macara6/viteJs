@@ -1651,8 +1651,7 @@ export  async function deleteEntryNote(entryNoteId){
         console.log('EntryNote delete');
         return response.data;
     }catch(error){
-        console.error('Error deleting EntryNote', error.response?.data || error);
-        throw error;
+       
     }
 }
 // fin du bloc pour les notes d'entrées
@@ -1679,11 +1678,28 @@ export async function  rechargeBalanceAPI(data) {
         return respons.data
 
     }catch(error){
-        console.error("error lors du traitement :", error);
         
     }
     
 }
+export async function rechargeManuelAPI(data){
+    const URL_RECHARGE_MANUEL = `${API_BASE}adminRecharge/`;
+    try{
+        const response = await axios.post(URL_RECHARGE_MANUEL,data,{
+          headers :{
+            'Authorization':`Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        return response.data;
+    }catch(error){
+         console.error(
+            'Erreur lors de la recharge manuelle:',
+            error.response?.data || error
+        );
+        throw error;
+    }
+}
+
 
 // function to fetch payement trans
 export async function fetchPayements(){
