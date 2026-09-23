@@ -101,7 +101,8 @@ const model = computed(() => {
           {
             label: 'ACCUEIL',
             items: [
-              { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+             // { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+              {label:'Dashboard', icon:'pi pi-w pi-chart-line', to:'/pages/Dashboard'},
               { label: 'Utilisateurs', icon: 'pi pi-fw pi-users', to: '/pages/Utilisateur' },
               { label: 'Clients', icon: 'pi pi-id-card', to:'/pages/Customer'},
 
@@ -134,7 +135,8 @@ const model = computed(() => {
             {
               label: 'ACCUEIL',
               items: [
-                { label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+                //{ label: 'Dashboard', icon: 'pi pi-fw pi-chart-line', to: '/pages/Bilan' },
+                {label:'Dashboard', icon:'pi pi-w pi-chart-line', to:'/pages/Dashboard'},
                 { label: 'Factures', icon: 'pi pi-ticket', to: '/pages/Invoice' },
                 { label: 'Vente', icon: 'pi pi-shopping-cart', to: '/pages/vente' },
                 { label: 'Dépasses', icon: 'pi pi-arrow-circle-up', to: '/pages/CashOutListe' },

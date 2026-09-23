@@ -71,7 +71,7 @@ const handleLogin = async() => {
           console.log('userData', userData);
          switch(userData.status){
             case 'ADMIN':
-                router.push('/pages/Bilan');
+                router.push('/pages/Dashboard');
               break;
             case 'CAISSIER':
               router.push('/pages/vente');
@@ -130,7 +130,7 @@ const handleLogin = async() => {
       <!-- LOGO + TITRE -->
       <div class="text-center mb-8">
         <img
-          src="/demo/bila_icon_512.png"
+          src="/demo/bilasol_v5.webp"
           class="h-16 sm:h-20 w-auto mx-auto mb-5 object-contain drop-shadow-sm"
           alt="BilaTech"
         />

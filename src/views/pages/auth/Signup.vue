@@ -21,7 +21,7 @@ const form = ref({
   password: '',
   confirmPassword: '',
   store_name: '',
-  store_address: '',
+  store_adress: '',
   store_phone: '',
   currency: '',
   business_type: '',
@@ -57,7 +57,7 @@ const validateStep = () => {
     }
 
     if(step.value === 3){
-        if(!form.value.store_name || !form.value.store_phone || !form.value.store_address ){
+        if(!form.value.store_name || !form.value.store_phone || !form.value.store_adress ){
             errorMessage.value = "Veuillez remplir tous les champs.";
             return false;
         }
@@ -76,6 +76,7 @@ const register = async () => {
 
   if(response.error){
      errorMessage.value = response.data?.detail || response.message
+     
   }else{
     successMessage.value = "Compte créé avec succès ";
     router.push('/login')
@@ -155,7 +156,7 @@ const progress = computed(() => (step.value - 1) / (totalSteps - 1) * 100)
       <!-- HEADER -->
       <div class="text-center mb-8">
         <img
-          src="/demo/bilatechslogan.png"
+          src="/demo/bilasol_v5.webp"
           class="h-12 mx-auto mb-4 object-contain"
           alt="BilaTech"
         />
@@ -300,7 +301,7 @@ const progress = computed(() => (step.value - 1) / (totalSteps - 1) * 100)
             <i class="pi pi-map-marker text-xs text-[#004D4A]"></i>
             Adresse
           </label>
-          <input v-model="form.store_address" placeholder="Adresse complète" class="signup-input" />
+          <input v-model="form.store_adress" placeholder="Adresse complète" class="signup-input" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="signup-field">

@@ -321,8 +321,8 @@ const startStatsAnimation = () => {
             <div class="relative mb-6">
               <div class="absolute inset-0 rounded-2xl bg-[#004D4A]/10 blur-xl scale-125"></div>
               <img
-                src="/demo/bila_icon_512.png"
-                class="relative h-16 w-16 rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,77,74,0.15)]"
+                src="/demo/bilasol_v5.webp"
+                class="relative  h-12 mx-auto mb-4  rounded-2xl object-cover shadow-[0_8px_24px_rgba(0,77,74,0.15)]"
                 alt="BilaTech"
               />
             </div>
@@ -357,7 +357,7 @@ const startStatsAnimation = () => {
   <!-- LOGO -->
   <a href="#" class="flex items-center flex-shrink-0">
     <img
-      src="/demo/bila_icon_512.png"
+      src="/demo/bilasol_v5.webp"
       class="h-9 md:h-10 w-auto object-contain"
     />
   </a>

@@ -216,6 +216,11 @@ const router = createRouter({
                     component:() => import('@/views/pages/Corbeille.vue'),
                     meta: {requiresAuth: true}
                 },
+                {
+                    path:'/pages/Dashboard',
+                    name:'Dashboard',
+                    component:() => import('@/views/pages/Dashboard.vue')
+                },
                 
                 {
                     path:'/pages/Statistic',

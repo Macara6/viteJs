@@ -575,9 +575,10 @@ async function createInvoice(){
 
             client_name :clientName.value,
 
-            total_amount:finalTotal,
+            total_amount: totalAmount.value,
 
             amount_paid:amountPaid.value,
+            
             cashier:localStorage.getItem('id'),
             change:change.value,
             items:invoiceItems.value.map(item => ({
@@ -608,7 +609,9 @@ async function createInvoice(){
             showInvoiceDialog.value = true;
              invoiceItems.value = [];
              totalAmount.value = 0;
+
              amountPaid.value = 0;
+
             change.value = 0;
             tva_pro.value=0
 

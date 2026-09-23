@@ -722,6 +722,57 @@ export async function  fetchStatistic(userId = null) {
 
 }
 
+// fonction pour affichier le tableau  de bord
+
+export async function fetchDashboardAPI(dashboardData){
+    const URL_DASHBOARD =`${API_BASE}bashbord/`;
+
+    try{
+        const response = await axios.get(URL_DASHBOARD, {
+            params:dashboardData,
+            headers:{
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        return response.data
+    }catch(error){
+        console.error('Error lors de la recuperation du bashboard :', error.response ? error.response.data : error);
+        throw error;
+    }
+}
+
+
+export async function generateReportAPI(report_data) {
+
+    const URL_GENERATE_PDF = `${API_BASE}gerateRapport/`;
+
+    try {
+
+        const response = await axios.get(URL_GENERATE_PDF, {
+            params: report_data,
+
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+
+            responseType: 'blob'
+        });
+
+        return response.data;
+
+    } catch (error) {
+
+        console.error(
+            "Erreur lors de la génération du rapport :",
+            error.response ? error.response.data : error
+        );
+
+        throw error;
+    }
+}
+
+
+
 
 export async function deleteProductAPI(productId){
     const DELETE_PRODUCT_URL = `${API_BASE}products/${productId}/`;

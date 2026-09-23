@@ -174,7 +174,7 @@ function notifIcon(notification) {
                 <i class="pi pi-bars"></i>
             </button>
             <router-link to="#" class="layout-topbar-logo">
-                <img src="/demo/bila_icon_512.png" alt="BilaTech Logo" class="h-12 mx-auto" />
+                <img src="/demo/bilasol_v5.webp" alt="BilaTech Logo" class="h-12 mx-auto" />
             </router-link>
         </div>
 
