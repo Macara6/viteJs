@@ -11,8 +11,7 @@ import {
   getUsersCreatedByMe,
   unblockedUserApi,
   updateUserAPI,
-  updateUserProfile,
-  verifySecretKey
+  updateUserProfile
 } from '@/service/Api';
 import { statusCheck } from '@/utils/formatters';
 import { useToast } from 'primevue/usetoast';
@@ -103,29 +102,30 @@ async function checkSubscription(){
 }
 
 // fonction pour verifier le code secret 
-async function verifySecret(){
-  submittedSecret.value = true;
-  if(!secretKey.value) return;
-  try{
-    const isValid = await verifySecretKey(secretKey.value);
-    if(isValid.valid){
-       toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
-      secretDialog.value = false;
-      secretKey.value = "";
-      if(deleteMode.value ==="DELETE"){
-        deleteUser();
-      }else if (deleteMode.value ==="BLOCKED"){
-        blockedUser();
-      }else if (deleteMode.value ==="UNBLOCKED"){
-        unblockedUser();
-      }
-    }else{
-       toast.add({ severity:'error', summary:'Erreur', detail:'Code secret invalide', life:3000 });
-    }
-  }catch(error){
-    console.error("Erreur lors de la verification du code secret", error);
-  }
+ function verifySecret(result){
+ 
+  if(result !== true){
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Code secret invalide',
+      life: 3000
+    })
+    return;
 
+  }
+   secretDialog.value = false;
+  toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
+ 
+  
+  if(deleteMode.value ==="DELETE"){
+    deleteUser();
+  }else if (deleteMode.value ==="BLOCKED"){
+    blockedUser();
+  }else if (deleteMode.value ==="UNBLOCKED"){
+    unblockedUser();
+  }
+  secretKey.value = "";
 }
 
 async function checkSecretKey(){
@@ -170,6 +170,7 @@ function confirmDeleteUser(user){
    deleteDialog.value = true
 
 }
+
 // fuction to blocked user
 function confirmBlocked(user){
   userToBlocked.value = user;
@@ -840,44 +841,13 @@ const roleClass = (status) => {
   </TabView>
 
 </Dialog>
-      <Dialog 
-        v-model:visible="secretDialog" 
-        header="Entrer le code secret" 
-        :modal="true" 
-        :closable="false" 
-        :style="{ width: '90%', maxWidth: '350px' }"
-      >
-        <div class="flex flex-col gap-2">
-          <label for="secret" class="font-medium">Code secret</label>
-          <InputText 
-            id="secret" 
-            v-model.trim="secretKey" 
-            :class="{ 'p-invalid': submittedSecret && !secretKey }" 
-            autofocus
-            @keyup.enter="verifySecret"
-          />
-          <small v-if="submittedSecret && !secretKey" class="p-error">
-            Le code secret est requis.
-          </small>
-        </div>
 
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <Button 
-              label="Annuler" 
-              icon="pi pi-times" 
-              text 
-              @click="secretDialog = false" 
-            />
-            <Button 
-              label="Valider" 
-              icon="pi pi-check" 
-              severity="success" 
-              @click="verifySecret" 
-            />
-          </div>
-        </template>
-      </Dialog>
+  <SecretCodeDialog
+    v-model:visible="secretDialog"
+    title="Action utilisateur"
+    message="Entrez votre code secret pour continuer."
+    @verified="verifySecret"
+  />
 
 
     <Dialog v-model:visible="deleteDialog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
@@ -887,6 +857,7 @@ const roleClass = (status) => {
             <Button label="Oui" icon="pi pi-check" severity="danger" @click="askSecretForDelete" />
         </template>
     </Dialog>
+    
   
     <Dialog v-model:visible="blockedDilog" :style="{ width: '350px' }" header="Confirmation" :modal="true">
         <span>Voulez-vous vraiment bloqué l'utilisateur <strong>{{ userToBlocked?.username }}</strong> ?</span>

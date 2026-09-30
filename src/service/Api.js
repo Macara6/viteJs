@@ -722,7 +722,7 @@ export async function  fetchStatistic(userId = null) {
 
 }
 
-// fonction pour affichier le tableau  de bord
+// fonction pour affichier le tableau  de bord & tout PDF
 
 export async function fetchDashboardAPI(dashboardData){
     const URL_DASHBOARD =`${API_BASE}bashbord/`;
@@ -771,6 +771,27 @@ export async function generateReportAPI(report_data) {
     }
 }
 
+// pour generer le rapport du stock 
+export async function generateReportStockAPI(stock_data){
+    const URL_STOCK_PDF = `${API_BASE}generateRapportStock/`;
+
+    try{
+        const response = await axios.get(URL_STOCK_PDF, {
+            params:stock_data,
+            headers : {
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            },
+            responseType:'blob'
+        });
+        return response.data
+    }catch(error){
+        console.error(
+            "Erreur lors de la génération du rapport :",
+            error.response ? error.response.data : error
+        );
+        throw error;
+    }
+}
 
 
 

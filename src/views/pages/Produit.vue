@@ -1,5 +1,6 @@
 
 <script setup>
+import SecretCodeDialog from '@/components/SecretCodeDialog.vue';
 import {
   addStockAPI,
   checkSecretKeyStatus,
@@ -11,14 +12,13 @@ import {
   fetchProduits,
   fetchStockHistory,
   fetchUserProfilById,
+  generateReportStockAPI,
   getCategoryByUser,
   getUsersCreatedByMe,
   subtrackStock,
-  updateProductAPI,
-  verifySecretKey
+  updateProductAPI
 } from '@/service/Api';
 import { formatDate } from '@/utils/formatters';
-
 
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache.js';
 import { FilterMatchMode } from '@primevue/core/api';
@@ -309,54 +309,32 @@ function downloadPDFHistory(){
 }
 
 // pdf produits 
-function downloadPDFProduct(){
-  const doc = new jsPDF();
+const isGenerating = ref(false)
 
-const pdfCurrency =
-    selectedUserProfile.value?.currency_preference ||
-    userProfile.value?.currency_preference ||
-    "N/D";
+ async function downloadPDFProduct(){
 
-const pdfUserName =
-    selectedUserProfile.value?.user_name ||
-    userProfile.value?.user_name ||
-    "Utilisateur inconnu";
+  isGenerating.value = true
 
-  const columns = [
-     {header: 'Produit', dataKey: 'name'},
-     {header: 'Prix Vente', dataKey:'price'},
-     {header: "Prix d'achat", dataKey:'purchase_price'},
-     {header: "Devise", dataKey:'currency'},
-     {header:'Stock', dataKey:'stock'},
-     {header:'Date Ajout', dataKey:'created_at'},
-     {header:'Date Expi', dataKey:'expiration_date'},
-     {header:'TVA', dataKey:'tva'},
-     {header:'Categorie', dataKey:'category_name'},
-     {header:'Code Barre', dataKey:'barcode'},
+  try{
+    const pdfBlob = await generateReportStockAPI({
+      user_id:selectedUserFilter.value
+    })
 
-  ]
-  const rows = filteredProducts.value.map(item =>({
-    ...item,
-    created_at:formatDate(item.created_at),
-    expiration_date:formatDate(item.expiration_date),
-    tva: item.tva ? "Avec" : "Sans",
-    currency: pdfCurrency
-  
-  }));
-  
-  
-  
-  autoTable(doc, {
-    head: [columns.map(c => c.header)],
-    body: rows.map(row => columns.map(c => row[c.dataKey])),
-    startY: 30,
-    theme: 'striped'
-  });
-
-  doc.text('liste des produits ', 14, 15);
-  doc.text(`Utilisateur : ${pdfUserName}`, 14, 22);
-  doc.save('liste_produits.pdf');
-
+     const blob = new Blob( [pdfBlob], { type: 'application/pdf' } );
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'rapport_stock.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }catch(error){
+    console.error( "Erreur lors du téléchargement du rapport :", error );
+  }finally{
+    isGenerating.value = false
+  }
+ 
 }
 
 
@@ -394,40 +372,56 @@ watch(selectedUserFilter, async (newUserId) => {
 });
 
 // verifier le code secret
-async function verifySecret() {
-  submittedSecret.value = true
-  if (!secretKey.value) return
-  try {
-    const isValid = await verifySecretKey(secretKey.value)
-    if (isValid.valid) {
-      showSensitiveInfo.value = true
-      secretDialog.value = false
-      toast.add({ severity: 'success', summary: 'Succès', detail: 'Code secret validé', life: 3000 })
-      
-      if(deleteMode.value ==="edite"){
-         productDialog.value = true;
-      }else if (deleteMode.value==='delete'){
-         deleteProductDialog.value = true;
-      }else if(deleteMode.value==='ajoutStock'){
-        ajoutStockDialog.value = true;
-      }else if (deleteMode.value ==='deleteHisto'){
-        histoDeleteDialog.value=true;
-      }else if (deleteMode.value =='sortieStock'){
-        sortieStockDialog.value = true;
-      }
+function verifySecret(result) {
 
-      if(deleteMode.value ==="viewSensitive"){
-        isSecretValidatedForView.value = true;
-      }
-      secretKey.value =''
+  console.log('Résultat reçu du composant :', result)
 
-    } else {
-      toast.add({ severity: 'error', summary: 'Erreur', detail: 'Code secret invalide', life: 3000 })
-    }
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Erreur de vérification', life: 3000 })
+  if (result !== true) {
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Code secret invalide',
+      life: 3000
+    })
+    return
   }
+
+  
+
+  showSensitiveInfo.value = true
+  secretDialog.value = false
+
+  toast.add({
+    severity: 'success',
+    summary: 'Succès',
+    detail: 'Code secret validé',
+    life: 3000
+  })
+
+  console.log('deleteMode =', deleteMode.value)
+
+  if (deleteMode.value === 'edite') {
+    productDialog.value = true
+
+  } else if (deleteMode.value === 'delete') {
+    deleteProductDialog.value = true
+
+  } else if (deleteMode.value === 'ajoutStock') {
+    ajoutStockDialog.value = true
+
+  } else if (deleteMode.value === 'deleteHisto') {
+    histoDeleteDialog.value = true
+
+  } else if (deleteMode.value === 'sortieStock') {
+    sortieStockDialog.value = true
+
+  } else if (deleteMode.value === 'viewSensitive') {
+    isSecretValidatedForView.value = true
+  }
+
+  secretKey.value = ''
 }
+
 
 // ------------------
 // Computed filtered products
@@ -683,7 +677,7 @@ function confirmDeleteProduct(prod) {
     deleteProductDialog.value = true;
    }
   
-   }
+}
 
 
 function confirmDeleteSelected() { deleteProductsDialog.value = true; }
@@ -851,6 +845,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             class="btn-outline-teal"
             @click="categoryDialog = true"
           />
+          <!-- Boutons de gauche 
           <Button
             label="Effacer"
             icon="pi pi-trash"
@@ -859,6 +854,7 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             :disabled="!selectedProducts || !selectedProducts.length"
             @click="confirmDeleteSelected"
           />
+          -->
         </div>
       </template>
 
@@ -873,9 +869,10 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             @click="forceRefresh"
           />
           <Button
-            label="Télécharger PDF"
-            icon="pi pi-file-pdf"
+            :label="isGenerating ? 'Génération...' : 'Générer le rapport'"
+            icon="pi pi-file-export"
             class="btn-teal"
+            :loading="isGenerating"
             @click="downloadPDFProduct"
           />
           <Button
@@ -1209,18 +1206,14 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
     </Dialog>
 
     <!-- Secret Dialog -->
-    <Dialog v-model:visible="secretDialog" header="Entrer code secret" :modal="true" :closable="false" :style="{ width: '90%', maxWidth: '350px' }">
-      <div>
-        <label for="secret">Code secret</label>
-        <InputText id="secret" v-model.trim="secretKey" :class="{ 'p-invalid': submittedSecret && !secretKey }" autofocus />
-        <small v-if="submittedSecret && !secretKey" class="p-error">Le code secret est requis.</small>
-      </div>
-      <template #footer>
-        <Button label="Annuler" icon="pi pi-times" text @click="secretDialog = false" />
-        <Button label="Valider" icon="pi pi-check" @click="verifySecret" />
-      </template>
-    </Dialog>
-
+ 
+  
+    <SecretCodeDialog
+    v-model:visible="secretDialog"
+    title="Afficher le bénéfice"
+    message="Entrez votre code secret pour afficher le bénéfice."
+    @verified="verifySecret"
+  />
 
 
 

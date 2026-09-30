@@ -219,13 +219,15 @@ const router = createRouter({
                 {
                     path:'/pages/Dashboard',
                     name:'Dashboard',
-                    component:() => import('@/views/pages/Dashboard.vue')
+                    component:() => import('@/views/pages/Dashboard.vue'),
+                     meta: { requiresAuth: true },
                 },
                 
                 {
                     path:'/pages/Statistic',
                     name:'statistiques',
-                    component:() => import('@/views/pages/Statistic.vue')
+                    component:() => import('@/views/pages/Statistic.vue'),
+                     meta: { requiresAuth: true },
                 },
 
                 {

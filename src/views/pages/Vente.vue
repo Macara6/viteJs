@@ -581,6 +581,7 @@ async function createInvoice(){
             
             cashier:localStorage.getItem('id'),
             change:change.value,
+            
             items:invoiceItems.value.map(item => ({
                 product: item.product.id,
                 quantity: item.quantity,

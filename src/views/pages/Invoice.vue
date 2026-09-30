@@ -6,10 +6,8 @@ import {
   fetchInvoiceDetail,
   fetchInvoicesAllUsers,
   fetchUserProfilById,
-  getUsersCreatedByMe,
-  verifySecretKey
+  getUsersCreatedByMe
 } from '@/service/Api';
-
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache';
 import { FilterMatchMode } from '@primevue/core/api';
 import html2canvas from 'html2canvas';
@@ -277,7 +275,6 @@ function confirmDeleteInvoice(inv){
     deleteInvoicesDialog.value = true;
   
   }
-
 }
 
 function  confirmDeleteMultiple(){
@@ -410,18 +407,24 @@ async function cancelInvoice(){
 }
 
 // --- Vérification code secret ---
-async function verifySecret() {
-  submittedSecret.value = true;
-  if (!secretKey.value) return;
-  try {
-    const isValid = await verifySecretKey(secretKey.value);
-    if (isValid.valid) {
+ function verifySecret(result) {
+  
+  if(result !== true){
+      toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Code secret invalide',
+      life: 3000
+    })
+    return;
+  }
+
+   // const isValid = await verifySecretKey(secretKey.value);
       showSensitiveInfo.value = true;
       secretDialog.value = false;
-      toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
-      secretDialog.value = false;
-       secretKey.value ="";
 
+      toast.add({ severity:'success', summary:'Succès', detail:'Code secret validé', life:3000 });
+      
       if(deleteMode.value ==="single"){
         deleteInvoice();
       } else if(deleteMode.value ==="multiple"){
@@ -429,19 +432,10 @@ async function verifySecret() {
       } else if (deleteMode.value ==="ANNULER"){
         cancelInvoice();
       }
-
       if(deleteMode.value === "viewSensitive") {
         isSecretValidatedForView.value = true;
       }
-   
-
-     
-    } else {
-      toast.add({ severity:'error', summary:'Erreur', detail:'Code secret invalide', life:3000 });
-    }
-  } catch(err) {
-    toast.add({ severity:'error', summary:'Erreur', detail:'Erreur de vérification', life:3000 });
-  }
+      secretKey.value ="";
 }
 
 async function checkSecretKey(){
@@ -925,44 +919,12 @@ onMounted(async () => {
       </template>
     </Dialog>
 
-      <Dialog 
-        v-model:visible="secretDialog" 
-        header="Entrer le code secret" 
-        :modal="true" 
-        :closable="false" 
-        :style="{ width: '90%', maxWidth: '350px' }"
-      >
-        <div class="flex flex-col gap-2">
-          <label for="secret" class="font-medium">Code secret</label>
-          <InputText 
-            id="secret" 
-            v-model.trim="secretKey" 
-            :class="{ 'p-invalid': submittedSecret && !secretKey }" 
-            autofocus
-            @keyup.enter="verifySecret"
-          />
-          <small v-if="submittedSecret && !secretKey" class="p-error">
-            Le code secret est requis.
-          </small>
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <Button 
-              label="Annuler" 
-              icon="pi pi-times" 
-              text 
-              @click="secretDialog = false" 
-            />
-            <Button 
-              label="Valider" 
-              icon="pi pi-check" 
-              severity="success" 
-              @click="verifySecret" 
-            />
-          </div>
-        </template>
-      </Dialog>
+    <SecretCodeDialog
+      v-model:visible="secretDialog"
+      title="Facture"
+      message="Entrez votre code secret pour continuer"
+      @verified="verifySecret"
+    />
 
     <!-- Invoice Details Modal -->
     <Dialog

@@ -1,5 +1,6 @@
 <script setup>
-import { fetchDashboardAPI, generateReportAPI, getUsersCreatedByMe } from '@/service/Api';
+import SecretCodeDialog from '@/components/SecretCodeDialog.vue';
+import { checkSecretKeyStatus, fetchDashboardAPI, generateReportAPI, getUsersCreatedByMe } from '@/service/Api';
 import { computed, onMounted, ref } from 'vue';
 
 // ── Filtres ──
@@ -17,6 +18,7 @@ const selectedUser = ref(null)
 onMounted(async () => {
     await getDashbord();
     await fetchUsers();
+    await loadSecretKeyStatus()
 })
 
 
@@ -203,6 +205,81 @@ function formatFull(value, currency = null) {
 
 
 // ── Cartes ──
+
+// 1 verification du code secret 
+
+const revealedCards = ref({})
+
+const showCodeDialog = ref(false)
+
+const pendingCardKey = ref(null)
+
+const hasSecretKey = ref(false)
+
+const checkingSecretKey = ref(true)
+
+const isVerifying = ref(false)
+
+
+async function loadSecretKeyStatus() {
+  try {
+    const response = await checkSecretKeyStatus()
+ 
+    hasSecretKey.value = response.has_key === true
+
+  } catch (error) {
+    console.error(
+      'Erreur statut code secret:',
+      error.response?.data || error
+    )
+  }
+}
+
+
+function isHidden(card) {
+  return card.sensitive && !revealedCards.value[card.key]
+}
+
+function requestReveal(card) {
+  if(localStorage.getItem('status') != 'ADMIN'){
+    revealedCards.value[card.key] = false;
+    return
+  }
+  // Si déjà visible → masquer
+  if (!isHidden(card)) {
+    revealedCards.value[card.key] = false
+    return
+  }
+
+  // Pas de code secret configuré
+  if (!hasSecretKey.value) {
+    revealedCards.value[card.key] = true
+    return
+  }
+
+  // Un code secret existe
+  pendingCardKey.value = card.key
+  showCodeDialog.value = true
+}
+
+function handleSecretResult(result) {
+  console.log('resulat :', result)
+  if (result === true && pendingCardKey.value && localStorage.getItem('status') =='ADMIN') {
+    revealedCards.value[pendingCardKey.value] = true
+
+    pendingCardKey.value = null
+  }
+
+
+}
+
+function hideCard(card) {
+  revealedCards.value[card.key] = false
+}
+
+
+
+
 const cards = computed(() => [
   {
     key: 'invoices',
@@ -245,7 +322,8 @@ const cards = computed(() => [
     full: formatFull(stats.value.profit, currency.value),
     sub: 'Marge nette estimée',
     baseAmount:stats.value.profit,
-    convertible:true
+    convertible:true,
+    sensitive: true, 
   },
 
   {
@@ -257,6 +335,7 @@ const cards = computed(() => [
     full: formatFull(stats.value.cancelledInvoicesCount),
     sub: 'Nombre d\'annulations',
   },
+
   {
     key: 'cancelledAmount',
     label: 'Montant annulé',
@@ -326,6 +405,10 @@ const colorMap = {
   sky: { bg: 'bg-sky-50', text: 'text-sky-600' },
   violet: { bg: 'bg-violet-50', text: 'text-violet-600' },
 }
+
+
+
+
 
 
 //====== graphiques ==========
@@ -737,6 +820,7 @@ const doughnutOptions = ref({
     </div>
   </div>
 </div>
+
     <!-- GRID DES CARTES -->
     <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 
@@ -746,67 +830,82 @@ const doughnutOptions = ref({
         class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4 transition-all duration-200 hover:shadow-md hover:border-slate-300"
       >
         <!-- Header carte -->
-        <div class="flex items-center justify-between">
-          <div
-            class="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
-            :class="[colorMap[card.color].bg, colorMap[card.color].text]"
-          >
-            <i :class="card.icon" class="text-base"></i>
-          </div>
+            <!-- Header carte -->
+      <div class="flex items-center justify-between">
+        <div
+          class="flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0"
+          :class="[colorMap[card.color].bg, colorMap[card.color].text]"
+        >
+          <i :class="card.icon" class="text-base"></i>
+        </div>
 
-          <!-- Bouton de conversion -->
+        <div class="flex items-center gap-1.5">
+          <!-- Conversion (désactivée tant que la valeur est masquée) -->
           <button
-            v-if="card.convertible"
+            v-if="card.convertible && !isHidden(card)"
             type="button"
             @click="toggleCurrency(card.key)"
             class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold
-                   bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200"
+                  bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200"
           >
             <i class="pi pi-sync text-[10px]"></i>
             {{ getTargetCurrency(card.key) }}
           </button>
+
+          <!-- Œil : afficher / masquer -->
+          <button
+            v-if="card.sensitive"
+            type="button"
+           @click="requestReveal(card)"
+            class="flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-500
+                  transition-colors hover:bg-slate-200"
+            :title="isHidden(card) ? 'Afficher (code secret)' : 'Masquer'"
+          >
+            <i :class="isHidden(card) ? 'pi pi-eye' : 'pi pi-eye-slash'" class="text-xs"></i>
+          </button>
+
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+          {{ card.label }}
+        </p>
+
+        <!-- Valeur masquée -->
+        <p
+          v-if="isHidden(card)"
+          class="text-2xl font-bold text-slate-300 leading-tight tracking-widest select-none"
+        >
+          ••••••
+        </p>
+
+        <!-- Valeur simple non convertible -->
+        <p
+          v-else-if="!card.dual && !card.convertible"
+          class="text-2xl font-bold text-slate-900 leading-tight break-words"
+        >
+          {{ card.value }}
+        </p>
+
+        <!-- Valeur convertible -->
+        <p
+          v-else-if="card.convertible"
+          class="text-2xl font-bold text-slate-900 leading-tight break-words"
+        >
+          {{ formatFull(convertedValue(card.baseAmount, card.key), getDisplayCurrency(card.key)) }}
+        </p>
+
+        <!-- Valeur double devise -->
+        <div v-else-if="card.dual" class="flex flex-col gap-1">
+          <p v-for="(d, i) in card.dual" :key="i" class="text-lg font-bold text-slate-900 leading-tight break-words">
+            {{ formatFull(d.amount, d.currency) }}
+          </p>
         </div>
 
-        <!-- Label -->
-        <div>
-          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
-            {{ card.label }}
-          </p>
+        <p class="text-xs text-slate-400 mt-1.5">{{ card.sub }}</p>
+      </div>
 
-          <!-- Valeur simple non convertible -->
-          <p
-            v-if="!card.dual && !card.convertible"
-            class="text-2xl font-bold text-slate-900 leading-tight break-words"
-          >
-            {{ card.value }}
-          </p>
-
-          <!-- Valeur convertible (bascule USD/CDF) -->
-          <p
-            v-else-if="card.convertible"
-            class="text-2xl font-bold text-slate-900 leading-tight break-words"
-          >
-            {{ formatFull(
-              convertedValue(card.baseAmount, card.key),
-              getDisplayCurrency(card.key)
-            ) }}
-          </p>
-
-          <!-- Valeur double devise fixe -->
-          <div v-else-if="card.dual" class="flex flex-col gap-1">
-            <p
-              v-for="(d, i) in card.dual"
-              :key="i"
-              class="text-lg font-bold text-slate-900 leading-tight break-words"
-            >
-              {{ formatFull(d.amount, d.currency) }}
-            </p>
-          </div>
-
-          <p class="text-xs text-slate-400 mt-1.5">
-            {{ card.sub }}
-          </p>
-        </div>
       </div>
 
     </div>
@@ -849,7 +948,23 @@ const doughnutOptions = ref({
 
     </div>
 
+
+
+
+  <SecretCodeDialog
+    v-model:visible="showCodeDialog"
+    title="Afficher le bénéfice"
+    message="Entrez votre code secret pour afficher le bénéfice."
+    @verified="handleSecretResult"
+  />
+
+
+
   </div>
+
+
+
+
 
 </template>
 

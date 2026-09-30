@@ -2,6 +2,7 @@
 
 
 <script setup>
+import SecretCodeDialog from '@/components/SecretCodeDialog.vue';
 import { useGlobalAlert } from '@/layout/composables/useGlobalAlert';
 import {
   changePassword,
@@ -139,26 +140,91 @@ async function saveSecretKey(){
   }
 }
 // ffonction pour supprimer le code secret
-async function deteleteKey(){
-  submittedSecret.value = true
-  if(!secretKey.value) return;
-  try{
-     const data = {};
-     data.old_key = secretKey.value;
-     const result = await deleteSecretKey(data);
-    
-      toast.add({
-       severity: 'success',
-        summary: 'Succès',
-         detail: `${result.detail}`,
-        life: 3000 });
-   
-    deleteSecretKeyDialog.value = false;
-  }catch(error){
-    console.error("errur lors de la suppression",error);
-    toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
+
+const verifiedSecretCode = ref('')
+const secretValidated = ref(false)
+
+function handleSecretCode(code) {
+  console.log('Code reçu :', code)
+
+  verifiedSecretCode.value = code
+
+  console.log(
+    'Code sauvegardé :',
+    verifiedSecretCode.value
+  )
+
+  // Si la validation est déjà arrivée
+  if (secretValidated.value) {
+    deteleteKey(true)
   }
 }
+
+function handleSecretVerification(result) {
+  console.log('Résultat reçu :', result)
+
+  if (result === true) {
+
+    secretValidated.value = true
+
+    // Si le code est déjà arrivé
+    if (verifiedSecretCode.value) {
+      deteleteKey(true)
+    }
+  }
+}
+
+
+async function deteleteKey(result) {
+
+  if (result !== true) {
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Code secret invalide',
+      life: 3000
+    })
+    return
+  }
+
+  try {
+    console.log(
+      'Code avant API :',
+      verifiedSecretCode.value
+    )
+    const data = {
+      old_key: verifiedSecretCode.value
+    }
+
+    console.log('data key :', data)
+
+    await deleteSecretKey(data)
+
+    toast.add({
+      severity: 'success',
+      summary: 'Succès',
+      detail: 'Code secret supprimé',
+      life: 3000
+    })
+
+    deleteSecretKeyDialog.value = false
+
+    // Seulement après l'envoi réussi
+    verifiedSecretCode.value = ''
+
+  } catch (error) {
+
+    console.error('Erreur lors de la suppression', error)
+
+    toast.add({
+      severity: 'error',
+      summary: 'Erreur',
+      detail: 'Une erreur est survenue',
+      life: 3000
+    })
+  }
+}
+
 
 function openDeleteDialog(){
   deleteSecretKeyDialog.value = true;
@@ -389,10 +455,10 @@ const processRecharge = async () => {
     user.value.balance = response.newBalance
     showRechargeDialog.value = false
 
-    toast.add({ severity: 'success', summary: 'Succès', detail: 'echarge a été enregistrée avec succès', life: 3000 });
+    toast.add({ severity: 'success', summary: 'Succès', detail: 'recharge a été enregistrée avec succès', life: 3000 });
   
   }catch(error){
-    console.error("error :", error)
+   
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Une erreur est survenue', life: 3000 });
     const message =
         error.response?.data?.error ||
@@ -1155,45 +1221,15 @@ const processRecharge = async () => {
 
 
 
-    <Dialog
-      v-model:visible="deleteSecretKeyDialog"
-      modal
-      header="Vérification du code secret"
-      :style="{ width: '400px' }"
-      class="p-fluid"
-      >
-  <div class="field mb-4">
-    <label for="secret" class="block text-sm font-medium text-gray-700 mb-2">
-      Entrez le code secret pour supprimer
-    </label>
-    <Password
-      id="secret"
-      v-model="secretKey"
-      toggleMask
-      feedback="false"
-      placeholder="Code secret"
-      class="w-full"
-    />
-    <small v-if="submittedSecret && !secretKey" class="p-error block mt-1">
-      Le code secret est requis.
-    </small>
-  </div>
+  <SecretCodeDialog
+    v-model:visible="deleteSecretKeyDialog"
+    title="Vérification du code secret"
+    message="Entrez votre code secret pour continuer."
+    @verified="handleSecretVerification"
+    @secret-code="handleSecretCode"
+   
+  />
 
-  <div class="flex justify-end gap-2">
-    <Button
-      label="Annuler"
-      icon="pi pi-times"
-      severity="secondary"
-      @click="deleteSecretKeyDialog =false"
-    />
-    <Button
-      label="Vérifier"
-      icon="pi pi-check"
-      severity="success"
-      @click="deteleteKey"
-    />
-  </div>
-</Dialog>
 
   </div>
 </template>
