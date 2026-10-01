@@ -15,6 +15,7 @@ import {
   generateReportStockAPI,
   getCategoryByUser,
   getUsersCreatedByMe,
+  stockViewAPI,
   subtrackStock,
   updateProductAPI
 } from '@/service/Api';
@@ -88,6 +89,7 @@ const deleteMode = ref(null);
 const histoDeleteDialog = ref(false);
 const isLoading = ref(false);
 const userStatus = localStorage.getItem('status');
+const stockFile = ref(null);
 // ------------------
 // Utilities / loaders
 // ------------------
@@ -191,7 +193,7 @@ onMounted(async () => {
     toast.add({ severity: 'warn', summary: 'Utilisateur non identifié', detail: 'Veuillez vous reconnecter.', life: 3000 });
     return;
   }
-
+  
   try {
     // fetch minimal user info (could be id/username)
     const minimalUser = await fetchUserProfilById(userId);
@@ -211,6 +213,7 @@ onMounted(async () => {
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données initiales.', life: 3000 });
   }
   await chekeSecretKey();
+  await getStockView();
 });
 
 async function chekeSecretKey(){
@@ -225,6 +228,14 @@ async function chekeSecretKey(){
   }catch(error){
     console.error('Erreur lors de la verification du code');
   }
+}
+
+async function getStockView(){
+  const userId = localStorage.getItem('id')
+
+  stockFile.value = await stockViewAPI({
+    user_id:selectedUserFilter.value || userId
+  })
 }
 
 
@@ -369,7 +380,9 @@ watch(selectedUserFilter, async (newUserId) => {
     console.error('Erreur récupération produits/catégories utilisateur', error);
     toast.add({ severity: 'error', summary: 'Erreur', detail: 'Impossible de charger les données de l’utilisateur', life: 3000 });
   }
+  await getStockView()
 });
+
 
 // verifier le code secret
 function verifySecret(result) {
@@ -450,6 +463,8 @@ const filteredProducts = computed(() => {
 
   return filtered;
 });
+
+
 
 // force forceRefrech
 async function forceRefresh() {
@@ -818,12 +833,56 @@ function calculateDenfice(prixVente, prixAchat) {
 function exportCSV() { dt.value?.exportCSV(); }
 function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); }
 
+
+
+const stockSummary = computed(() => {
+  const products = stockFile.value?.total_products
+  const now = new Date()
+  const soonThreshold = 7
+  
+  let total_stock = stockFile.value?.total_stock || 0
+  let total_lowStock = stockFile.value?.low_stock || 0
+  let cout_total_acaht = stockFile.value?.cout_total_achat
+  let cout_total_vente = stockFile.value?.cout_total_vente || 0
+  let benifice_total =  stockFile.value?.potential_benefice
+  let exchage_rate =  stockFile.value?.exchange_rate
+  let expiredCount = stockFile.value?.product_expirate || 0
+  let tvaCount = 0
+
+
+  return {
+    totalProducts: products,
+    totalStock:total_stock,
+    totalLowStock: total_lowStock,
+    totalValueAchat: formatFullAmount(cout_total_acaht),
+    totalValueVente: formatFullAmount(cout_total_vente),
+    beneficeTotal: formatFullAmount(benifice_total),
+    exchangeRate:exchage_rate,
+    expiredCount,
+    tvaCount,
+  }
+})
+
+function formatCompactAmount(value) {
+  return new Intl.NumberFormat('fr-FR', {
+    notation: 'compact',
+    compactDisplay: 'short',
+    maximumFractionDigits: 1,
+  }).format(value)
+}
+
+function formatFullAmount(value) {
+  return new Intl.NumberFormat('fr-FR').format(value) + ' ' +
+    (stockFile.value?.currency)
+}
 </script>
 
 
 
 <template>
+
 <div class="p-4 sm:p-6 lg:p-8 min-h-screen bg-slate-50">
+
 
   <!-- === TOOLBAR PRINCIPALE === -->
   <div class="toolbar-card mb-5">
@@ -897,235 +956,269 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
   <!-- === DATATABLE === -->
   <div v-else class="table-card">
-    <DataTable
-      ref="dt"
-      v-model:selection="selectedProducts"
-      :value="filteredProducts"
-      dataKey="id"
-      :paginator="true"
-      :rows="10"
-      :filters="filters"
-      responsiveLayout="scroll"
-      :rowsPerPageOptions="[5, 10, 25]"
-      currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} produits"
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      class="custom-datatable"
-    >
+  <DataTable
+    ref="dt"
+    v-model:selection="selectedProducts"
+    :value="filteredProducts"
+    dataKey="id"
+    :paginator="true"
+    :rows="10"
+    :filters="filters"
+    responsiveLayout="scroll"
+    :rowsPerPageOptions="[5, 10, 25]"
+    currentPageReportTemplate="Affichage {first} à {last} sur {totalRecords} produits"
+    paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+    class="custom-datatable"
+  >
 
-      <!-- === HEADER (Filtres + Recherche) === -->
-      <template #header>
-        <div class="flex flex-col gap-4">
+    <!-- === HEADER (Résumé + Filtres + Recherche) === -->
+    <template #header>
+      <div class="flex flex-col gap-5">
 
-          <!-- Titre -->
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-lg bg-[#004D4A]/8 flex items-center justify-center">
-              <i class="pi pi-box text-[#004D4A] text-sm"></i>
-            </div>
-            <h4 class="text-base sm:text-lg font-bold text-slate-800 m-0">
-              Table des Produits
-            </h4>
+        <!-- Titre -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-[#004D4A]/8 flex items-center justify-center">
+            <i class="pi pi-calculator text-[#004D4A] text-sm"></i>
           </div>
+          <h4 class="text-base sm:text-lg font-semibold text-slate-900 m-0">
+            Gestion stock
+          </h4>
+        </div>
+       
+        <!-- Filtres -->
+        <div class="flex flex-wrap gap-3 items-center">
 
-          <!-- Filtres -->
-          <div class="flex flex-wrap gap-3 items-center">
+          <Button
+            label="Historique de stock"
+            icon="pi pi-history"
+            outlined
+            severity="secondary"
+            size="small"
+            @click="openHistoryDialog"
+          />
 
-            <Button
-              label="Historique de stock"
-              icon="pi pi-history"
-              outlined
-              severity="secondary"
-              size="small"
-              @click=" openHistoryDialog"
+          <!-- Filtre utilisateur -->
+          <Select
+            v-model="selectedUserFilter"
+            :options="allUsers.filter(u => u.status !== 'CAISSIER')"
+            optionLabel="username"
+            optionValue="id"
+            placeholder="Filtrer par utilisateur"
+            class="w-full sm:w-56"
+            @change="getStockView"
+            showClear
+          >
+            <template #option="slotProps">
+              <div class="flex items-center justify-between w-full">
+                <span>{{ slotProps.option.username }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': slotProps.option.status === 'ADMIN',
+                    'bg-teal-50 text-[#004D4A]': slotProps.option.status === 'CAISSIER',
+                    'bg-slate-100 text-slate-500': slotProps.option.status === 'GESTIONNAIRE_STOCK'
+                  }"
+                >
+                  {{ slotProps.option.status }}
+                </span>
+              </div>
+            </template>
+
+            <template #selecteItem="slotProps">
+              <div v-if="slotProps.value" class="flex items-center gap-2">
+                <span>{{ slotProps.value.username }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                  :class="{
+                    'bg-emerald-50 text-emerald-600': slotProps.value.status === 'admin',
+                    'bg-teal-50 text-[#004D4A]': slotProps.value.status === 'user',
+                  }"
+                >
+                  {{ slotProps.value.status }}
+                </span>
+              </div>
+              <span v-else>Filtrer par utilisateur</span>
+            </template>
+          </Select>
+
+          <!-- Filtre catégorie -->
+          <Select
+            v-model="selectedCategoryFilter"
+            :options="[{ id: 'all', name: 'Tous' }, ...categorys]"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Filtrer par catégorie"
+            class="w-full sm:w-56"
+            showClear
+          />
+
+          <!-- Recherche globale -->
+          <span class="relative flex items-center w-full sm:w-64 ml-auto">
+            <i class="pi pi-search absolute left-3 text-slate-400 text-sm pointer-events-none"></i>
+            <InputText
+              v-model="filters['global'].value"
+              placeholder="Rechercher un produit..."
+              class="w-full !pl-9 !py-2.5 !text-sm !rounded-xl !border-slate-200
+                     focus:!border-[#004D4A] focus:!ring-[#004D4A]/10"
             />
+          </span>
 
-            <!-- Filtre utilisateur -->
-            <Select
-              v-model="selectedUserFilter"
-              :options="allUsers.filter(u => u.status !== 'CAISSIER')"
-              optionLabel="username"
-              optionValue="id"
-              placeholder="Filtrer par utilisateur"
-              class="w-full sm:w-56"
-              showClear
-            >
-              <template #option="slotProps">
-                <div class="flex items-center justify-between w-full">
-                  <span>{{ slotProps.option.username }}</span>
-                  <span
-                    class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                    :class="{
-                      'bg-emerald-50 text-emerald-600': slotProps.option.status === 'ADMIN',
-                      'bg-teal-50 text-[#004D4A]': slotProps.option.status === 'CAISSIER',
-                      'bg-slate-100 text-slate-500': slotProps.option.status === 'GESTIONNAIRE_STOCK'
-                    }"
-                  >
-                    {{ slotProps.option.status }}
-                  </span>
-                </div>
-              </template>
+        </div>
 
-              <template #selecteItem="slotProps">
-                <div v-if="slotProps.value" class="flex items-center gap-2">
-                  <span>{{ slotProps.value.username }}</span>
-                  <span
-                    class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                    :class="{
-                      'bg-emerald-50 text-emerald-600': slotProps.value.status === 'admin',
-                      'bg-teal-50 text-[#004D4A]': slotProps.value.status === 'user',
-                    }"
-                  >
-                    {{ slotProps.value.status }}
-                  </span>
-                </div>
-                <span v-else>Filtrer par utilisateur</span>
-              </template>
-            </Select>
-
-            <!-- Filtre catégorie -->
-            <Select
-              v-model="selectedCategoryFilter"
-              :options="[{ id: 'all', name: 'Tous' }, ...categorys]"
-              optionLabel="name"
-              optionValue="id"
-              placeholder="Filtrer par catégorie"
-              class="w-full sm:w-56"
-              showClear
-            />
-
-            <!-- Recherche globale -->
-            <span class="relative flex items-center w-full sm:w-64 ml-auto">
-              <i class="pi pi-search absolute left-3 text-slate-400 text-sm pointer-events-none"></i>
-              <InputText
-                v-model="filters['global'].value"
-                placeholder="Rechercher un produit..."
-                class="w-full !pl-9 !py-2.5 !text-sm !rounded-xl !border-slate-200
-                       focus:!border-[#004D4A] focus:!ring-[#004D4A]/10"
-              />
-            </span>
-
+         <!-- === RÉSUMÉ DU STOCK === -->
+        <div class="summary-strip">
+          <div class="summary-cell">
+            <p class="summary-label">Total articles </p>
+            <p class="summary-value">{{ stockSummary.totalProducts }}</p>
+           
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">Stock total</p>
+            <p class="summary-value">{{ stockSummary.totalStock }}</p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">articles faible stock</p>
+            <p class="summary-value truncate" :title="stockSummary.totalLowStock">
+              {{ stockSummary.totalLowStock }}
+            </p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">ARTICLES EXPIRATION PROCHE</p>
+            <p class="summary-value summary-value--warning">{{ stockSummary.expiredCount }}</p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">COÛT TOTAL (ACHAT)</p>
+            <p class="summary-value "> {{ stockSummary.totalValueAchat }} </p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">COÛT TOTAL (VENTE) </p>
+            <p class="summary-value ">{{ stockSummary.totalValueVente }} </p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">BÉNEFICE TOTAL</p>
+            <p class="summary-value">{{ stockSummary.beneficeTotal }}</p>
+          </div>
+          <div class="summary-cell">
+            <p class="summary-label">TAUX DE CHANGE </p>
+            <p class="summary-value">1USD={{ stockSummary.exchangeRate }}CDF</p>
           </div>
         </div>
+      </div>
+    </template>
+
+    <!-- === COLONNES (inchangées) === -->
+    <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
+
+    <Column field="name" header="Nom produit" sortable style="min-width: 12rem">
+      <template #body="slotProps">
+        <span class="font-semibold text-slate-800">{{ slotProps.data.name }}</span>
       </template>
+    </Column>
 
-      <!-- === COLONNES === -->
-      <Column selectionMode="multiple" style="width: 3rem" :exportable="false" />
+    <Column field="price" header="Prix vente" sortable style="min-width: 8rem">
+      <template #body="slotProps">
+        <span class="font-semibold text-[#004D4A]">{{ formatPrice(slotProps.data.price) }}</span>
+      </template>
+    </Column>
 
-     
+    <Column
+      v-if="isSecretValidatedForView"
+      field="purchase_price"
+      header="Prix achat"
+      sortable
+      style="min-width: 8rem"
+    >
+      <template #body="slotProps">{{ formatPrice(slotProps.data.purchase_price) }}</template>
+    </Column>
 
-      <Column field="name" header="Nom produit" sortable style="min-width: 12rem">
-        <template #body="slotProps">
-          <span class="font-semibold text-slate-800">{{ slotProps.data.name }}</span>
-        </template>
-      </Column>
+    <Column field="currency" header="Devise" style="min-width: 6rem; text-align: center;">
+      <template #body>
+        <span class="text-xs font-semibold text-slate-500">
+          {{ selectedUserProfile?.currency_preference || userProfile?.currency_preference || 'N/D' }}
+        </span>
+      </template>
+    </Column>
 
-      <Column field="price" header="Prix vente" sortable style="min-width: 8rem">
-        <template #body="slotProps">
-          <span class="font-semibold text-[#004D4A]">{{ formatPrice(slotProps.data.price) }}</span>
-        </template>
-      </Column>
+    <Column
+      v-if="isSecretValidatedForView"
+      field=""
+      header="Bénéfice"
+      style="min-width: 6rem"
+    >
+      <template #body="slotProps">
+        <span class="text-emerald-600 font-semibold">
+          {{ calculateDenfice(slotProps.data.price, slotProps.data.purchase_price) }}%
+        </span>
+      </template>
+    </Column>
 
-      <Column
-        v-if="isSecretValidatedForView"
-        field="purchase_price"
-        header="Prix achat"
-        sortable
-        style="min-width: 8rem"
-      >
-        <template #body="slotProps">{{ formatPrice(slotProps.data.purchase_price) }}</template>
-      </Column>
+    <Column field="stock" header="Stock" sortable style="min-width: 6rem">
+      <template #body="{ data }">
+        <span
+          class="stock-badge"
+          :class="data.stock < 10 ? 'stock-badge--low' : 'stock-badge--ok'"
+        >
+          <i :class="data.stock < 10 ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle'" class="text-[10px]"></i>
+          {{ data.stock }}
+        </span>
+      </template>
+    </Column>
 
-      <Column field="currency" header="Devise" style="min-width: 6rem; text-align: center;">
-        <template #body>
-          <span class="text-xs font-semibold text-slate-500">
-            {{ selectedUserProfile?.currency_preference || userProfile?.currency_preference || 'N/D' }}
-          </span>
-        </template>
-      </Column>
+    <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
+      <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
+    </Column>
 
-      <Column
-        v-if="isSecretValidatedForView"
-        field=""
-        header="Bénéfice"
-        style="min-width: 6rem"
-      >
-        <template #body="slotProps">
-          <span class="text-emerald-600 font-semibold">
-            {{ calculateDenfice(slotProps.data.price, slotProps.data.purchase_price) }}%
-          </span>
-        </template>
-      </Column>
+    <Column field="expiration_date" header="Date Exp" sortable style="min-width: 10rem">
+      <template #body="slotProps">
+        {{ formatDate(slotProps.data.expiration_date) }}
+      </template>
+    </Column>
 
-      <Column field="stock" header="Stock" sortable style="min-width: 6rem">
-        <template #body="{ data }">
-          <span
-            class="stock-badge"
-            :class="data.stock < 10 ? 'stock-badge--low' : 'stock-badge--ok'"
-          >
-            <i :class="data.stock < 10 ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle'" class="text-[10px]"></i>
-            {{ data.stock }}
-          </span>
-        </template>
-      </Column>
+    <Column field="tva" header="TVA 16 %" sortable style="min-width: 10rem">
+      <template #body="slotProps">
+        <span
+          class="tva-badge"
+          :class="slotProps.data.tva ? 'tva-badge--with' : 'tva-badge--without'"
+        >
+          {{ slotProps.data.tva ? 'Avec' : 'Sans' }}
+        </span>
+      </template>
+    </Column>
 
-      <Column field="created_at" header="Date Ajout" sortable style="min-width: 10rem">
-        <template #body="slotProps">{{ formatDate(slotProps.data.created_at) }}</template>
-      </Column>
+    <Column header="Catégorie" sortable style="min-width: 10rem">
+      <template #body="slotProps">
+        <span class="text-slate-600">{{ slotProps.data.category_name || 'Aucune' }}</span>
+      </template>
+    </Column>
 
-      <Column field="expiration_date" header="Date Exp" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          {{ formatDate(slotProps.data.expiration_date) }}
-        </template>
-      </Column>
+    <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
+      <template #body="slotProps">
+        <span class="font-mono text-xs text-slate-500">{{ slotProps?.data.barcode || 'N/A' }}</span>
+      </template>
+    </Column>
 
-      <Column field="tva" header="TVA 16 %" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          <span
-            class="tva-badge"
-            :class="slotProps.data.tva ? 'tva-badge--with' : 'tva-badge--without'"
-          >
-            {{ slotProps.data.tva ? 'Avec' : 'Sans' }}
-          </span>
-        </template>
-      </Column>
+    <!-- === Actions === -->
+    <Column header="Actions" style="min-width: 9rem">
+      <template #body="slotProps">
+        <div class="flex justify-center gap-1.5">
+          <button class="action-btn action-btn--edit" @click="editProduct(slotProps.data)" title="Modifier">
+            <i class="pi pi-pencil text-xs"></i>
+          </button>
+          <button class="action-btn action-btn--delete" @click="confirmDeleteProduct(slotProps.data)" title="Supprimer">
+            <i class="pi pi-trash text-xs"></i>
+          </button>
+          <button class="action-btn action-btn--add" @click="openAjoutStock(slotProps.data)" title="Ajouter stock">
+            <i class="pi pi-plus text-xs"></i>
+          </button>
+          <button class="action-btn action-btn--remove" @click="openSortieStock(slotProps.data)" title="Retirer stock">
+            <i class="pi pi-minus text-xs"></i>
+          </button>
+        </div>
+      </template>
+    </Column>
 
-      <Column header="Catégorie" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          <span class="text-slate-600">{{ slotProps.data.category_name || 'Aucune' }}</span>
-        </template>
-      </Column>
-
-      <Column field="barcode" header="Code barre" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          <span class="font-mono text-xs text-slate-500">{{ slotProps?.data.barcode || 'N/A' }}</span>
-        </template>
-      </Column>
-
-      <!-- === Actions === -->
-      <Column header="Actions" style="min-width: 9rem">
-        <template #body="slotProps">
-          <div class="flex justify-center gap-1.5">
-            <button class="action-btn action-btn--edit" @click="editProduct(slotProps.data)" title="Modifier">
-              <i class="pi pi-pencil text-xs"></i>
-            </button>
-
-            <button class="action-btn action-btn--delete" @click="confirmDeleteProduct(slotProps.data)" title="Supprimer">
-              <i class="pi pi-trash text-xs"></i>
-            </button>
-
-            <button class="action-btn action-btn--add" @click="openAjoutStock(slotProps.data)" title="Ajouter stock">
-              <i class="pi pi-plus text-xs"></i>
-            </button>
-
-            <button class="action-btn action-btn--remove" @click="openSortieStock(slotProps.data)" title="Retirer stock">
-              <i class="pi pi-minus text-xs"></i>
-            </button>
-          </div>
-        </template>
-      </Column>
-
-    </DataTable>
-  </div>
-
+  </DataTable>
+</div>
     <!-- Dialogs -->
     <Dialog v-model:visible="productDialog" :style="{ width: '90%', maxWidth: '450px' }" header="Product Details" :modal="true">
       <div class="flex flex-col gap-4">
@@ -1319,11 +1412,8 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
             <label for=" blocj font-bold mb-3"> Motif</label>
             <InputText v-model="motif" placeholder="motif"/>
           </div>
-         
-   
-        </div>
-       
-        
+      
+        </div> 
     </div>
 
     <template #footer>
@@ -1331,8 +1421,6 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
         <Button label="Ajouter" @click="addStockToProduct" />
     </template>
 </Dialog>
-
-
 
  <Dialog v-model:visible="sortieStockDialog" :style="{ width: '90%', maxWidth: '450px' }" header="stortie du stock" modal>
     <div class="flex flex-col gap-4">
@@ -1672,5 +1760,78 @@ function sortProductsByDate() { products.value.sort((a, b) => new Date(b.created
 
 .history-table .p-datatable-thead > tr > th {
   text-align: center;       /* centre les en-têtes */
+}
+
+
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .summary-strip {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .summary-strip {
+    grid-template-columns: repeat(8, 1fr);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 14px 0;
+  }
+}
+
+.summary-cell {
+  padding: 12px 16px;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+@media (min-width: 1024px) {
+  .summary-cell {
+    border-bottom: none;
+    padding: 0 18px;
+  }
+  .summary-cell:first-child {
+    padding-left: 0;
+  }
+  .summary-cell:last-child {
+    border-right: none;
+    padding-right: 0;
+  }
+}
+
+.summary-label {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 0 0 4px;
+}
+
+.summary-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.summary-value--warning {
+  color: #b45309;
+}
+
+.summary-value--danger {
+  color: #b91c1c;
 }
 </style>

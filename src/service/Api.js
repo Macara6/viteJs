@@ -793,6 +793,29 @@ export async function generateReportStockAPI(stock_data){
     }
 }
 
+// function pour stock vue 
+
+export async function stockViewAPI(stock_data) {
+    const URL_STOCK_VIEW = `${API_BASE}stockView/`;
+
+    try{
+        const response = await axios.get(URL_STOCK_VIEW, {
+            params:stock_data,
+            headers: {
+                'Authorization':`Bearer ${localStorage.getItem('token')}`
+            },
+        });
+        return response.data
+
+    }catch(error){
+        console.error(
+            "Erreur lors de la recuperation view stock :",
+            error.response ? error.response.data : error
+        );
+        throw error
+    }
+}
+
 
 
 export async function deleteProductAPI(productId){

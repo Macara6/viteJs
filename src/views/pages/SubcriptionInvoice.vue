@@ -29,6 +29,8 @@ const selectedInvoice = ref(null);
 const selectedInvoiceToDelete = ref(null);
 const showModalDelate = ref(false);
 
+const is_superuser = localStorage.getItem('is_superuser') === 'true';
+
 async function loadSubscriHistoryInvoice(page = 1) {
     if(loadingHistory.value) return;
 
@@ -134,8 +136,11 @@ async function confimDelete() {
       <!-- En-tête de la page -->
       <div class="flex items-center justify-between px-6 pt-6 pb-2">
         <div>
-          <h1 class="text-xl font-bold text-gray-800">Liste des factures</h1>
-          <p class="text-sm text-gray-400 mt-1">Suivi et gestion des facturation clients</p>
+
+          <h1 v-if="is_superuser" class="text-xl font-bold text-gray-800">Liste des factures</h1>
+          <h1 v-else class="text-xl font-bold text-gray-800">Mes factures </h1>
+          <p v-if="is_superuser" class="text-sm text-gray-400 mt-1">Suivi et gestion des facturation clients</p>
+          <p v-else class="text-sm text-gray-400 mt-1">Suivi et gestion de mes factures</p>
         </div>
       </div>
 
@@ -213,7 +218,7 @@ async function confimDelete() {
                     </div>
                   </div>
 
-                  <div class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 min-w-[180px]">
+                  <div v-if="is_superuser" class="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3 min-w-[180px]">
                     <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
                       <i class="pi pi-dollar text-green-600 text-sm"></i>
                     </div>
@@ -222,6 +227,7 @@ async function confimDelete() {
                       <div class="text-base font-bold text-green-700">{{ total_paid_amount }} </div>
                     </div>
                   </div>
+
                 </div>
        
 
@@ -308,8 +314,8 @@ async function confimDelete() {
             </div>
           </template>
         </Column>
-    
-        <Column field="" header="ACTION" style="min-width: 130px">
+       
+        <Column v-if="is_superuser" field="" header="ACTION" style="min-width: 130px">
           <template #body="slotProps">
             <div class="flex gap-2">
             <Button
