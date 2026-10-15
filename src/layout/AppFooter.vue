@@ -2,7 +2,7 @@
 
 <template>
     <div class="layout-footer">
-       By BilaTech RDC
+       By BilaTech RDC /2026
         
     </div>
 </template>

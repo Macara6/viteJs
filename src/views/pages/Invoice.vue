@@ -6,15 +6,17 @@ import {
   fetchInvoiceDetail,
   fetchInvoicesAllUsers,
   fetchUserProfilById,
+  generateReportInvoicesPDFAPI,
   getUsersCreatedByMe
 } from '@/service/Api';
 import { clearAllCache, loadCache, saveCache } from '@/utils/cache';
 import { FilterMatchMode } from '@primevue/core/api';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import autoTable from "jspdf-autotable";
 import { useToast } from 'primevue/usetoast';
 import { computed, onMounted, ref, watch } from 'vue';
+
+import { formatDateForAPI } from '@/utils/formatters';
 
 // --- Toast & Loading ---
 const toast = useToast();
@@ -467,8 +469,8 @@ async function refreshInvoices() {
   }
 }
 // function pour coversion 
-function exchangeRate(value){
-  const rate = Number(userProfile.value?.exchange_rate || 1);
+function exchangeRate(value,rate=null){
+ 
   const currency = userProfile.value?.currency_preference;
   if(currency ==="CDF"){
     return `${(value / rate).toFixed(2)} USD`;
@@ -479,73 +481,34 @@ function exchangeRate(value){
   return value;
 }
 
-function downloadPDFInvoices() {
+const isGenerating = ref(false);
 
   // Création du PDF en A4 vertical
-  const doc = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4"
-  });
+ async function downloadPDFInvoices() {
+ isGenerating.value = true;
 
-  const columns = [
-    {header:'Client', dataKey:'client_name'},
-    {header:'Caissier(e)', dataKey:'cashier_name'},
-    {header:'Total', dataKey:'total_amount'},
-    {header:'Bénéfice', dataKey:'profit_amount'},
-    {header:'Reste', dataKey:'change'},
-    {header:'Montant dû', dataKey:'amount_paid'},
-    {header:'TVA', dataKey:'tva'},
-    {header:'Devise', dataKey:'cashier_currency'},
-    {header:'Date', dataKey:'created_at'},
-    {header:'Status', dataKey:'status'},
-  ];
+ try{
+    const pdfBlob = await generateReportInvoicesPDFAPI({
+      user_id:selectedUserFilter.value,
+      start_date: formatDateForAPI(startDate.value),
+      end_date:formatDateForAPI(endDate.value) 
+    })
+    const blob = new Blob( [pdfBlob], { type: 'application/pdf' } );
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'rapport_factures.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+ }catch(error){
+   console.error( "Erreur lors du téléchargement du rapport :", error );
+ }finally{
+  isGenerating.value = false;
+ }
 
-  const rows = filteredInvoices.value.map(item => ({
-    ...item,
-    created_at: formatDate(item.created_at),
-    total_amount: formatPrice(item.total_amount),
-    profit_amount: formatPrice(item.profit_amount),
-    change: formatPrice(item.change),
-    amount_paid: formatPrice(item.amount_paid),
-    tva: formatPrice(item.tva),
-    cashier_name:item.cashier_name
-  }));
-
-  const cashiers = [...new Set(rows.map(r => r.cashier_name))];
-
-  let pdfUserName = "Multiple utilisateurs";
-
-  if (cashiers.length === 1) {
-    pdfUserName = cashiers[0]; // Un seul caissier dans les données
-  }
-
-  autoTable(doc, {
-    head: [columns.map(c => c.header)],
-    body: rows.map(row => columns.map(c => row[c.dataKey])),
-    startY: 25,
-    theme: 'striped',
-    styles: {
-      fontSize: 8,          // pour que tout rentre dans l’A4
-      cellPadding: 2
-    },
-    headStyles: {
-      fillColor: [0, 0, 0],
-      textColor: 255,
-    },
-    columnStyles: {
-      total_amount: { cellWidth: 20 },
-      profit_amount: { cellWidth: 20 },
-      amount_paid: { cellWidth: 20 },
-      tva: { cellWidth: 18 },
-      change: { cellWidth: 18 },
-    }
-  });
-
-  doc.text('Liste des factures', 14, 15);
-  doc.setFontSize(10);
-  doc.text(`Utilisateur : ${pdfUserName}`, 14, 22);
-  doc.save('liste_factures.pdf');
+  
 }
 
 async function downloadPDF() {
@@ -754,8 +717,9 @@ onMounted(async () => {
             <div class="flex flex-wrap items-center gap-2">
               <Button
                 label="Télécharger PDF"
-                icon="pi pi-file-pdf"
+                icon="pi pi-file-export"
                 class="btn-teal"
+                :loading="isGenerating"
                 @click="downloadPDFInvoices"
               />
 
@@ -835,6 +799,11 @@ onMounted(async () => {
       <Column field="tva" header="TVA" sortable style="max-width: 90px">
         <template #body="slotProps">
           <span class="cell">{{ formatPrice(slotProps.data.tva) || 'N/A' }}</span>
+        </template>
+      </Column>
+      <Column field="exchange_rate" header="Taux" sortable style="max-width: 90px">
+       <template #body="slotProps">
+          <span class="cell">{{ formatPrice(slotProps.data.exchange_rate) || 'N/A' }}</span>
         </template>
       </Column>
 
@@ -925,61 +894,56 @@ onMounted(async () => {
       message="Entrez votre code secret pour continuer"
       @verified="verifySecret"
     />
-
-    <!-- Invoice Details Modal -->
-    <Dialog
+        <Dialog
           v-model:visible="showModal"
           modal
-          :style="{ width: '95%', maxWidth: '860px', padding: 0 }"
+          :style="{ width: '95%', maxWidth: '420px', padding: 0 }"
           :showHeader="false"
         >
           <div id="cashout-pdf-content" class="invoice-shell">
-
-            <!-- ══════════════ EN-TÊTE FACTURE ══════════════ -->
+ 
+            <!-- ══════════════ EN-TÊTE ══════════════ -->
             <div class="invoice-header">
-
-              <!-- Colonne gauche : infos entreprise -->
+ 
               <div class="company-info">
                 <div class="company-name">
                   {{ userProfile?.entrep_name || 'Entreprise non définie' }}
                 </div>
                 <div class="company-meta">
-                  <span><i class="pi pi-id-card"></i> ID Nat : {{ userProfile?.id_nat || '—' }}</span>
-                  <span><i class="pi pi-file"></i> N° Impôt : {{ userProfile?.impot_number || '—' }}</span>
-                  <span><i class="pi pi-briefcase"></i> RCCM : {{ userProfile?.rccm_number || '—' }}</span>
-                  <span><i class="pi pi-map-marker"></i> {{ userProfile?.adress || '—' }}</span>
-                  <span><i class="pi pi-phone"></i> {{ userProfile?.phone_number || '—' }}</span>
-                  <span><i class="pi pi-dollar"></i> Devise : {{ userProfile?.currency_preference || '—' }}</span>
-                </div>
-
-                <div class="people-row">
-                  <div class="person-tag">
-                    <i class="pi pi-user"></i>
-                    <span>{{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}</span>
-                    <em>Client</em>
-                  </div>
-                  <div class="person-tag">
-                    <i class="pi pi-desktop"></i>
-                    <span>{{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}</span>
-                    <em>Caissier</em>
-                  </div>
+                  <span>{{ userProfile?.adress || '—' }}</span>
+                  <span>Tél : {{ userProfile?.phone_number || '—' }}</span>
+                  <span>ID Nat : {{ userProfile?.id_nat || '—' }}</span>
+                  <span>N° Impôt : {{ userProfile?.impot_number || '—' }}</span>
+                  <span>RCCM : {{ userProfile?.rccm_number || '—' }}</span>
+                  <span>Devise : {{ userProfile?.currency_preference || '—' }}</span>
+                  <span>Taux : {{ invoices.find(c => c.id === selectedInvoices)?.exchange_rate || '—' }}</span>
                 </div>
               </div>
-
-              <!-- Colonne droite : numéro + statut -->
+ 
               <div class="invoice-meta">
                 <div class="invoice-label">FACTURE</div>
-                <div class="invoice-number">
-                  {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A' }}
-                </div>
-
+ 
                 <div class="invoice-detail-row">
                   <span class="detail-label">Date</span>
                   <span class="detail-value">
                     {{ formatDate(invoices.find(c => c.id === selectedInvoices)?.created_at) || 'N/A' }}
                   </span>
                 </div>
-
+ 
+                <div class="invoice-detail-row">
+                  <span class="detail-label">Client</span>
+                  <span class="detail-value">
+                    {{ invoices.find(c => c.id === selectedInvoices)?.client_name || 'N/D' }}
+                  </span>
+                </div>
+ 
+                <div class="invoice-detail-row">
+                  <span class="detail-label">Caissier</span>
+                  <span class="detail-value">
+                    {{ invoices.find(c => c.id === selectedInvoices)?.cashier_name || 'N/D' }}
+                  </span>
+                </div>
+ 
                 <div class="invoice-detail-row">
                   <span class="detail-label">Statut</span>
                   <span
@@ -987,15 +951,13 @@ onMounted(async () => {
                     :class="invoices.find(c => c.id === selectedInvoices)?.status === 'VALIDE'
                       ? 'badge-valid' : 'badge-cancel'"
                   >
-                    <i :class="invoices.find(c => c.id === selectedInvoices)?.status === 'VALIDE'
-                      ? 'pi pi-check-circle' : 'pi pi-times-circle'"></i>
                     {{ invoices.find(c => c.id === selectedInvoices)?.status || 'N/A' }}
                   </span>
                 </div>
               </div>
-
+ 
             </div>
-
+ 
             <!-- ══════════════ TABLE PRODUITS ══════════════ -->
             <div class="invoice-body">
               <div v-if="invoiceDetails.length > 0" class="table-wrapper">
@@ -1004,20 +966,19 @@ onMounted(async () => {
                   class="invoice-table"
                   size="small"
                 >
-
+ 
                   <Column field="product_name" header="Produit" style="min-width:160px">
                     <template #body="slotProps">
                       <div class="product-cell">
-                        
                         <span class="font-semibold text-gray-800">{{ slotProps.data.product_name }}</span>
                       </div>
                     </template>
                   </Column>
-
+ 
                   <Column field="price" header="Prix U." style="min-width:100px">
                     <template #body="slotProps">
                       <span v-if="slotProps.data.is_gift" class="gift-badge">
-                        🎁 Cadeau
+                        Cadeau
                       </span>
                       <span v-else class="price-text">
                         {{ userProfile?.currency_preference }}
@@ -1025,17 +986,17 @@ onMounted(async () => {
                       </span>
                     </template>
                   </Column>
-
+ 
                   <Column field="quantity" header="Qté" style="width:70px; text-align:center">
                     <template #body="slotProps">
                       <span class="qty-badge">{{ slotProps.data.quantity }}</span>
                     </template>
                   </Column>
-
+ 
                   <Column header="Total" style="min-width:110px">
                     <template #body="slotProps">
                       <span v-if="slotProps.data.is_gift" class="gift-badge">
-                        🎁 Gratuit
+                        Gratuit
                       </span>
                       <span v-else class="total-text">
                         {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
@@ -1043,166 +1004,172 @@ onMounted(async () => {
                       </span>
                     </template>
                   </Column>
-
+ 
                 </DataTable>
               </div>
-
+ 
               <!-- ══════════════ TOTAUX ══════════════ -->
-            <div class="totals-block">
-
-              <div class="totals-grid">
-
-                <!-- ══════ COLONNE GAUCHE : détails du calcul ══════ -->
-                <div class="totals-col totals-col--details">
-
-                  <div class="total-row">
-                    <span class="total-label">Sous-total</span>
-                    <div class="total-values">
-                      <span class="total-main">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_total) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_total) }})
-                      </span>
+              <div class="totals-block">
+ 
+                <div class="totals-grid">
+ 
+                  <div class="totals-col totals-col--details">
+ 
+                    <div class="total-row">
+                      <span class="total-label">Sous-total</span>
+                      <div class="total-values">
+                        <span class="total-main">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_total) }}
+                        </span>
+                        <span class="total-conv">
+                          ({{ 
+                            exchangeRate(
+                            invoices.find(c => c.id === selectedInvoices)?.amount_total, 
+                            invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                            ) 
+                          }})
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="total-row">
-                    <span class="total-label">Réduction</span>
-                    <div class="total-values">
-                      <span class="total-main">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }})
-                      </span>
+ 
+                    <div class="total-row">
+                      <span class="total-label">Réduction</span>
+                      <div class="total-values">
+                        <span class="total-main">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ formatPrice(calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used)) }}
+                        </span>
+                        <span class="total-conv">
+                          ({{ 
+                            exchangeRate(
+                              calculateReduction(invoices.find(c => c.id === selectedInvoices)?.points_used),
+                              invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                              ) 
+                            
+                            }})
+                        </span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="total-row tva">
-                    <span class="total-label">TVA</span>
-                    <div class="total-values">
-                      <span class="total-main danger">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva) }})
-                      </span>
+ 
+                    <div class="total-row tva">
+                      <span class="total-label">TVA</span>
+                      <div class="total-values">
+                        <span class="total-main danger">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ 
+                            formatPrice(invoices.find(c => c.id === selectedInvoices)?.tva)
+                          }}
+                        </span>
+                        <span class="total-conv">
+                          ({{ 
+                            exchangeRate(invoices.find(c => c.id === selectedInvoices)?.tva,
+                             invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                             ) 
+                            }})
+                        </span>
+                      </div>
                     </div>
+ 
                   </div>
-
+ 
+                  <div class="totals-col totals-col--summary">
+ 
+                    <div class="total-row final">
+                      <span class="total-label bold">TOTAL TTC</span>
+                      <div class="total-values">
+                        <span class="total-main bold primary">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
+                        </span>
+                        <span class="total-conv">
+                          ({{
+                             exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount,
+                             invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                             ) 
+                          }})
+                        </span>
+                      </div>
+                    </div>
+ 
+                    <div class="total-row">
+                      <span class="total-label bold">Montant perçu</span>
+                      <div class="total-values">
+                        <span class="total-main bold">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_paid) }}
+                        </span>
+                        <span class="total-conv">
+                          ({{ 
+                            exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_paid,
+                            invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                            ) 
+                          
+                          }})
+                        </span>
+                      </div>
+                    </div>
+ 
+                    <div class="total-row">
+                      <span class="total-label bold">Reste</span>
+                      <div class="total-values">
+                        <span class="total-main bold success">
+                          {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
+                          {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.change) }}
+                        </span>
+                        <span class="total-conv">
+                          ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.change,
+                          invoices.find(c => c.id === selectedInvoices)?.exchange_rate
+                          ) 
+                          
+                          }})
+                        </span>
+                      </div>
+                    </div>
+ 
+                  </div>
+ 
                 </div>
-
-                <!-- ══════ COLONNE DROITE : montants clés ══════ -->
-                <div class="totals-col totals-col--summary">
-
-                  <div class="total-row final">
-                    <span class="total-label bold">TOTAL TTC</span>
-                    <div class="total-values">
-                      <span class="total-main bold primary">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.total_amount) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.total_amount) }})
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="total-row">
-                    <span class="total-label bold">Montant perçu</span>
-                    <div class="total-values">
-                      <span class="total-main bold">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.amount_paid) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.amount_paid) }})
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="total-row">
-                    <span class="total-label bold">Reste</span>
-                    <div class="total-values">
-                      <span class="total-main bold success">
-                        {{ invoices.find(c => c.id === selectedInvoices)?.cashier_currency || '' }}
-                        {{ formatPrice(invoices.find(c => c.id === selectedInvoices)?.change) }}
-                      </span>
-                      <span class="total-conv">
-                        ({{ exchangeRate(invoices.find(c => c.id === selectedInvoices)?.change) }})
-                      </span>
-                    </div>
-                  </div>
-
+ 
+              </div>
+ 
+            </div>
+ 
+            <!-- ══════════════ PIED : QR + N° FACTURE ══════════════ -->
+            <div class="invoice-bottom">
+ 
+              <div class="bottom-left">
+ 
+                <div class="invoice-number-block">
+                  <span class="invoice-number-label">N° Facture</span>
+                  <span class="invoice-number-value">
+                    {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A' }}
+                  </span>
                 </div>
-
+ 
+                <div class="footer-bottom-row">
+                  <div class="footer-msg">
+                    Merci pour votre confiance !
+                  </div>
+                  <span class="footer-brand">Powered by BilaSol APP</span>
+                </div>
+ 
               </div>
-
+ 
             </div>
-              
-            </div>
-
-            <!-- Remplace uniquement le bloc invoice-footer et ajoute le QR -->
-
-<!-- ══════════════ PIED DE FACTURE ══════════════ -->
-        <div class="invoice-bottom">
-
-          <div class="bottom-left">
-
-            <!-- Numéro facture en grand -->
-            <div class="invoice-number-block">
-              <span class="invoice-number-label">N° Facture</span>
-              <span class="invoice-number-value">
-                {{ invoices.find(c => c.id === selectedInvoices)?.invoice_number || 'N/A' }}
-              </span>
-            </div>
-
-            <!-- Message + branding -->
-            <div class="footer-bottom-row">
-              <div class="footer-msg">
-              
-              Merci pour votre confiance !
-              </div>
-              <span class="footer-brand">Powered by BilaSol APP</span>
-            </div>
-
+ 
           </div>
-
-          <!-- QR Code -->
-          <div class="qr-block">
-            <div class="qr-box">
-              <img
-                :src="`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${
-                  encodeURIComponent(
-                    'Facture:#' + (invoices.find(c => c.id === selectedInvoices)?.invoice_number || '') +
-                    '|Client:' + (invoices.find(c => c.id === selectedInvoices)?.client_name || '') +
-                    '|Total:' + (invoices.find(c => c.id === selectedInvoices)?.total_amount || '')
-                  )
-                }`"
-                alt="QR Code facture"
-              />
-            </div>
-            <span class="qr-label">Scanner pour vérifier</span>
-          </div>
-
-        </div>
-
-          </div>
-
+ 
           <!-- ══════════════ ACTION BAR ══════════════ -->
           <div class="action-bar">
             <button class="btn-close-modal" @click="showModal = false">
-              <i class="pi pi-times"></i> Fermer
+              Fermer
             </button>
             <button class="btn-download" @click="downloadPDF">
-              <i class="pi pi-download"></i> Télécharger PDF
+              Télécharger PDF
             </button>
           </div>
-
+ 
         </Dialog>
 
       <Dialog 
@@ -1400,377 +1367,278 @@ onMounted(async () => {
     font-size: 0.82rem;
 }
 
-
-/* ── Shell ──────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════
+   TICKET DE CAISSE — noir / gris / blanc uniquement
+   ════════════════════════════════════════════════ */
+ 
 .invoice-shell {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #ffffff;
-  border-radius: 16px 16px 0 0;
-  overflow: hidden;
+  --ink: #111;
+  --muted: #5f5f5f;
+  --line: #d6d6d6;
+ 
+  background: #fff;
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  padding: 30px 26px 26px;
 }
-
-/* ══════════════ HEADER ══════════════ */
+ 
+/* ───────── En-tête ───────── */
 .invoice-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 28px 32px 24px;
-  background: #ffffff;
-  border-bottom: 2px solid #f1f5f9;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 18px;
 }
-
-.header-left-accent {
-  width: 4px;
-  height: 100%;
-  min-height: 80px;
-  background: linear-gradient(180deg, #6366f1, #4ade80);
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.header-left {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  flex: 1;
-}
-
+ 
+.company-info { text-align: center; }
+ 
 .company-name {
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  letter-spacing: -0.3px;
-  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
-
+ 
 .company-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-.company-meta span {
   font-size: 12px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  color: var(--muted);
+  line-height: 1.7;
 }
-.company-meta .pi { font-size: 11px; color: #6366f1; }
-
-.people-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 14px;
-  flex-wrap: wrap;
-}
-.person-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 5px 12px;
-  font-size: 12px;
-  color: #374151;
-}
-.person-tag .pi { color: #6366f1; font-size: 12px; }
-.person-tag em  { color: #94a3b8; font-style: normal; font-size: 10px; margin-left: 2px; }
-
-/* Colonne droite header */
+ 
+/* Bloc infos facture */
 .invoice-meta {
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+ 
+.invoice-label {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  margin-bottom: 10px;
+}
+ 
+.invoice-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 3px 0;
+}
+.detail-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+.detail-value {
+  font-weight: 600;
   text-align: right;
-  min-width: 180px;
+}
+ 
+.status-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+}
+.badge-valid { background: #fff; color: var(--ink); }
+.badge-cancel { background: #fff; color: var(--ink); text-decoration: line-through; }
+ 
+/* ───────── Corps ───────── */
+.invoice-body {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+ 
+/* ───────── Table produits ───────── */
+.table-wrapper { overflow-x: auto; }
+ 
+.invoice-table :deep(.p-datatable-table-container),
+.invoice-table :deep(.p-datatable-wrapper) { background: transparent; }
+ 
+.invoice-table :deep(table) { width: 100%; }
+ 
+.invoice-table :deep(th),
+.invoice-table :deep(td) {
+  min-width: 0 !important;
+  width: auto !important;
+  background: transparent !important;
+  color: var(--ink) !important;
+  border: 0 !important;
+  border-bottom: 1px dashed var(--line) !important;
+  padding: 8px 4px !important;
+  font-size: 14px;
+  vertical-align: top;
+}
+ 
+.invoice-table :deep(th) {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted) !important;
+  text-align: left;
+  border-bottom: 1px solid var(--ink) !important;
+  padding-top: 0 !important;
+}
+ 
+.invoice-table :deep(th:nth-child(n+2)),
+.invoice-table :deep(td:nth-child(n+2)) {
+  text-align: right;
+  white-space: nowrap;
+}
+.invoice-table :deep(.p-datatable-column-header-content) { justify-content: inherit; }
+.invoice-table :deep(tr:last-child td) { border-bottom: 0 !important; }
+ 
+.product-cell { word-break: break-word; }
+.product-cell span { font-weight: 600; color: var(--ink) !important; }
+ 
+.price-text,
+.qty-badge {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 400;
+}
+.total-text {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+.gift-badge {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--ink);
+  font-style: italic;
+}
+ 
+/* ───────── Totaux ───────── */
+.totals-block { margin-top: 14px; }
+.totals-grid { display: block; }
+.totals-col { display: block; }
+ 
+.totals-col--details {
+  padding-top: 12px;
+  border-top: 1px solid var(--ink);
+}
+ 
+/* Toutes les lignes ont la même structure */
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 0;
+}
+.total-label { color: var(--muted); font-weight: 400; }
+.total-label.bold { color: var(--muted); font-weight: 400; }
+ 
+.total-values {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
 }
-
-.invoice-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-}
-
-.invoice-detail-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-.detail-label {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 500;
-}
-.detail-value {
-  font-size: 12px;
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-}
-.badge-valid  { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
-.badge-cancel { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
-
-/* ══════════════ BODY ══════════════ */
-.invoice-body {
-  padding: 24px 32px;
-  background: #fff;
-}
-
-.table-wrapper {
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 24px;
-}
-.invoice-table :deep(.p-datatable-thead > tr > th) {
-  background: #f8fafc !important;
-  color: #64748b !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  border-color: #f1f5f9 !important;
-  padding: 10px 14px !important;
-}
-.invoice-table :deep(.p-datatable-tbody > tr > td) {
-  border-color: #f8fafc !important;
-  padding: 10px 14px !important;
-  font-size: 13px;
-  color: #374151;
-}
-.invoice-table :deep(.p-datatable-tbody > tr:hover > td) {
-  background: #fafbff !important;
-}
-
-.product-cell { display: flex; align-items: center; gap: 8px; }
-.product-icon { color: #6366f1; font-size: 13px; }
-.price-text   { color: #374151; font-weight: 500; }
-.total-text   { color: #1e293b; font-weight: 700; }
-
-.qty-badge {
-  display: inline-flex;
-  align-items: center; justify-content: center;
-  width: 28px; height: 28px;
-  background: #eef2ff; color: #6366f1;
-  border-radius: 7px; font-size: 12px; font-weight: 700;
-}
-.gift-badge {
-  font-size: 12px; font-weight: 600;
-  color: #16a34a; background: #dcfce7;
-  border-radius: 6px; padding: 3px 8px;
-}
-
-/* Totaux */
-.totals-block {
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-  border-radius: 12px;
-  padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 10px;
-  max-width: 380px;
-  margin-left: auto;
-}
-.total-row {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.total-row.final {
+.total-main { color: var(--ink); font-weight: 600; }
+.total-main.bold { font-weight: 600; }
+.total-main.danger,
+.total-main.success,
+.total-main.primary { color: var(--ink); }
+.total-conv { font-size: 12px; color: var(--muted); font-weight: 400; }
+ 
+/* Résumé : séparé par un trait fin */
+.totals-col--summary {
+  margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px dashed var(--line);
 }
-.total-label { font-size: 13px; color: #64748b; font-weight: 500; }
-.total-label.bold { color: #1e293b; font-weight: 800; font-size: 14px; }
-.total-values { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.total-main { font-size: 14px; font-weight: 700; color: #1e293b; }
-.total-main.danger  { color: #dc2626; }
-.total-main.primary { color: #6366f1; font-size: 16px; }
-.total-main.bold    { font-weight: 800; }
-.total-conv { font-size: 11px; color: #94a3b8; }
-
-/* ══════════════ PIED DE FACTURE : N° + QR ══════════════ */
-.invoice-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.bottom-left {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  flex: 1;
-}
-
-.invoice-number-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.invoice-number-label {
-  font-size: 10px;
+ 
+/* TOTAL TTC : simple, juste plus grand et en gras */
+.total-row.final { padding: 6px 0 10px; align-items: center; }
+.total-row.final .total-label,
+.total-row.final .total-main {
+  color: var(--ink);
+  font-size: 18px;
   font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 2px;
 }
-.invoice-number-value {
-  font-size: 20px;
-  font-weight: 800;
-  color: #161617;
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  letter-spacing: 1px;
-}
-
-.footer-bottom-row {
+.total-row.final .total-conv { color: var(--muted); }
+ 
+/* ───────── Pied ───────── */
+.invoice-bottom {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-.footer-msg {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1e293b;
+  gap: 16px;
+  text-align: center;
 }
-.footer-msg .pi { color: #f43f5e; font-size: 12px; }
-.footer-brand { font-size: 11px; color: #94a3b8; }
-
-/* QR code container */
+ 
 .qr-block {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
 }
-.qr-box {
-  width: 90px; height: 90px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-.qr-box img { width: 80px; height: 80px; }
-.qr-label {
-  font-size: 10px;
-  color: #94a3b8;
-  font-weight: 500;
-  text-align: center;
-}
-
-/* ══════════════ ACTION BAR ══════════════ */
-.action-bar {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 24px;
-  background: #fff;
-  border-top: 1px solid #f1f5f9;
-  border-radius: 0 0 16px 16px;
-}
-.btn-close-modal {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 18px; border-radius: 9px;
-  background: #f1f5f9; color: #64748b;
-  font-size: 13px; font-weight: 600;
-  border: none; cursor: pointer; transition: background .15s;
-}
-.btn-close-modal:hover { background: #e2e8f0; }
-
-.btn-download {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 20px; border-radius: 9px;
-  background: #16a34a; color: #fff;
-  font-size: 13px; font-weight: 700;
-  border: none; cursor: pointer;
-  box-shadow: 0 4px 12px rgba(22,163,74,0.25);
-  transition: background .15s;
-}
-.btn-download:hover { background: #15803d; }
-
-
-/* detail facture reglage totaux */
-
-
-.totals-block {
-  width: 100%;
-  max-width: 100%; /* au cas où une règle parente limite la largeur */
-  margin-left: auto; /* pousse le bloc à occuper toute la largeur dispo, aligné à droite comme une facture classique */
-}
-
-.totals-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr; /* légèrement plus large à gauche pour les libellés */
-  gap: 0 2rem; /* plus d'air entre les deux colonnes */
-  align-items: start;
-  width: 100%;
-}
-
-.totals-col--details {
-  border-right: 1px dashed #e5e7eb;
-  padding-right: 2rem;
-  min-width: 0; /* évite que le texte ne casse la grille sur les montants longs */
-}
-
-.totals-col--summary {
-  padding-left: 0.5rem;
-  min-width: 0;
-}
-
-/* Empêche les montants de se tasser sur une ligne trop étroite */
-.total-values {
+.qr-box { background: #fff; border: 0; padding: 0; }
+.qr-box img { width: 96px; height: 96px; display: block; }
+.qr-label { font-size: 12px; color: var(--muted); }
+ 
+.bottom-left { width: 100%; }
+ 
+/* N° de facture : tout en bas */
+.invoice-number-block {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0.1rem;
-  white-space: nowrap;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 0;
+  margin-bottom: 14px;
+  
+  border-bottom: 1px solid var(--ink);
 }
-
-.total-row {
+.invoice-number-label { font-size: 12px; color: var(--muted); }
+.invoice-number-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+ 
+.footer-bottom-row { display: flex; flex-direction: column; gap: 2px; }
+.footer-msg { font-weight: 600; }
+.footer-brand { font-size: 12px; color: var(--muted); }
+ 
+/* ───────── Boutons (hors PDF) ───────── */
+.action-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  padding: 0.45rem 0;
+  gap: 8px;
+  padding: 12px 0 0;
 }
-
-.total-label {
-  flex-shrink: 0;
+.btn-close-modal,
+.btn-download {
+  flex: 1;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid #111;
 }
-
-/* Résumé (droite) un peu plus grand pour bien occuper l'espace */
-.totals-col--summary .total-main {
-  font-size: 0.95rem;
-}
-
-.totals-col--summary .total-row.final .total-main {
-  font-size: 1.1rem;
-}
-
+.btn-close-modal { background: #fff; color: #111; }
+.btn-download { background: #111; color: #fff; }
+.btn-close-modal:focus-visible,
+.btn-download:focus-visible { outline: 2px solid #111; outline-offset: 2px; }
 /* Responsive : repasse en une colonne sur petit écran */
 @media (max-width: 480px) {
   .totals-grid {

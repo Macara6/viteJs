@@ -32,8 +32,7 @@ async function getDashbord(){
     dashboardFile.value = response;
     currency.value = dashboardFile.value.currency
     exchangeRate.value = dashboardFile.value.exchange_rate;
-    console.log('date to API :', dashboardFile.value)
-    console.log('date selectionnée:', selectedDate.value)
+    
    
 }
 
@@ -61,7 +60,7 @@ async function initializationDate(){
 
 async function fetchUsers(){
     allUsers.value = await getUsersCreatedByMe()
-    console.log('utilisateur pour cette utilisateur :',users.value)
+    
 }
 
 const users = computed(() => allUsers.value)
@@ -263,13 +262,12 @@ function requestReveal(card) {
 }
 
 function handleSecretResult(result) {
-  console.log('resulat :', result)
+  
   if (result === true && pendingCardKey.value && localStorage.getItem('status') =='ADMIN') {
     revealedCards.value[pendingCardKey.value] = true
 
     pendingCardKey.value = null
   }
-
 
 }
 
@@ -809,7 +807,7 @@ const doughnutOptions = ref({
           @click="initializationDate"
         />
         <Button
-          icon="pi pi-file-export"
+          icon="pi pi-file-export "
           :label="isGenerating ? 'Génération...' : 'Générer le rapport'"
           :loading="isGenerating"
           class="!rounded-xl !bg-[#004D4A] !border-none w-full lg:w-auto"

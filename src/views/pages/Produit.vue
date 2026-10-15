@@ -331,7 +331,7 @@ const isGenerating = ref(false)
       user_id:selectedUserFilter.value
     })
 
-     const blob = new Blob( [pdfBlob], { type: 'application/pdf' } );
+    const blob = new Blob( [pdfBlob], { type: 'application/pdf' } );
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a');
     link.href = url;
@@ -340,6 +340,7 @@ const isGenerating = ref(false)
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+    
   }catch(error){
     console.error( "Erreur lors du téléchargement du rapport :", error );
   }finally{

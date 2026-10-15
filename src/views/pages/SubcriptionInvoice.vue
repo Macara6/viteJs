@@ -199,7 +199,6 @@ async function confimDelete() {
                     class="pi pi-search absolute left-3 text-gray-400 text-sm"
                   ></i>
                   <InputText
-                   
                     placeholder="       Rechercher..."
                     class="w-full pl-9 py-2 text-sm rounded-lg"
                   />
@@ -230,7 +229,6 @@ async function confimDelete() {
 
                 </div>
        
-
           </div>
         </template>
 

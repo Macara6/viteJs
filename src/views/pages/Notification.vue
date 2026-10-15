@@ -17,28 +17,54 @@ onMounted(async () => {
     await loadLowStockAndExpiringProducts();
 });
 
-async function loadLowStockAndExpiringProducts(){
 
+async function loadLowStockAndExpiringProducts() {
     try {
         const products = await fetchProduits(userId);
-        lowStockProducts.value = products.filter( p => p.stock < 10)
-        
+
+        // Produits à faible stock
+        lowStockProducts.value = products.filter(
+            p => p.stock < 10
+        );
+
+        // Date d'aujourd'hui à minuit
         const now = new Date();
-        const twoDayslater = new Date();
-        twoDayslater.setDate(now.getDate()+30);
+        const today = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
 
-        expiringSoonProducts.value = products.filter((p) => {
-          if(!p.expiration_date) return false;
-            const expDate = new Date(p.expiration_date);
-            return expDate >= now && expDate <= twoDayslater;
+        // Date dans 2 mois, à minuit
+        const dateInTwoMonths = new Date(
+            today.getFullYear(),
+            today.getMonth() + 2,
+            today.getDate()
+        );
+
+        // Produits dont la date d'expiration est comprise
+        // entre aujourd'hui et dans 2 mois inclus
+        expiringSoonProducts.value = products.filter(p => {
+            if (!p.expiration_date) return false;
+
+            // Convertir la date sans décalage horaire UTC
+            const [year, month, day] = p.expiration_date
+                .split('-')
+                .map(Number);
+
+            const expDate = new Date(year, month - 1, day);
+
+            return expDate >= today && expDate <= dateInTwoMonths;
         });
-       
 
-    }catch(error){
-        console.error('Erreur chargement des produits faible stocks', error);
-
+    } catch (error) {
+        console.error(
+            'Erreur chargement des produits à faible stock ou bientôt périmés',
+            error
+        );
     }
 }
+
 
 </script>
 <template>

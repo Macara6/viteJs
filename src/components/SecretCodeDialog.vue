@@ -74,8 +74,9 @@ async function verifyCode() {
     if (response?.valid === true) {
 
       emit('verified', true)
+       emit('secret-code', code.value)
       emit('update:visible', false)
-      emit('secret-code', code.value)
+     
 
       code.value = ''
 

@@ -437,6 +437,37 @@ export async function fetchInvoicesAllUsers() {
 // afficher les utilisateur pour les notification 
 
 
+// pour generer le rapport du stock en  pdf
+
+export async function generateReportInvoicesPDFAPI(report_data) {
+    const URL_REPORT_PDF = `${API_BASE}invoicesReport/`;
+
+    try {
+        const response = await axios.get(URL_REPORT_PDF, {
+            params: report_data,
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            responseType: "blob",
+        });
+
+        return response.data;
+    } catch (error) {
+        const data = error.response?.data;
+
+        if (data instanceof Blob) {
+            console.error(
+                "Réponse d'erreur Django :",
+                await data.text()
+            );
+        } else {
+            console.error("Erreur API :", data || error.message);
+        }
+
+        throw error;
+    }
+}
+
 // fetch users online
 export async function fetchConnectionHistory(){
     const LIMIT = 200;
